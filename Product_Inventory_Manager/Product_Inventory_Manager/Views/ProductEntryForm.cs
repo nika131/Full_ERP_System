@@ -70,5 +70,10 @@ namespace Product_Inventory_Manager
         {
             _presenter.showInitializationData(this.initialCategoryId, this.initialSupplierId);
         }
+
+        private void cbCategory_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

@@ -79,7 +79,12 @@ namespace Product_Inventory_Manager.Product_Inventory_Manager.Views
 
         private void MainShell_Load(object sender, EventArgs e)
         {
-            btnInventory_Click(this, EventArgs.Empty);
+            btnDashboard_Click(this, EventArgs.Empty);
+        }
+
+        private void btnDashboard_Click(object sender, EventArgs e)
+        {
+            openModule(new DashboardForm(), "Bussines Overview");
         }
     }
 }
