@@ -20,5 +20,21 @@ namespace Product_Inventory_Manager.Views.Interfaces
 
         void showError(string message);
         bool confirmDelete(string productName);
+
+        int productId { get; set; }
+        string productName { get; set; }
+        decimal productPrice { get; set; }
+        int productQuantity { get; set; }
+        int categoryId { get; set; }
+        int initialCategoryId { get; set; }
+        decimal costPrice { get; set; }
+        int supplierId { get; set; }
+        int soldQty { get; set; }
+        string transactionType { get; set; }
+
+        void showMessage(string message);
+        void loadCategories(DataTable categories);
+
+        void loadSuppliers(DataTable suppliers);
     }
 }

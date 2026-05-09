@@ -21,6 +21,9 @@ namespace Product_Inventory_Manager.Presenters
         {
             _view = view;
             _repository = repository;
+
+            _view.loadCategories(_repository.getCategories());
+            _view.loadSuppliers(_repository.getSuppliers());
         }
 
         public void refreshData()
@@ -91,6 +94,79 @@ namespace Product_Inventory_Manager.Presenters
                 {
                     _view.showError(ex.Message);
                 }
+            }
+        }
+
+        public void makeTransaction()
+        {
+            if (string.IsNullOrWhiteSpace(_view.transactionType))
+            {
+                _view.showMessage("Transaction Type is Required");
+                return;
+            }
+
+            if (_view.productId <= 0)
+            {
+                _view.showMessage("Please select a Product.");
+                return;
+            }
+
+            if (_view.soldQty <= 0)
+            {
+                _view.showMessage("Sold quantity must be greater than zero.");
+                return;
+            }
+            int finalqty = _view.transactionType == "OUT" ? (_view.soldQty * -1) : _view.soldQty;
+            try
+            {
+                _repository.makeTransaction(
+                    _view.productId,
+                    _view.transactionType,
+                    finalqty
+                );
+            }
+            catch (Exception ex)
+            {
+                _view.showMessage(ex.Message);
+            }
+        }
+
+        public void saveProduct()
+        {
+            if (string.IsNullOrWhiteSpace(_view.productName))
+            {
+                _view.showMessage("Product Name is Required");
+                return;
+            }
+
+            if (_view.categoryId <= 0)
+            {
+                _view.showMessage("Please select a category.");
+                return;
+            }
+
+            if (_view.productPrice <= 0)
+            {
+                _view.showMessage("Price must be greater than zero.");
+                return;
+            }
+
+            try
+            {
+                _repository.upSert(
+                    _view.productId,
+                    _view.productName,
+                    _view.categoryId,
+                    _view.productQuantity,
+                    _view.productPrice,
+                    _view.costPrice,
+                    _view.supplierId
+                );
+
+            }
+            catch (Exception ex)
+            {
+                _view.showMessage(ex.Message);
             }
         }
     }

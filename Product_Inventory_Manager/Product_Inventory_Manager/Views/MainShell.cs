@@ -86,5 +86,10 @@ namespace Product_Inventory_Manager.Product_Inventory_Manager.Views
         {
             openModule(new DashboardForm(), "Bussines Overview");
         }
+
+        private void btnReports_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

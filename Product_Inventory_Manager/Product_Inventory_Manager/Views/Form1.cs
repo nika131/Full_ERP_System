@@ -21,12 +21,20 @@ namespace Product_Inventory_Manager
         public Form1()
         {
             InitializeComponent();
+
+            dgvProducts.AutoGenerateColumns = false;
+            dgvProducts.AllowUserToAddRows = false;
+
             dgvProducts.AutoGenerateColumns = false;
             _presenter = new MainPresenter(this, new ProductRepository());
             _presenter.refreshData();
             this.dgvProducts.CellFormatting += new DataGridViewCellFormattingEventHandler(this.dgvProducts_CellFormatting);
+
+            this.dgvProducts.MouseDown += new MouseEventHandler(this.dgvProducts_MouseDown);
+            this.Click += new EventHandler(this.Form1_Click);
         }
 
+        // --- GRID & LABELS ---
         public DataTable gridDataSource { set => dgvProducts.DataSource = value; }
         public string totalItemsText { set => lblTotalItems.Text = value; }
         public string totalValueText { set => lblTotalValue.Text = value; }
@@ -34,54 +42,61 @@ namespace Product_Inventory_Manager
         public string lowStockText { set => lblLowStock.Text = value; }
         public Color lowStockColor { set => lblLowStock.ForeColor = value; }
 
+        // --- PRODUCT METADATA (For saveProduct) ---
+        public int productId
+        {
+            get => int.TryParse(txtId.Text, out int id) ? id : 0;
+            set => txtId.Text = value.ToString();
+        }
+        public string productName { get => txtName.Text; set => txtName.Text = value; }
+        public decimal productPrice { get => numPrice.Value; set => numPrice.Value = value; }
+        public decimal costPrice { get => numCostPrice.Value; set => numCostPrice.Value = value; }
+
+        // Categories & Suppliers
+        private int _initialCatId;
+        public int initialCategoryId { get => _initialCatId; set => _initialCatId = value; }
+        public int categoryId
+        {
+            get => cbCategory.SelectedValue != null ? Convert.ToInt32(cbCategory.SelectedValue) : _initialCatId;
+            set => cbCategory.SelectedValue = value;
+        }
+
+        private int _initialSupId;
+        public int initialSupplierId { get => _initialSupId; set => _initialSupId = value; }
+        public int supplierId
+        {
+            get => cbSupplier.SelectedValue != null ? Convert.ToInt32(cbSupplier.SelectedValue) : _initialSupId;
+            set => cbSupplier.SelectedValue = value;
+        }
+
+        // --- TRANSACTION DATA ---
+        public int productQuantity { get => (int)numQuantity.Value; set => numQuantity.Value = value; }
+
+        public int soldQty { get => (int)numSell.Value; set => numSell.Value = value; }
+        public string transactionType
+        {
+            get => cbTransaction.SelectedItem?.ToString();
+            set => cbTransaction.SelectedItem = value;
+        }
+
+
+
         public void showError(string message) => MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        
-        
-        
+
+        public void showMessage(string message) => MessageBox.Show(message);
+
         private void txtSearch_TextChanged_1(object sender, EventArgs e)
         {
             _presenter.search(txtSearch.Text);
         }
 
-        private void btnAdd_Click(object sender, EventArgs e)
-        {
-            using (var Form = new ProductEntryForm())
-            {
-                Form.productId = 0;
-                if (Form.ShowDialog() == DialogResult.OK)
-                {
-                    _presenter.refreshData();
-                }
-            }
-        }
-        private void btnEdit_Click(object sender, EventArgs e)
-        {
-            if (dgvProducts.CurrentRow != null)
-            {
-                using (var form = new ProductEntryForm())
-                {
-                    var row = dgvProducts.CurrentRow;
-
-                    form.productId = (int)row.Cells["ProductId"].Value;
-                    form.productName = row.Cells["ProductName"].Value.ToString();
-                    form.productPrice = (decimal)row.Cells["ProductPrice"].Value;
-                    form.productQuantity = (int)row.Cells["Quantity"].Value;
-                    form.initialCategoryId = (int)row.Cells["CategoryId"].Value;
-
-                    if (form.ShowDialog() == DialogResult.OK)
-                    {
-                        _presenter.refreshData();
-
-                    }
-                }
-            }
-        }
         public bool confirmDelete(string productName)
         {
             return MessageBox.Show($"Are you sure you want to delete {productName}?",
                 "Confirm Delete", MessageBoxButtons.YesNo) == DialogResult.Yes;
         }
-        private void btnDelete_Click(object sender, EventArgs e)
+
+        private void btnDelete_Click_1(object sender, EventArgs e)
         {
             if (dgvProducts.CurrentRow != null)
             {
@@ -113,238 +128,109 @@ namespace Product_Inventory_Manager
             }
         }
 
-
-
-
-        private void InitializeComponent()
+        private void dgvProducts_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            this.dgvProducts = new System.Windows.Forms.DataGridView();
-            this.ProductId = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.ProductName = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Category = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.CategoryId = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.ProductPrice = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Quantity = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.txtSearch = new System.Windows.Forms.TextBox();
-            this.btnAdd = new System.Windows.Forms.Button();
-            this.btnEdit = new System.Windows.Forms.Button();
-            this.btnDelete = new System.Windows.Forms.Button();
-            this.label1 = new System.Windows.Forms.Label();
-            this.lblTotalItems = new System.Windows.Forms.Label();
-            this.lblTotalValue = new System.Windows.Forms.Label();
-            this.lblLowStock = new System.Windows.Forms.Label();
-            this.lblTotalProfit = new System.Windows.Forms.Label();
-            this.btnSupplierView = new System.Windows.Forms.Button();
-            this.btnHomePage = new System.Windows.Forms.Button();
-            ((System.ComponentModel.ISupportInitialize)(this.dgvProducts)).BeginInit();
-            this.SuspendLayout();
-            // 
-            // dgvProducts
-            // 
-            this.dgvProducts.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvProducts.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.ProductId,
-            this.ProductName,
-            this.Category,
-            this.CategoryId,
-            this.ProductPrice,
-            this.Quantity});
-            this.dgvProducts.Location = new System.Drawing.Point(12, 19);
-            this.dgvProducts.Name = "dgvProducts";
-            this.dgvProducts.RowHeadersWidth = 51;
-            this.dgvProducts.RowTemplate.Height = 24;
-            this.dgvProducts.Size = new System.Drawing.Size(802, 408);
-            this.dgvProducts.TabIndex = 0;
-            this.dgvProducts.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvProducts_CellContentClick);
-            // 
-            // ProductId
-            // 
-            this.ProductId.DataPropertyName = "ProductId";
-            this.ProductId.HeaderText = "ProductId";
-            this.ProductId.MinimumWidth = 6;
-            this.ProductId.Name = "ProductId";
-            this.ProductId.Width = 125;
-            // 
-            // ProductName
-            // 
-            this.ProductName.DataPropertyName = "ProductName";
-            this.ProductName.HeaderText = "ProductName";
-            this.ProductName.MinimumWidth = 6;
-            this.ProductName.Name = "ProductName";
-            this.ProductName.Width = 125;
-            // 
-            // Category
-            // 
-            this.Category.DataPropertyName = "Category";
-            this.Category.HeaderText = "Category";
-            this.Category.MinimumWidth = 6;
-            this.Category.Name = "Category";
-            this.Category.Width = 125;
-            // 
-            // CategoryId
-            // 
-            this.CategoryId.DataPropertyName = "CategoryId";
-            this.CategoryId.HeaderText = "CategoryId";
-            this.CategoryId.MinimumWidth = 6;
-            this.CategoryId.Name = "CategoryId";
-            this.CategoryId.Width = 125;
-            // 
-            // ProductPrice
-            // 
-            this.ProductPrice.DataPropertyName = "ProductPrice";
-            this.ProductPrice.HeaderText = "ProductPrice";
-            this.ProductPrice.MinimumWidth = 6;
-            this.ProductPrice.Name = "ProductPrice";
-            this.ProductPrice.Width = 125;
-            // 
-            // Quantity
-            // 
-            this.Quantity.DataPropertyName = "Quantity";
-            this.Quantity.HeaderText = "Quantity";
-            this.Quantity.MinimumWidth = 6;
-            this.Quantity.Name = "Quantity";
-            this.Quantity.Width = 125;
-            // 
-            // txtSearch
-            // 
-            this.txtSearch.Location = new System.Drawing.Point(838, 41);
-            this.txtSearch.Name = "txtSearch";
-            this.txtSearch.Size = new System.Drawing.Size(208, 22);
-            this.txtSearch.TabIndex = 2;
-            this.txtSearch.TextChanged += new System.EventHandler(this.txtSearch_TextChanged_1);
-            // 
-            // btnAdd
-            // 
-            this.btnAdd.Location = new System.Drawing.Point(838, 95);
-            this.btnAdd.Name = "btnAdd";
-            this.btnAdd.Size = new System.Drawing.Size(117, 23);
-            this.btnAdd.TabIndex = 3;
-            this.btnAdd.Text = "btnAdd";
-            this.btnAdd.UseVisualStyleBackColor = true;
-            this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
-            // 
-            // btnEdit
-            // 
-            this.btnEdit.Location = new System.Drawing.Point(962, 95);
-            this.btnEdit.Name = "btnEdit";
-            this.btnEdit.Size = new System.Drawing.Size(117, 23);
-            this.btnEdit.TabIndex = 4;
-            this.btnEdit.Text = "btnEdit";
-            this.btnEdit.UseVisualStyleBackColor = true;
-            this.btnEdit.Click += new System.EventHandler(this.btnEdit_Click);
-            // 
-            // btnDelete
-            // 
-            this.btnDelete.Location = new System.Drawing.Point(838, 141);
-            this.btnDelete.Name = "btnDelete";
-            this.btnDelete.Size = new System.Drawing.Size(117, 23);
-            this.btnDelete.TabIndex = 5;
-            this.btnDelete.Text = "btnDelete";
-            this.btnDelete.UseVisualStyleBackColor = true;
-            this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(838, 19);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(96, 16);
-            this.label1.TabIndex = 6;
-            this.label1.Text = "search product";
-            // 
-            // lblTotalItems
-            // 
-            this.lblTotalItems.AutoSize = true;
-            this.lblTotalItems.Location = new System.Drawing.Point(26, 520);
-            this.lblTotalItems.Name = "lblTotalItems";
-            this.lblTotalItems.Size = new System.Drawing.Size(44, 16);
-            this.lblTotalItems.TabIndex = 7;
-            this.lblTotalItems.Text = "label2";
-            // 
-            // lblTotalValue
-            // 
-            this.lblTotalValue.AutoSize = true;
-            this.lblTotalValue.Location = new System.Drawing.Point(183, 520);
-            this.lblTotalValue.Name = "lblTotalValue";
-            this.lblTotalValue.Size = new System.Drawing.Size(44, 16);
-            this.lblTotalValue.TabIndex = 8;
-            this.lblTotalValue.Text = "label3";
-            // 
-            // lblLowStock
-            // 
-            this.lblLowStock.AutoSize = true;
-            this.lblLowStock.Location = new System.Drawing.Point(518, 520);
-            this.lblLowStock.Name = "lblLowStock";
-            this.lblLowStock.Size = new System.Drawing.Size(44, 16);
-            this.lblLowStock.TabIndex = 9;
-            this.lblLowStock.Text = "label4";
-            // 
-            // lblTotalProfit
-            // 
-            this.lblTotalProfit.AutoSize = true;
-            this.lblTotalProfit.Location = new System.Drawing.Point(333, 520);
-            this.lblTotalProfit.Name = "lblTotalProfit";
-            this.lblTotalProfit.Size = new System.Drawing.Size(44, 16);
-            this.lblTotalProfit.TabIndex = 10;
-            this.lblTotalProfit.Text = "label4";
-            // 
-            // btnSupplierView
-            // 
-            this.btnSupplierView.Location = new System.Drawing.Point(838, 281);
-            this.btnSupplierView.Name = "btnSupplierView";
-            this.btnSupplierView.Size = new System.Drawing.Size(122, 38);
-            this.btnSupplierView.TabIndex = 11;
-            this.btnSupplierView.Text = "Supplieres";
-            this.btnSupplierView.UseVisualStyleBackColor = true;
-            this.btnSupplierView.Click += new System.EventHandler(this.btnSupplierView_Click);
-            // 
-            // btnHomePage
-            // 
-            this.btnHomePage.Location = new System.Drawing.Point(841, 325);
-            this.btnHomePage.Name = "btnHomePage";
-            this.btnHomePage.Size = new System.Drawing.Size(122, 38);
-            this.btnHomePage.TabIndex = 12;
-            this.btnHomePage.Text = "HomePage";
-            this.btnHomePage.UseVisualStyleBackColor = true;
-            this.btnHomePage.Click += new System.EventHandler(this.btnHomePage_Click);
-            // 
-            // Form1
-            // 
-            this.ClientSize = new System.Drawing.Size(1091, 671);
-            this.Controls.Add(this.btnHomePage);
-            this.Controls.Add(this.btnSupplierView);
-            this.Controls.Add(this.lblTotalProfit);
-            this.Controls.Add(this.lblLowStock);
-            this.Controls.Add(this.lblTotalValue);
-            this.Controls.Add(this.lblTotalItems);
-            this.Controls.Add(this.label1);
-            this.Controls.Add(this.btnDelete);
-            this.Controls.Add(this.btnEdit);
-            this.Controls.Add(this.btnAdd);
-            this.Controls.Add(this.txtSearch);
-            this.Controls.Add(this.dgvProducts);
-            this.Name = "Form1";
-            ((System.ComponentModel.ISupportInitialize)(this.dgvProducts)).EndInit();
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            if (e.RowIndex >= 0)
+            {
+                DataGridViewRow row = dgvProducts.Rows[e.RowIndex];
 
+                if (row.IsNewRow) return;
+
+                txtId.Text = row.Cells["ProductId"].Value.ToString();
+                txtName.Text = row.Cells["ProductName"].Value.ToString();
+                numPrice.Value = (decimal)row.Cells["ProductPrice"].Value;
+                numQuantity.Value = (int)row.Cells["Quantity"].Value;
+                numCostPrice.Value = (decimal)row.Cells["CostPrice"].Value;
+                cbCategory.SelectedValue = Convert.ToInt32(row.Cells["CategoryId"].Value);
+                cbSupplier.SelectedValue = Convert.ToInt32(row.Cells["SupplierId"].Value);
+            }
+            else
+            {
+                clearInputFields();
+            }
         }
 
-        private void dgvProducts_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        public void clearInputFields()
         {
-
+            dgvProducts.CurrentCell = null;
+            txtId.Text = "";
+            txtName.Text = "";
+            numPrice.Value = 0;
+            numCostPrice.Value = 0;
+            numQuantity.Value = 0;
+            cbCategory.SelectedIndex = -1;
+            cbSupplier.SelectedIndex = -1;
         }
 
-        private void btnSupplierView_Click(object sender, EventArgs e)
+        private void dgvProducts_MouseDown(object sender, MouseEventArgs e)
         {
-            SupplierForm supplierForm = new SupplierForm();
-            supplierForm.ShowDialog();
+            DataGridView.HitTestInfo hit = dgvProducts.HitTest(e.X, e.Y);
+
+            if (hit.Type == DataGridViewHitTestType.None)
+            {
+                dgvProducts.ClearSelection();
+                clearInputFields();
+            }
         }
 
-        private void btnHomePage_Click(object sender, EventArgs e)
+        private void Form1_Click(object sender, EventArgs e)
         {
-            MainShell mainShell = new MainShell();
-            mainShell.ShowDialog();
+            dgvProducts.ClearSelection();
+            clearInputFields();
         }
+
+
+        private void btnSave_Click(object sender, EventArgs e)
+        {
+            string action = cbTransaction.SelectedItem?.ToString();
+
+            if (string.IsNullOrEmpty(action))
+            {
+                showMessage("Please select an action from the dropdown first.");
+                return;
+            }
+
+            if (action == "New Product")
+            {
+                txtId.Text = "0";
+                _presenter.saveProduct();
+                _presenter.refreshData();
+                clearInputFields(); 
+            }
+            else if (action == "Update Details")
+            {
+                _presenter.saveProduct();
+                _presenter.refreshData();
+            }
+            else if (action == "IN" || action == "OUT" || action == "ADJ")
+            {
+                _presenter.makeTransaction();
+                _presenter.refreshData();
+                clearInputFields();
+            }
+        }
+
+        private void cbTransaction_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cbTransaction.SelectedItem?.ToString() == "New Product")
+            {
+                clearInputFields();
+            }
+        }
+
+        public void loadCategories(DataTable categories)
+        {
+            cbCategory.DataSource = categories;
+            cbCategory.DisplayMember = "Name";
+            cbCategory.ValueMember = "CategoryId";
+        }
+
+        public void loadSuppliers(DataTable suppliers)
+        {
+            cbSupplier.DataSource = suppliers;
+            cbSupplier.DisplayMember = "CompanyName";
+            cbSupplier.ValueMember = "SupplierId";
+        }
+
     }
 }

@@ -31,6 +31,17 @@ namespace Product_Inventory_Manager.Repositories
             DatabaseHelper.ExecuteNonQuery("sp_UpsertProduct", args);
         }
 
+        public void makeTransaction(int productId, string transactionType, int qty)
+        {
+            var args = new Dictionary<string, object>
+            {
+                { "@productId", productId },
+                { "@transactionType", transactionType },
+                { "@qty", qty }
+            };
+            DatabaseHelper.ExecuteNonQuery("sp_MakeTransaction", args);
+        }
+
         public void delete(int id) =>
             DatabaseHelper.ExecuteNonQuery("sp_DeleteProduct", new Dictionary<string, object> { { "@productId", id } });
 

@@ -69,7 +69,6 @@
     </Compile>
     <Compile Include="Product_Inventory_Manager\Views\Interfaces\IDashboardView.cs" />
     <Compile Include="Product_Inventory_Manager\Views\Interfaces\IMainView.cs" />
-    <Compile Include="Product_Inventory_Manager\Views\Interfaces\IProductEntryView.cs" />
     <Compile Include="Product_Inventory_Manager\Repositories\IProductRepository.cs" />
     <Compile Include="Product_Inventory_Manager\Presenters\MainPresenter.cs" />
     <Compile Include="Product_Inventory_Manager\Views\Interfaces\ISupplierView.cs" />
@@ -79,13 +78,6 @@
     <Compile Include="Product_Inventory_Manager\Views\MainShell.Designer.cs">
       <DependentUpon>MainShell.cs</DependentUpon>
     </Compile>
-    <Compile Include="Product_Inventory_Manager\Views\ProductEntryForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Product_Inventory_Manager\Views\ProductEntryForm.Designer.cs">
-      <DependentUpon>ProductEntryForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Product_Inventory_Manager\Presenters\ProductEntryPresenter.cs" />
     <Compile Include="Product_Inventory_Manager\Repositories\ProductRepository.cs" />
     <Compile Include="Product_Inventory_Manager\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -103,9 +95,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Product_Inventory_Manager\Views\MainShell.resx">
       <DependentUpon>MainShell.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Product_Inventory_Manager\Views\ProductEntryForm.resx">
-      <DependentUpon>ProductEntryForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Product_Inventory_Manager\Views\SupplierForm.resx">
       <DependentUpon>SupplierForm.cs</DependentUpon>

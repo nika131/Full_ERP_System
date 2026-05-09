@@ -151,6 +151,7 @@
             this.tbCompName.Name = "tbCompName";
             this.tbCompName.Size = new System.Drawing.Size(186, 22);
             this.tbCompName.TabIndex = 5;
+            this.tbCompName.TextChanged += new System.EventHandler(this.tbCompName_TextChanged);
             // 
             // tbContactName
             // 
@@ -167,6 +168,7 @@
             this.label4.Size = new System.Drawing.Size(102, 16);
             this.label4.TabIndex = 7;
             this.label4.Text = "Company name";
+            this.label4.Click += new System.EventHandler(this.label4_Click);
             // 
             // label5
             // 
