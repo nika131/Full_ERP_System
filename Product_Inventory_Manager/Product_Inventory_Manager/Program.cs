@@ -20,6 +20,8 @@ namespace Product_Inventory_Manager
                 MessageBox.Show("A Critical Error Has Occured" + e.Exception.Message);
             };
 
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
             Application.Run(new MainShell());
         }
     }

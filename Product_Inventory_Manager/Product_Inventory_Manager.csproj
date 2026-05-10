@@ -94,6 +94,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Product_Inventory_Manager\Data\DatabaseHelper.cs" />
+    <Compile Include="Product_Inventory_Manager\Models\InvoiceModel.cs" />
     <Compile Include="Product_Inventory_Manager\Presenters\DashboardPresenter.cs" />
     <Compile Include="Product_Inventory_Manager\Presenters\ReportPresenter.cs" />
     <Compile Include="Product_Inventory_Manager\Presenters\SupplierPresenter.cs" />
@@ -102,6 +103,7 @@
     <Compile Include="Product_Inventory_Manager\Repositories\ReportRepository.cs" />
     <Compile Include="Product_Inventory_Manager\Repositories\SupplierRepository.cs" />
     <Compile Include="Product_Inventory_Manager\Services\ExportService.cs" />
+    <Compile Include="Product_Inventory_Manager\Services\PdfExportService.cs" />
     <Compile Include="Product_Inventory_Manager\Views\DashboardForm.cs">
       <SubType>Form</SubType>
     </Compile>
