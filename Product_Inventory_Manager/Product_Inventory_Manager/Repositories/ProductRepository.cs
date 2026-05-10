@@ -31,13 +31,15 @@ namespace Product_Inventory_Manager.Repositories
             DatabaseHelper.ExecuteNonQuery("sp_UpsertProduct", args);
         }
 
-        public void makeTransaction(int productId, string transactionType, int qty)
+        public void makeTransaction(int productId, int SupplierId, string transactionType, int qty, decimal Amount)
         {
             var args = new Dictionary<string, object>
             {
                 { "@productId", productId },
+                { "@SupplierId",  SupplierId },
                 { "@transactionType", transactionType },
-                { "@qty", qty }
+                { "@qty", qty },
+                { "@Amount", Amount }
             };
             DatabaseHelper.ExecuteNonQuery("sp_MakeTransaction", args);
         }

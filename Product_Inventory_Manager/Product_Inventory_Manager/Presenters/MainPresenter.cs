@@ -117,12 +117,16 @@ namespace Product_Inventory_Manager.Presenters
                 return;
             }
             int finalqty = _view.transactionType == "OUT" ? (_view.soldQty * -1) : _view.soldQty;
+            decimal unitPrice = _view.transactionType == "OUT" ? _view.productPrice : _view.costPrice;
+            decimal Amount = unitPrice * _view.soldQty;
             try
             {
                 _repository.makeTransaction(
                     _view.productId,
+                    _view.supplierId,
                     _view.transactionType,
-                    finalqty
+                    finalqty,
+                    Amount
                 );
             }
             catch (Exception ex)

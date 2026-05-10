@@ -89,7 +89,7 @@ namespace Product_Inventory_Manager.Product_Inventory_Manager.Views
 
         private void btnReports_Click(object sender, EventArgs e)
         {
-
+            openModule(new ReportsForm(), "Reports");
         }
     }
 }

@@ -25,7 +25,6 @@ namespace Product_Inventory_Manager
             dgvProducts.AutoGenerateColumns = false;
             dgvProducts.AllowUserToAddRows = false;
 
-            dgvProducts.AutoGenerateColumns = false;
             _presenter = new MainPresenter(this, new ProductRepository());
             _presenter.refreshData();
             this.dgvProducts.CellFormatting += new DataGridViewCellFormattingEventHandler(this.dgvProducts_CellFormatting);
@@ -232,5 +231,9 @@ namespace Product_Inventory_Manager
             cbSupplier.ValueMember = "SupplierId";
         }
 
+        private void dgvProducts_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
     }
 }
