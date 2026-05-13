@@ -72,7 +72,7 @@ namespace NexusERP.Infrastructure.Repositories
             DatabaseHelper.ExecuteNonQuery("sp_UpsertProduct", args);
         }
 
-        public void MakeTransaction(int productId, int SupplierId, string transactionType, int qty, decimal Amount)
+        public void MakeTransaction(int productId, int SupplierId, string transactionType, int qty, decimal Amount, decimal profit)
         {
             var args = new Dictionary<string, object>
             {
@@ -80,7 +80,8 @@ namespace NexusERP.Infrastructure.Repositories
                 { "@SupplierId",  SupplierId },
                 { "@transactionType", transactionType },
                 { "@qty", qty },
-                { "@Amount", Amount }
+                { "@Amount", Amount },
+                { "@profit",  profit }
             };
             DatabaseHelper.ExecuteNonQuery("sp_MakeTransaction", args);
         }
@@ -101,7 +102,7 @@ namespace NexusERP.Infrastructure.Repositories
                 categories.Add(new Category
                 {
                     CategoryId = Convert.ToInt32(row["CategoryId"]),
-                    CategoryName = row["CategoryName"] == DBNull.Value ? string.Empty : row["CategoryName"].ToString()!
+                    CategoryName = row["Name"] == DBNull.Value ? string.Empty : row["Name"].ToString()!
                 });
             }
             return categories;

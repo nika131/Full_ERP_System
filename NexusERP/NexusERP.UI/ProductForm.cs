@@ -138,21 +138,21 @@ namespace NexusERP.UI
 
                 if (row.IsNewRow) return;
 
-                txtId.Text = row.Cells["colProductId"].Value.ToString();
-                txtName.Text = row.Cells["colProductName"].Value.ToString();
-                numPrice.Value = (decimal)row.Cells["colProductPrice"].Value;
-                numcolQuantity.Value = (int)row.Cells["colQuantity"].Value;
-                numcolCostPrice.Value = (decimal)row.Cells["colCostPrice"].Value;
-                cbCategory.SelectedValue = Convert.ToInt32(row.Cells["colCategoryId"].Value);
-                cbSupplier.SelectedValue = Convert.ToInt32(row.Cells["colSupplierId"].Value);
+                txtId.Text = row.Cells["ProductId"].Value.ToString();
+                txtName.Text = row.Cells["ProductName"].Value.ToString();
+                numPrice.Value = (decimal)row.Cells["ProductPrice"].Value;
+                numcolQuantity.Value = (int)row.Cells["Quantity"].Value;
+                numcolCostPrice.Value = (decimal)row.Cells["CostPrice"].Value;
+                cbCategory.SelectedValue = Convert.ToInt32(row.Cells["CategoryId"].Value);
+                cbSupplier.SelectedValue = Convert.ToInt32(row.Cells["SupplierId"].Value);
             }
             else
             {
-                clearInputFields();
+                ClearInputFields();
             }
         }
 
-        public void clearInputFields()
+        public void ClearInputFields()
         {
             dgvProducts.CurrentCell = null;
             txtId.Text = "";
@@ -171,14 +171,14 @@ namespace NexusERP.UI
             if (hit.Type == DataGridViewHitTestType.None)
             {
                 dgvProducts.ClearSelection();
-                clearInputFields();
+                ClearInputFields();
             }
         }
 
         private void Form1_Click(object sender, EventArgs e)
         {
             dgvProducts.ClearSelection();
-            clearInputFields();
+            ClearInputFields();
         }
 
 
@@ -197,12 +197,12 @@ namespace NexusERP.UI
                 if (action == "New Product") txtId.Text = "0";
 
                 _presenter.SaveProduct();
-                clearInputFields();
+                ClearInputFields();
             }
             else if (action == "IN" || action == "OUT" || action == "ADJ")
             {
                 _presenter.MakeTransaction();
-                clearInputFields();
+                ClearInputFields();
             }
         }
 
@@ -210,7 +210,7 @@ namespace NexusERP.UI
         {
             if (cbTransaction.SelectedItem?.ToString() == "New Product")
             {
-                clearInputFields();
+                ClearInputFields();
             }
         }
 
@@ -218,7 +218,7 @@ namespace NexusERP.UI
         {
             cbCategory.DataSource = null;
 
-            cbCategory.DisplayMember = "Category";
+            cbCategory.DisplayMember = "CategoryName";
             cbCategory.ValueMember = "CategoryId";
 
             if (categories != null && categories.Any())

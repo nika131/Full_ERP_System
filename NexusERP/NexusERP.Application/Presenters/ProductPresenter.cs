@@ -181,6 +181,7 @@ namespace NexusERP.Application.Presenters
             int finalQty = _view.TransactionType == "OUT" ? (_view.SoldQty * -1) : _view.SoldQty;
             decimal unitPrice = _view.TransactionType == "OUT" ? _view.ProductPrice : _view.CostPrice;
             decimal totalAmount = unitPrice * _view.SoldQty;
+            decimal profit = _view.TransactionType == "OUT" ? totalAmount - (_view.CostPrice * _view.SoldQty) : 0;
 
             try
             {
@@ -189,7 +190,8 @@ namespace NexusERP.Application.Presenters
                     _view.SupplierId,
                     _view.TransactionType,
                     finalQty,
-                    totalAmount
+                    totalAmount,
+                    profit
                 );
 
                 _view.ShowMessage("Transaction logged successfully.");

@@ -17,6 +17,7 @@ namespace NexusERP.Domain.Entities
         public TransactionType TransactionType { get; set; }
         public int Quantity { get; set; }
         public decimal Amount { get; set; }
+        public decimal Profit { get; set; }
         public DateTime TransactionDate { get; set; }
 
     }

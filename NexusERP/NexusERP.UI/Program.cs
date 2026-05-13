@@ -7,6 +7,7 @@ using NexusERP.Infrastructure.Services;
 using Product_Inventory_Manager.Product_Inventory_Manager.Views;
 using System;
 using System.Windows.Forms;
+using QuestPDF.Infrastructure;
 
 namespace NexusERP.UI
 {
@@ -17,6 +18,8 @@ namespace NexusERP.UI
         [STAThread]
         static void Main()
         {
+            QuestPDF.Settings.License = LicenseType.Evaluation;
+
             ApplicationConfiguration.Initialize();
 
             var services = new ServiceCollection();

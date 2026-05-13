@@ -28,179 +28,195 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.dgvReports = new System.Windows.Forms.DataGridView();
-            this.TransactionId = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.ProductId = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.ProductName = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Quantity = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Amount = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.SupplierName = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TransactionType = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TransactionDate = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.label1 = new System.Windows.Forms.Label();
-            this.txtSearch = new System.Windows.Forms.TextBox();
-            this.lblId = new System.Windows.Forms.Label();
-            this.txtId = new System.Windows.Forms.TextBox();
-            this.btnExportExcel = new System.Windows.Forms.Button();
-            this.btnExportPdf = new System.Windows.Forms.Button();
-            ((System.ComponentModel.ISupportInitialize)(this.dgvReports)).BeginInit();
-            this.SuspendLayout();
+            dgvReports = new DataGridView();
+            label1 = new Label();
+            txtSearch = new TextBox();
+            lblId = new Label();
+            txtId = new TextBox();
+            btnExportExcel = new Button();
+            btnExportPdf = new Button();
+            TransactionId = new DataGridViewTextBoxColumn();
+            ProductId = new DataGridViewTextBoxColumn();
+            ProductName = new DataGridViewTextBoxColumn();
+            Quantity = new DataGridViewTextBoxColumn();
+            Amount = new DataGridViewTextBoxColumn();
+            SupplierName = new DataGridViewTextBoxColumn();
+            TransactionType = new DataGridViewTextBoxColumn();
+            TransactionDate = new DataGridViewTextBoxColumn();
+            SupplierId = new DataGridViewTextBoxColumn();
+            Profit = new DataGridViewTextBoxColumn();
+            ((System.ComponentModel.ISupportInitialize)dgvReports).BeginInit();
+            SuspendLayout();
             // 
             // dgvReports
             // 
-            this.dgvReports.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvReports.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.TransactionId,
-            this.ProductId,
-            this.ProductName,
-            this.Quantity,
-            this.Amount,
-            this.SupplierName,
-            this.TransactionType,
-            this.TransactionDate});
-            this.dgvReports.Location = new System.Drawing.Point(1, 1);
-            this.dgvReports.Name = "dgvReports";
-            this.dgvReports.RowHeadersWidth = 51;
-            this.dgvReports.RowTemplate.Height = 24;
-            this.dgvReports.Size = new System.Drawing.Size(1047, 449);
-            this.dgvReports.TabIndex = 0;
-            this.dgvReports.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dgvReports_CellClick);
-            // 
-            // TransactionId
-            // 
-            this.TransactionId.DataPropertyName = "TransactionId";
-            this.TransactionId.HeaderText = "Transaction ID";
-            this.TransactionId.MinimumWidth = 6;
-            this.TransactionId.Name = "TransactionId";
-            this.TransactionId.Width = 125;
-            // 
-            // ProductId
-            // 
-            this.ProductId.DataPropertyName = "ProductId";
-            this.ProductId.HeaderText = "Product ID";
-            this.ProductId.MinimumWidth = 6;
-            this.ProductId.Name = "ProductId";
-            this.ProductId.Width = 125;
-            // 
-            // ProductName
-            // 
-            this.ProductName.DataPropertyName = "ProductName";
-            this.ProductName.HeaderText = "ProductName";
-            this.ProductName.MinimumWidth = 6;
-            this.ProductName.Name = "ProductName";
-            this.ProductName.Width = 125;
-            // 
-            // Quantity
-            // 
-            this.Quantity.DataPropertyName = "Quantity";
-            this.Quantity.HeaderText = "Quantity";
-            this.Quantity.MinimumWidth = 6;
-            this.Quantity.Name = "Quantity";
-            this.Quantity.Width = 125;
-            // 
-            // Amount
-            // 
-            this.Amount.DataPropertyName = "Amount";
-            this.Amount.HeaderText = "Amount Paid";
-            this.Amount.MinimumWidth = 6;
-            this.Amount.Name = "Amount";
-            this.Amount.Width = 125;
-            // 
-            // SupplierName
-            // 
-            this.SupplierName.DataPropertyName = "SupplierName";
-            this.SupplierName.HeaderText = "Supplier Name";
-            this.SupplierName.MinimumWidth = 6;
-            this.SupplierName.Name = "SupplierName";
-            this.SupplierName.Width = 125;
-            // 
-            // TransactionType
-            // 
-            this.TransactionType.DataPropertyName = "TransactionType";
-            this.TransactionType.HeaderText = "Transaction Type";
-            this.TransactionType.MinimumWidth = 6;
-            this.TransactionType.Name = "TransactionType";
-            this.TransactionType.Width = 125;
-            // 
-            // TransactionDate
-            // 
-            this.TransactionDate.DataPropertyName = "TransactionDate";
-            this.TransactionDate.HeaderText = "Transaction Date";
-            this.TransactionDate.MinimumWidth = 6;
-            this.TransactionDate.Name = "TransactionDate";
-            this.TransactionDate.Width = 125;
+            dgvReports.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvReports.Columns.AddRange(new DataGridViewColumn[] { TransactionId, ProductId, ProductName, Quantity, Amount, SupplierName, TransactionType, TransactionDate, SupplierId, Profit });
+            dgvReports.Location = new Point(1, 1);
+            dgvReports.Margin = new Padding(3, 4, 3, 4);
+            dgvReports.Name = "dgvReports";
+            dgvReports.RowHeadersWidth = 51;
+            dgvReports.RowTemplate.Height = 24;
+            dgvReports.Size = new Size(1047, 561);
+            dgvReports.TabIndex = 0;
+            dgvReports.CellClick += dgvReports_CellClick;
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(1138, 12);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(96, 16);
-            this.label1.TabIndex = 8;
-            this.label1.Text = "search product";
+            label1.AutoSize = true;
+            label1.Location = new Point(1138, 15);
+            label1.Name = "label1";
+            label1.Size = new Size(107, 20);
+            label1.TabIndex = 8;
+            label1.Text = "search product";
             // 
             // txtSearch
             // 
-            this.txtSearch.Location = new System.Drawing.Point(1138, 34);
-            this.txtSearch.Name = "txtSearch";
-            this.txtSearch.Size = new System.Drawing.Size(208, 22);
-            this.txtSearch.TabIndex = 7;
+            txtSearch.Location = new Point(1138, 42);
+            txtSearch.Margin = new Padding(3, 4, 3, 4);
+            txtSearch.Name = "txtSearch";
+            txtSearch.Size = new Size(208, 27);
+            txtSearch.TabIndex = 7;
             // 
             // lblId
             // 
-            this.lblId.AutoSize = true;
-            this.lblId.Location = new System.Drawing.Point(1140, 78);
-            this.lblId.Name = "lblId";
-            this.lblId.Size = new System.Drawing.Size(109, 16);
-            this.lblId.TabIndex = 35;
-            this.lblId.Text = "Current Report ID";
+            lblId.AutoSize = true;
+            lblId.Location = new Point(1140, 98);
+            lblId.Name = "lblId";
+            lblId.Size = new Size(125, 20);
+            lblId.TabIndex = 35;
+            lblId.Text = "Current Report ID";
             // 
             // txtId
             // 
-            this.txtId.Location = new System.Drawing.Point(1141, 103);
-            this.txtId.Name = "txtId";
-            this.txtId.Size = new System.Drawing.Size(100, 22);
-            this.txtId.TabIndex = 34;
+            txtId.Location = new Point(1141, 129);
+            txtId.Margin = new Padding(3, 4, 3, 4);
+            txtId.Name = "txtId";
+            txtId.Size = new Size(100, 27);
+            txtId.TabIndex = 34;
             // 
             // btnExportExcel
             // 
-            this.btnExportExcel.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnExportExcel.Location = new System.Drawing.Point(1141, 157);
-            this.btnExportExcel.Name = "btnExportExcel";
-            this.btnExportExcel.Size = new System.Drawing.Size(147, 31);
-            this.btnExportExcel.TabIndex = 36;
-            this.btnExportExcel.Text = "Export to Excel";
-            this.btnExportExcel.UseVisualStyleBackColor = true;
-            this.btnExportExcel.Click += new System.EventHandler(this.btnExportExcel_Click);
+            btnExportExcel.Font = new Font("Microsoft Sans Serif", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btnExportExcel.Location = new Point(1141, 196);
+            btnExportExcel.Margin = new Padding(3, 4, 3, 4);
+            btnExportExcel.Name = "btnExportExcel";
+            btnExportExcel.Size = new Size(147, 39);
+            btnExportExcel.TabIndex = 36;
+            btnExportExcel.Text = "Export to Excel";
+            btnExportExcel.UseVisualStyleBackColor = true;
+            btnExportExcel.Click += btnExportExcel_Click;
             // 
             // btnExportPdf
             // 
-            this.btnExportPdf.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnExportPdf.Location = new System.Drawing.Point(1143, 209);
-            this.btnExportPdf.Name = "btnExportPdf";
-            this.btnExportPdf.Size = new System.Drawing.Size(147, 31);
-            this.btnExportPdf.TabIndex = 37;
-            this.btnExportPdf.Text = "Export to PDF";
-            this.btnExportPdf.UseVisualStyleBackColor = true;
-            this.btnExportPdf.Click += new System.EventHandler(this.btnExportPdf_Click);
+            btnExportPdf.Font = new Font("Microsoft Sans Serif", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btnExportPdf.Location = new Point(1143, 261);
+            btnExportPdf.Margin = new Padding(3, 4, 3, 4);
+            btnExportPdf.Name = "btnExportPdf";
+            btnExportPdf.Size = new Size(147, 39);
+            btnExportPdf.TabIndex = 37;
+            btnExportPdf.Text = "Export to PDF";
+            btnExportPdf.UseVisualStyleBackColor = true;
+            btnExportPdf.Click += btnExportPdf_Click;
+            // 
+            // TransactionId
+            // 
+            TransactionId.DataPropertyName = "TransactionId";
+            TransactionId.HeaderText = "Transaction ID";
+            TransactionId.MinimumWidth = 6;
+            TransactionId.Name = "TransactionId";
+            TransactionId.Width = 125;
+            // 
+            // ProductId
+            // 
+            ProductId.DataPropertyName = "ProductId";
+            ProductId.HeaderText = "Product ID";
+            ProductId.MinimumWidth = 6;
+            ProductId.Name = "ProductId";
+            ProductId.Width = 125;
+            // 
+            // ProductName
+            // 
+            ProductName.DataPropertyName = "ProductName";
+            ProductName.HeaderText = "ProductName";
+            ProductName.MinimumWidth = 6;
+            ProductName.Name = "ProductName";
+            ProductName.Width = 125;
+            // 
+            // Quantity
+            // 
+            Quantity.DataPropertyName = "Quantity";
+            Quantity.HeaderText = "Quantity";
+            Quantity.MinimumWidth = 6;
+            Quantity.Name = "Quantity";
+            Quantity.Width = 125;
+            // 
+            // Amount
+            // 
+            Amount.DataPropertyName = "Amount";
+            Amount.HeaderText = "Amount Paid";
+            Amount.MinimumWidth = 6;
+            Amount.Name = "Amount";
+            Amount.Width = 125;
+            // 
+            // SupplierName
+            // 
+            SupplierName.DataPropertyName = "SupplierName";
+            SupplierName.HeaderText = "Supplier Name";
+            SupplierName.MinimumWidth = 6;
+            SupplierName.Name = "SupplierName";
+            SupplierName.Width = 125;
+            // 
+            // TransactionType
+            // 
+            TransactionType.DataPropertyName = "TransactionType";
+            TransactionType.HeaderText = "Transaction Type";
+            TransactionType.MinimumWidth = 6;
+            TransactionType.Name = "TransactionType";
+            TransactionType.Width = 125;
+            // 
+            // TransactionDate
+            // 
+            TransactionDate.DataPropertyName = "TransactionDate";
+            TransactionDate.HeaderText = "Transaction Date";
+            TransactionDate.MinimumWidth = 6;
+            TransactionDate.Name = "TransactionDate";
+            TransactionDate.Width = 125;
+            // 
+            // SupplierId
+            // 
+            SupplierId.DataPropertyName = "SupplierId";
+            SupplierId.HeaderText = "Supplier Id";
+            SupplierId.MinimumWidth = 6;
+            SupplierId.Name = "SupplierId";
+            SupplierId.Width = 125;
+            // 
+            // Profit
+            // 
+            Profit.DataPropertyName = "Profit";
+            Profit.HeaderText = "Profit";
+            Profit.MinimumWidth = 6;
+            Profit.Name = "Profit";
+            Profit.Width = 125;
             // 
             // ReportsForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1391, 450);
-            this.Controls.Add(this.btnExportPdf);
-            this.Controls.Add(this.btnExportExcel);
-            this.Controls.Add(this.lblId);
-            this.Controls.Add(this.txtId);
-            this.Controls.Add(this.label1);
-            this.Controls.Add(this.txtSearch);
-            this.Controls.Add(this.dgvReports);
-            this.Name = "ReportsForm";
-            this.Text = "ReportsForm";
-            ((System.ComponentModel.ISupportInitialize)(this.dgvReports)).EndInit();
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(1391, 562);
+            Controls.Add(btnExportPdf);
+            Controls.Add(btnExportExcel);
+            Controls.Add(lblId);
+            Controls.Add(txtId);
+            Controls.Add(label1);
+            Controls.Add(txtSearch);
+            Controls.Add(dgvReports);
+            Margin = new Padding(3, 4, 3, 4);
+            Name = "ReportsForm";
+            Text = "ReportsForm";
+            ((System.ComponentModel.ISupportInitialize)dgvReports).EndInit();
+            ResumeLayout(false);
+            PerformLayout();
 
         }
 
@@ -212,14 +228,16 @@
         private System.Windows.Forms.Label lblId;
         private System.Windows.Forms.TextBox txtId;
         private System.Windows.Forms.Button btnExportExcel;
-        private System.Windows.Forms.DataGridViewTextBoxColumn TransactionId;
-        private System.Windows.Forms.DataGridViewTextBoxColumn ProductId;
-        private System.Windows.Forms.DataGridViewTextBoxColumn ProductName;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Quantity;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Amount;
-        private System.Windows.Forms.DataGridViewTextBoxColumn SupplierName;
-        private System.Windows.Forms.DataGridViewTextBoxColumn TransactionType;
-        private System.Windows.Forms.DataGridViewTextBoxColumn TransactionDate;
         private System.Windows.Forms.Button btnExportPdf;
+        private DataGridViewTextBoxColumn TransactionId;
+        private DataGridViewTextBoxColumn ProductId;
+        private DataGridViewTextBoxColumn ProductName;
+        private DataGridViewTextBoxColumn Quantity;
+        private DataGridViewTextBoxColumn Amount;
+        private DataGridViewTextBoxColumn SupplierName;
+        private DataGridViewTextBoxColumn TransactionType;
+        private DataGridViewTextBoxColumn TransactionDate;
+        private DataGridViewTextBoxColumn SupplierId;
+        private DataGridViewTextBoxColumn Profit;
     }
 }

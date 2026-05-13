@@ -25,15 +25,16 @@ namespace NexusERP.Infrastructure.Repositories
 
                 transactions.Add(new InventoryTransaction
                 {
-                    TransactionId = Convert.ToInt32(row["TransactionId"]),
-                    ProductId = Convert.ToInt32(row["ProductId"]),
-                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
+                    TransactionId = row["TransactionId"] == DBNull.Value ? 0 : Convert.ToInt32(row["TransactionId"]),
+                    ProductId = row["ProductId"] == DBNull.Value ? 0 : Convert.ToInt32(row["ProductId"]),
                     SupplierId = row["SupplierId"] == DBNull.Value ? 0 : Convert.ToInt32(row["SupplierId"]),
+                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
                     SupplierName = row["SupplierName"] == DBNull.Value ? string.Empty : row["SupplierName"].ToString()!,
                     TransactionType = parsedType,
-                    Quantity = Convert.ToInt32(row["Quantity"]),
-                    Amount = Convert.ToDecimal(row["Amount"]),
-                    TransactionDate = Convert.ToDateTime(row["TransactionDate"])
+                    Quantity = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]),
+                    Amount = row["Amount"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Amount"]),
+                    TransactionDate = row["TransactionDate"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(row["TransactionDate"]),
+                    Profit = row["Profit"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Profit"]),
                 });
             }
             return transactions;
@@ -49,15 +50,15 @@ namespace NexusERP.Infrastructure.Repositories
 
                 transactions.Add(new InventoryTransaction
                 {
-                    TransactionId = Convert.ToInt32(row["TransactionId"]),
-                    ProductId = Convert.ToInt32(row["ProductId"]),
-                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
+                    TransactionId = row["TransactionId"] == DBNull.Value ? 0 : Convert.ToInt32(row["TransactionId"]),
+                    ProductId = row["ProductId"] == DBNull.Value ? 0 : Convert.ToInt32(row["ProductId"]),
                     SupplierId = row["SupplierId"] == DBNull.Value ? 0 : Convert.ToInt32(row["SupplierId"]),
+                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
                     SupplierName = row["SupplierName"] == DBNull.Value ? string.Empty : row["SupplierName"].ToString()!,
                     TransactionType = parsedType,
-                    Quantity = Convert.ToInt32(row["Quantity"]),
-                    Amount = Convert.ToDecimal(row["Amount"]),
-                    TransactionDate = Convert.ToDateTime(row["TransactionDate"])
+                    Quantity = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]),
+                    Amount = row["Amount"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Amount"]),
+                    TransactionDate = row["TransactionDate"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(row["TransactionDate"])
                 });
             }
             return transactions;
