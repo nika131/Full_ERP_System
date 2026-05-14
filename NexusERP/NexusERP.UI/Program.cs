@@ -8,6 +8,7 @@ using Product_Inventory_Manager.Product_Inventory_Manager.Views;
 using System;
 using System.Windows.Forms;
 using QuestPDF.Infrastructure;
+using Microsoft.Extensions.Configuration;
 
 namespace NexusERP.UI
 {
@@ -30,14 +31,29 @@ namespace NexusERP.UI
             System.Windows.Forms.Application.Run(mainForm);
         }
 
+        
+
         private static void ConfigureServices(ServiceCollection services)
         {
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
+
+            var jwtSecret = config["JwtSettings:Secret"];
+
+            services.AddSingleton<IConfiguration>(config);
+
+
             services.AddTransient<IProductRepository, ProductRepository>();
             services.AddTransient<IReportRepository, ReportRepository>();
             services.AddTransient<ISupplierRepository, SupplierRepository>();
 
             services.AddTransient<IExcelExportService, ExcelExportService>();
             services.AddTransient<IPdfExportService, PdfExportService>();
+
+            services.AddTransient<IUserRepository, UserRepository>();
+            services.AddTransient<IAuthService, AuthService>();
 
             services.AddTransient<ProductPresenter>();
             services.AddTransient<ReportPresenter>();
