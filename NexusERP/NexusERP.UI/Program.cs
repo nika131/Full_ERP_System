@@ -27,8 +27,8 @@ namespace NexusERP.UI
             ConfigureServices(services);
             serviceProvider = services.BuildServiceProvider();
             
-            var mainForm = serviceProvider.GetRequiredService<MainShellForm>();
-            System.Windows.Forms.Application.Run(mainForm);
+            var LoginForm = serviceProvider.GetRequiredService<LoginForm>();
+            System.Windows.Forms.Application.Run(LoginForm);
         }
 
         
@@ -59,12 +59,14 @@ namespace NexusERP.UI
             services.AddTransient<ReportPresenter>();
             services.AddTransient<SupplierPresenter>();
             services.AddTransient<DashboardPresenter>();
+            services.AddTransient<LoginPresenter>();
 
             services.AddTransient<DashboardForm>();
             services.AddTransient<ReportsForm>();
             services.AddTransient<SupplierForm>();
             services.AddTransient<ProductForm>();
             services.AddTransient<MainShellForm>();
+            services.AddTransient<LoginForm>();
         }
     }
 }

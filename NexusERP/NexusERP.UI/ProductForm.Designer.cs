@@ -342,6 +342,7 @@ namespace NexusERP.UI
             txtId.Name = "txtId";
             txtId.Size = new Size(100, 27);
             txtId.TabIndex = 32;
+            txtId.TextChanged += txtId_TextChanged;
             // 
             // btnSave
             // 

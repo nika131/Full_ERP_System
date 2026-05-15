@@ -239,5 +239,9 @@ namespace NexusERP.UI
             }
         }
 
+        private void txtId_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
