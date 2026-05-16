@@ -18,6 +18,25 @@ namespace NexusERP.UI
         public MainShellForm()
         {
             InitializeComponent();
+
+            lblUserInfo.Text = $"{NexusERP.Domain.State.UserSession.Role} : {NexusERP.Domain.State.UserSession.FullName}";
+        
+            ApplyPageRestrictions();
+        }
+
+        private void ApplyPageRestrictions()
+        {
+            var currentRole = NexusERP.Domain.State.UserSession.Role;
+
+            if (currentRole != NexusERP.Domain.Enums.UserRole.Admin && currentRole != NexusERP.Domain.Enums.UserRole.Manager)
+            {
+                btnSuppliers.Enabled = false;
+                btnDashboard.Enabled = false;
+                btnRegister.Enabled = false;
+            }else if(currentRole != NexusERP.Domain.Enums.UserRole.Admi)
+            {
+                btnRegister.Enabled = false;
+            }
         }
 
         private void OpenModule(Form moduleForm, string title)
@@ -31,7 +50,7 @@ namespace NexusERP.UI
                 MainPanel.Controls.Remove(oldControl);
                 oldControl.Dispose();
             }
-                
+
 
             moduleForm.TopLevel = false;
             moduleForm.FormBorderStyle = FormBorderStyle.None;
@@ -96,6 +115,12 @@ namespace NexusERP.UI
         {
             var ReportsForm = Program.serviceProvider.GetRequiredService<ReportsForm>();
             OpenModule(ReportsForm, "Reports");
+        }
+
+        private void tbnRegister_Click(object sender, EventArgs e)
+        {
+            var RegisterForm = Program.serviceProvider.GetRequiredService<RegisterForm>();
+            OpenModule(RegisterForm, "Register");
         }
     }
 }

@@ -25,11 +25,11 @@ namespace NexusERP.UI
             cmbRole.DataSource = Enum.GetValues(typeof(UserRole));
         }
 
-        public string Username { get; }
-        public string Password { get; }
-        public string FullName { get; }
+        public string Username { get => txtUsername.Text; }
+        public string Password { get => txtPassword.Text; }
+        public string FullName { get => txtFullName.Text; }
 
-        public UserRole SelectedRole => (UserRole)cmbRole.SelectedItem;
+        public UserRole SelectRole => (UserRole)cmbRole.SelectedItem;
 
         public void ShowMessage(string message) => MessageBox.Show(message, "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
 

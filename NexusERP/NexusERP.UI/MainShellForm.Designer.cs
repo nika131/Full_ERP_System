@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainShellForm));
             SideBarPanel = new FlowLayoutPanel();
             panel1 = new Panel();
             label1 = new Label();
@@ -53,8 +54,10 @@
             btnReports = new Button();
             button13 = new Button();
             button14 = new Button();
+            btnRegister = new Button();
             SideBarTimer = new System.Windows.Forms.Timer(components);
             TopPanel = new Panel();
+            lblUserInfo = new Label();
             lblModuleTitle = new Label();
             MainPanel = new Panel();
             SideBarPanel.SuspendLayout();
@@ -77,6 +80,7 @@
             SideBarPanel.Controls.Add(panel4);
             SideBarPanel.Controls.Add(panel5);
             SideBarPanel.Controls.Add(panel6);
+            SideBarPanel.Controls.Add(btnRegister);
             SideBarPanel.Dock = DockStyle.Left;
             SideBarPanel.Location = new Point(0, 81);
             SideBarPanel.Margin = new Padding(3, 4, 3, 4);
@@ -434,6 +438,24 @@
             button14.TextAlign = ContentAlignment.MiddleLeft;
             button14.UseVisualStyleBackColor = true;
             // 
+            // btnRegister
+            // 
+            btnRegister.FlatStyle = FlatStyle.Flat;
+            btnRegister.Font = new Font("Verdana", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btnRegister.ForeColor = Color.White;
+            btnRegister.Image = (Image)resources.GetObject("btnRegister.Image");
+            btnRegister.ImageAlign = ContentAlignment.MiddleLeft;
+            btnRegister.Location = new Point(3, 596);
+            btnRegister.Margin = new Padding(3, 4, 3, 4);
+            btnRegister.Name = "btnRegister";
+            btnRegister.Padding = new Padding(30, 0, 0, 0);
+            btnRegister.Size = new Size(292, 109);
+            btnRegister.TabIndex = 5;
+            btnRegister.Text = "        Register";
+            btnRegister.TextAlign = ContentAlignment.MiddleLeft;
+            btnRegister.UseVisualStyleBackColor = true;
+            btnRegister.Click += tbnRegister_Click;
+            // 
             // SideBarTimer
             // 
             SideBarTimer.Interval = 10;
@@ -442,6 +464,7 @@
             // TopPanel
             // 
             TopPanel.BackColor = Color.FromArgb(23, 32, 42);
+            TopPanel.Controls.Add(lblUserInfo);
             TopPanel.Controls.Add(lblModuleTitle);
             TopPanel.Dock = DockStyle.Top;
             TopPanel.Location = new Point(0, 0);
@@ -450,6 +473,17 @@
             TopPanel.Size = new Size(1222, 81);
             TopPanel.TabIndex = 1;
             // 
+            // lblUserInfo
+            // 
+            lblUserInfo.AutoSize = true;
+            lblUserInfo.Font = new Font("Cambria", 18F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            lblUserInfo.ForeColor = Color.White;
+            lblUserInfo.Location = new Point(775, 22);
+            lblUserInfo.Name = "lblUserInfo";
+            lblUserInfo.Size = new Size(133, 36);
+            lblUserInfo.TabIndex = 6;
+            lblUserInfo.Text = "User Info";
+            // 
             // lblModuleTitle
             // 
             lblModuleTitle.AutoSize = true;
@@ -457,9 +491,9 @@
             lblModuleTitle.ForeColor = Color.White;
             lblModuleTitle.Location = new Point(20, 11);
             lblModuleTitle.Name = "lblModuleTitle";
-            lblModuleTitle.Size = new Size(94, 36);
+            lblModuleTitle.Size = new Size(171, 36);
             lblModuleTitle.TabIndex = 0;
-            lblModuleTitle.Text = "label2";
+            lblModuleTitle.Text = "PageHeader";
             // 
             // MainPanel
             // 
@@ -467,14 +501,14 @@
             MainPanel.Location = new Point(97, 81);
             MainPanel.Margin = new Padding(3, 4, 3, 4);
             MainPanel.Name = "MainPanel";
-            MainPanel.Size = new Size(1125, 705);
+            MainPanel.Size = new Size(1125, 777);
             MainPanel.TabIndex = 2;
             // 
             // MainShellForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1222, 786);
+            ClientSize = new Size(1222, 858);
             Controls.Add(MainPanel);
             Controls.Add(SideBarPanel);
             Controls.Add(TopPanel);
@@ -527,5 +561,7 @@
         private System.Windows.Forms.Panel TopPanel;
         private System.Windows.Forms.Label lblModuleTitle;
         private System.Windows.Forms.Panel MainPanel;
+        private Button btnRegister;
+        private Label lblUserInfo;
     }
 }

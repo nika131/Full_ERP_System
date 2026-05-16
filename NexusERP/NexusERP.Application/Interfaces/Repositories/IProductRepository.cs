@@ -13,7 +13,8 @@ namespace NexusERP.Application.Interfaces.Repositories
         IEnumerable<Product> GetAll();
         IEnumerable<Product> Search(string keyword);
         void UpSert(Product products);
-        void MakeTransaction(int productId, int SupplierId, string transactionType, int qty, decimal Amount, decimal profit);
+        void LogInventoryTransaction(int productId, int? SupplierId, int UserId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit);
+        void LogSystemAudit(int userId, string entityType, int entityId, string action, string chnagesMade);
         void Delete(int id);
         IEnumerable<Category> GetCategories();
         IEnumerable<Supplier> GetSuppliers();

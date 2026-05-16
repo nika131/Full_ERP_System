@@ -11,12 +11,13 @@ namespace NexusERP.Domain.Entities
     {
         public int TransactionId { get; set; }
         public int ProductId { get; set; }
-        public string ProductName { get; set; } = string.Empty;
-        public int SupplierId { get; set; }
-        public string SupplierName { get; set; } = string.Empty;
+        public int? SupplierId { get; set; }
+        public int UserId { get; set; }
         public TransactionType TransactionType { get; set; }
         public int Quantity { get; set; }
-        public decimal Amount { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalAmount {  get; set; }
+        public string SupplierName { get; set; } = string.Empty;
         public decimal Profit { get; set; }
         public DateTime TransactionDate { get; set; }
 

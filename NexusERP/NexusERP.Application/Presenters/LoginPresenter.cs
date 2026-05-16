@@ -44,8 +44,10 @@ namespace NexusERP.Application.Presenters
                 string roleClaim = jwtToken.Claims.First(c => c.Type == "role").Value;
                 string usernameClaim = jwtToken.Claims.First(c => c.Type == "unique_name").Value;
                 string FullNameClaim = jwtToken.Claims.First(c => c.Type == "given_name").Value;
+                string idClaim = jwtToken.Claims.First(c => c.Type == "newidentityfier").Value;
 
                 UserSession.JwtToken = token;
+                UserSession.UserId = int.Parse(idClaim);
                 UserSession.FullName = FullNameClaim;
                 UserSession.UserName = usernameClaim;
                 UserSession.Role = Enum.Parse<UserRole>(roleClaim);

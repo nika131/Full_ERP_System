@@ -10,6 +10,8 @@ using System.Windows.Forms;
 using NexusERP.Application.Interfaces.Views;
 using NexusERP.Application.Presenters;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Enums;
+using NexusERP.Domain.State;
 
 namespace NexusERP.UI
 {
@@ -25,11 +27,14 @@ namespace NexusERP.UI
 
             _presenter = presenter;
             _presenter.SetView(this);
-            _presenter.RefreshData();
 
             this.dgvProducts.CellFormatting += new DataGridViewCellFormattingEventHandler(this.dgvProducts_CellFormatting);
             this.dgvProducts.MouseDown += new MouseEventHandler(this.dgvProducts_MouseDown);
             this.Click += new EventHandler(this.Form1_Click);
+
+            ApplyInventoryFormRestrictions();
+
+            _presenter.RefreshData();
         }
 
         public IEnumerable<Product> GridDataSource
@@ -72,17 +77,44 @@ namespace NexusERP.UI
         }
 
         // --- TRANSACTION DATA ---
-        public int ProductQuantity { get => (int)numcolQuantity.Value; set => numcolQuantity.Value = value; }
+        public int ProductQuantity { get => (int)numQuantity.Value; set => numQuantity.Value = value; }
 
         public int SoldQty { get => (int)numSell.Value; set => numSell.Value = value; }
         public string TransactionType
         {
             get => cbTransaction.SelectedItem?.ToString();
-            set => cbTransaction.SelectedItem = value;
+            set
+            {
+                if (Enum.TryParse(typeof(TransactionAction), value, out var action))
+                    cbTransaction.SelectedItem = action;
+            }
         }
 
 
+        private void ApplyInventoryFormRestrictions()
+        {
+            var currentRole = UserSession.Role;
 
+            if (currentRole == UserRole.Cashier)
+            {
+                cbTransaction.DataSource = new[] { TransactionAction.Sale };
+                cbTransaction.SelectedItem = TransactionAction.Sale;
+
+                txtId.ReadOnly = true;
+                txtName.ReadOnly = true;
+                numPrice.ReadOnly = true;
+                numcolCostPrice.ReadOnly = true;
+                numQuantity.ReadOnly = true;
+                cbSupplier.Enabled = false;
+                cbCategory.Enabled = false;
+
+                numSell.ReadOnly = false;
+            }
+            else
+            {
+                cbTransaction.DataSource = Enum.GetValues(typeof(TransactionAction));
+            }
+        }
         public void ShowError(string message) => MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
         public void ShowMessage(string message) => MessageBox.Show(message);
@@ -141,7 +173,7 @@ namespace NexusERP.UI
                 txtId.Text = row.Cells["ProductId"].Value.ToString();
                 txtName.Text = row.Cells["ProductName"].Value.ToString();
                 numPrice.Value = (decimal)row.Cells["ProductPrice"].Value;
-                numcolQuantity.Value = (int)row.Cells["Quantity"].Value;
+                numQuantity.Value = (int)row.Cells["Quantity"].Value;
                 numcolCostPrice.Value = (decimal)row.Cells["CostPrice"].Value;
                 cbCategory.SelectedValue = Convert.ToInt32(row.Cells["CategoryId"].Value);
                 cbSupplier.SelectedValue = Convert.ToInt32(row.Cells["SupplierId"].Value);
@@ -159,7 +191,8 @@ namespace NexusERP.UI
             txtName.Text = "";
             numPrice.Value = 0;
             numcolCostPrice.Value = 0;
-            numcolQuantity.Value = 0;
+            numQuantity.Value = 0;
+            numSell.Value = 0;
             cbCategory.SelectedIndex = -1;
             cbSupplier.SelectedIndex = -1;
         }
@@ -184,24 +217,32 @@ namespace NexusERP.UI
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-            string action = cbTransaction.SelectedItem?.ToString();
-
-            if (string.IsNullOrEmpty(action))
+            if (cbTransaction.SelectedItem == null)
             {
                 ShowMessage("Please select an action from the dropdown first.");
                 return;
             }
 
-            if (action == "New Product" || action == "Update Details")
-            {
-                if (action == "New Product") txtId.Text = "0";
+            var action = (TransactionAction)cbTransaction.SelectedItem;
+            var currentRole = UserSession.Role;
 
-                _presenter.SaveProduct();
+            if (currentRole == UserRole.Cashier && action != TransactionAction.Sale)
+            {
+                ShowMessage("Security Exception: Cashiers are restricted to outbound sales transactions only.");
+                return;
+            }
+
+            if (action == TransactionAction.Create || action == TransactionAction.Edit)
+            {
+                if (action == TransactionAction.Create)
+                    txtId.Text = "0";
+
+                _presenter.SaveProduct(); 
                 ClearInputFields();
             }
-            else if (action == "IN" || action == "OUT" || action == "ADJ")
+            else if (action == TransactionAction.Sale || action == TransactionAction.Restock || action == TransactionAction.Adjustment)
             {
-                _presenter.MakeTransaction();
+                _presenter.MakeTransaction(); 
                 ClearInputFields();
             }
         }

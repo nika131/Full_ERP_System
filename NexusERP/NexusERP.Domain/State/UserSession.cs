@@ -10,6 +10,7 @@ namespace NexusERP.Domain.State
     public static class UserSession
     {
         public static string JwtToken { get; set; } = string.Empty;
+        public static int UserId { get; set; }
         public static string FullName { get; set; } = string.Empty;
         public static string UserName { get; set; } = string.Empty;
         public static UserRole Role { get; set; }
@@ -19,6 +20,7 @@ namespace NexusERP.Domain.State
         public static void Logout()
         {
             JwtToken = string.Empty;
+            UserId = 0;
             FullName = string.Empty;
             UserName = string.Empty;
             Role = UserRole.Cashier;

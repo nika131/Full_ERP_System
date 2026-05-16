@@ -45,7 +45,7 @@ namespace NexusERP.UI
             label2 = new Label();
             label7 = new Label();
             numPrice = new NumericUpDown();
-            numcolQuantity = new NumericUpDown();
+            numQuantity = new NumericUpDown();
             txtName = new TextBox();
             lblSell = new Label();
             numSell = new NumericUpDown();
@@ -58,7 +58,7 @@ namespace NexusERP.UI
             ((System.ComponentModel.ISupportInitialize)dgvProducts).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numcolCostPrice).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numPrice).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)numcolQuantity).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)numQuantity).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numSell).BeginInit();
             SuspendLayout();
             // 
@@ -259,9 +259,9 @@ namespace NexusERP.UI
             label2.AutoSize = true;
             label2.Location = new Point(973, 240);
             label2.Name = "label2";
-            label2.Size = new Size(85, 20);
+            label2.Size = new Size(65, 20);
             label2.TabIndex = 20;
-            label2.Text = "colQuantity";
+            label2.Text = "Quantity";
             // 
             // label7
             // 
@@ -280,12 +280,12 @@ namespace NexusERP.UI
             numPrice.Size = new Size(120, 27);
             numPrice.TabIndex = 18;
             // 
-            // numcolQuantity
+            // numQuantity
             // 
-            numcolQuantity.Location = new Point(976, 267);
-            numcolQuantity.Name = "numcolQuantity";
-            numcolQuantity.Size = new Size(120, 27);
-            numcolQuantity.TabIndex = 17;
+            numQuantity.Location = new Point(976, 267);
+            numQuantity.Name = "numQuantity";
+            numQuantity.Size = new Size(120, 27);
+            numQuantity.TabIndex = 17;
             // 
             // txtName
             // 
@@ -385,7 +385,7 @@ namespace NexusERP.UI
             Controls.Add(label2);
             Controls.Add(label7);
             Controls.Add(numPrice);
-            Controls.Add(numcolQuantity);
+            Controls.Add(numQuantity);
             Controls.Add(txtName);
             Controls.Add(lblTotalProfit);
             Controls.Add(lblLowStock);
@@ -399,7 +399,7 @@ namespace NexusERP.UI
             ((System.ComponentModel.ISupportInitialize)dgvProducts).EndInit();
             ((System.ComponentModel.ISupportInitialize)numcolCostPrice).EndInit();
             ((System.ComponentModel.ISupportInitialize)numPrice).EndInit();
-            ((System.ComponentModel.ISupportInitialize)numcolQuantity).EndInit();
+            ((System.ComponentModel.ISupportInitialize)numQuantity).EndInit();
             ((System.ComponentModel.ISupportInitialize)numSell).EndInit();
             ResumeLayout(false);
             PerformLayout();
@@ -425,7 +425,7 @@ namespace NexusERP.UI
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.NumericUpDown numPrice;
-        private System.Windows.Forms.NumericUpDown numcolQuantity;
+        private System.Windows.Forms.NumericUpDown numQuantity;
         private System.Windows.Forms.TextBox txtName;
         private System.Windows.Forms.Label lblSell;
         private System.Windows.Forms.NumericUpDown numSell;

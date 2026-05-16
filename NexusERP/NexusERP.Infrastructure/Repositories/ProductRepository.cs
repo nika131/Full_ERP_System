@@ -72,18 +72,34 @@ namespace NexusERP.Infrastructure.Repositories
             DatabaseHelper.ExecuteNonQuery("sp_UpsertProduct", args);
         }
 
-        public void MakeTransaction(int productId, int SupplierId, string transactionType, int qty, decimal Amount, decimal profit)
+        public void LogInventoryTransaction(int productId, int? SupplierId, int UserId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit)
         {
             var args = new Dictionary<string, object>
             {
-                { "@productId", productId },
-                { "@SupplierId",  SupplierId },
-                { "@transactionType", transactionType },
-                { "@qty", qty },
-                { "@Amount", Amount },
-                { "@profit",  profit }
+                { "@ProductId", productId },
+                { "@SupplierId",  SupplierId ?? (object)DBNull.Value },
+                { "@UserId", UserId },
+                { "@TransactionType", transactionType },
+                { "@Quantity", quantity },
+                { "@UnitPrice", unitPrice },
+                { "@TotalAmount", totalAmount },
+                { "@Profit",  profit }
             };
-            DatabaseHelper.ExecuteNonQuery("sp_MakeTransaction", args);
+            DatabaseHelper.ExecuteNonQuery("sp_LogInventoryTransaction", args);
+        }
+
+        public void LogSystemAudit(int userId, string entityType, int entityId, string action, string chnagesMade)
+        {
+            var args = new Dictionary<string, object>
+            {
+                { "@UserId", userId },
+                { "@EntityType", entityType },
+                { "@EntityId", entityType },
+                { "@Action", action },
+                { "@ChnagesMade", chnagesMade }
+            };
+
+            DatabaseHelper.ExecuteNonQuery("sp_LogSystemAudit", args);
         }
 
         public void Delete(int id)

@@ -1,14 +1,15 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Application.Presenters;
+using NexusERP.Domain.Enums;
 using NexusERP.Infrastructure.Repositories;
 using NexusERP.Infrastructure.Services;
 using Product_Inventory_Manager.Product_Inventory_Manager.Views;
+using QuestPDF.Infrastructure;
 using System;
 using System.Windows.Forms;
-using QuestPDF.Infrastructure;
-using Microsoft.Extensions.Configuration;
 
 namespace NexusERP.UI
 {
@@ -26,9 +27,10 @@ namespace NexusERP.UI
             var services = new ServiceCollection();
             ConfigureServices(services);
             serviceProvider = services.BuildServiceProvider();
-            
+
             var LoginForm = serviceProvider.GetRequiredService<LoginForm>();
             System.Windows.Forms.Application.Run(LoginForm);
+
         }
 
         
@@ -69,6 +71,8 @@ namespace NexusERP.UI
             services.AddTransient<MainShellForm>();
             services.AddTransient<LoginForm>();
             services.AddTransient<RegisterForm>();
+
+            
         }
     }
 }

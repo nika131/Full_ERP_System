@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Views;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.State;
 
 namespace NexusERP.Application.Presenters
 {
@@ -118,6 +119,7 @@ namespace NexusERP.Application.Presenters
 
         public void SaveProduct()
         {
+
             if (string.IsNullOrWhiteSpace(_view.ViewProductName))
             {
                 _view.ShowMessage("Product Name is Required");
@@ -138,7 +140,10 @@ namespace NexusERP.Application.Presenters
 
             try
             {
-                _repository.UpSert(new Product
+                bool isNewProduct = _view.ProductId == 0;
+                string action = isNewProduct ? "Create" : "Edit";
+
+                var product = new Product
                 {
                     ProductId = _view.ProductId,
                     ProductName = _view.ViewProductName,
@@ -147,8 +152,24 @@ namespace NexusERP.Application.Presenters
                     ProductPrice = _view.ProductPrice,
                     ProductCostPrice = _view.CostPrice,
                     SupplierId = _view.SupplierId
-                });
+                };
 
+                _repository.UpSert(product);
+
+                string changesMade = isNewProduct
+                    ? $"Create new product '{product.ProductName}' with initial quantity {product.Quantity}."
+                    : $"Updated product '{product.ProductName}'. price: {product.ProductPrice:C}, Cost: {product.ProductCostPrice:C}.";
+
+
+                _repository.LogSystemAudit(
+                    userId: UserSession.UserId,
+                    entityType: "Product",
+                    entityId: _view.ProductId,
+                    action: action,
+                    chnagesMade: changesMade
+                );
+                
+                
                 _view.ShowMessage("Product saved successfully.");
                 RefreshData(); 
             }
@@ -181,20 +202,23 @@ namespace NexusERP.Application.Presenters
             int finalQty = _view.TransactionType == "OUT" ? (_view.SoldQty * -1) : _view.SoldQty;
             decimal unitPrice = _view.TransactionType == "OUT" ? _view.ProductPrice : _view.CostPrice;
             decimal totalAmount = unitPrice * _view.SoldQty;
+
             decimal profit = _view.TransactionType == "OUT" ? totalAmount - (_view.CostPrice * _view.SoldQty) : 0;
 
             try
             {
-                _repository.MakeTransaction(
-                    _view.ProductId,
-                    _view.SupplierId,
-                    _view.TransactionType,
-                    finalQty,
-                    totalAmount,
-                    profit
+                _repository.LogInventoryTransaction(
+                    productId: _view.ProductId,
+                    SupplierId: _view.SupplierId > 0 ? _view.SupplierId : null,
+                    UserId: UserSession.UserId,
+                    transactionType: _view.TransactionType,
+                    quantity: finalQty,
+                    unitPrice: unitPrice,
+                    totalAmount: totalAmount,
+                    profit: profit
                 );
 
-                _view.ShowMessage("Transaction logged successfully.");
+                _view.ShowMessage($"Transaction ({_view.TransactionType}) logged successfully.");
                 RefreshData();
             }
             catch (Exception ex)
