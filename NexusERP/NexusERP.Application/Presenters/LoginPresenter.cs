@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -41,14 +42,14 @@ namespace NexusERP.Application.Presenters
                 var handler = new JwtSecurityTokenHandler();
                 var jwtToken = handler.ReadJwtToken(token);
 
-                string roleClaim = jwtToken.Claims.First(c => c.Type == "role").Value;
+                string idClaim = jwtToken.Claims.First(c => c.Type == "nameid").Value;
+                string fullNameClaim = jwtToken.Claims.First(c => c.Type == "given_name").Value;
                 string usernameClaim = jwtToken.Claims.First(c => c.Type == "unique_name").Value;
-                string FullNameClaim = jwtToken.Claims.First(c => c.Type == "given_name").Value;
-                string idClaim = jwtToken.Claims.First(c => c.Type == "newidentityfier").Value;
+                string roleClaim = jwtToken.Claims.First(c => c.Type == "role").Value;
 
                 UserSession.JwtToken = token;
                 UserSession.UserId = int.Parse(idClaim);
-                UserSession.FullName = FullNameClaim;
+                UserSession.FullName = fullNameClaim;
                 UserSession.UserName = usernameClaim;
                 UserSession.Role = Enum.Parse<UserRole>(roleClaim);
 

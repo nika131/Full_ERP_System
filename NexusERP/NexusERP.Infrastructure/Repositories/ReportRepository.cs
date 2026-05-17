@@ -21,20 +21,19 @@ namespace NexusERP.Infrastructure.Repositories
 
             foreach (DataRow row in dt.Rows)
             {
-                Enum.TryParse(row["TransactionType"].ToString(), out TransactionType parsedType);
+                Enum.TryParse(row["TransactionType"].ToString(), out TransactionAction parsedType);
 
                 transactions.Add(new InventoryTransaction
                 {
                     TransactionId = row["TransactionId"] == DBNull.Value ? 0 : Convert.ToInt32(row["TransactionId"]),
                     ProductId = row["ProductId"] == DBNull.Value ? 0 : Convert.ToInt32(row["ProductId"]),
-                    SupplierId = row["SupplierId"] == DBNull.Value ? 0 : Convert.ToInt32(row["SupplierId"]),
-                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
-                    SupplierName = row["SupplierName"] == DBNull.Value ? string.Empty : row["SupplierName"].ToString()!,
+                    SupplierId = row["SupplierId"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["SupplierId"]),
                     TransactionType = parsedType,
                     Quantity = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]),
-                    Amount = row["Amount"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Amount"]),
-                    TransactionDate = row["TransactionDate"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(row["TransactionDate"]),
+                    TotalAmount = row["Amount"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Amount"]),
+                    UnitPrice = row["UnitPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(row["UnitPrice"]),
                     Profit = row["Profit"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Profit"]),
+                    CreatedAt = row["TransactionDate"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(row["TransactionDate"]),
                 });
             }
             return transactions;
@@ -46,7 +45,7 @@ namespace NexusERP.Infrastructure.Repositories
 
             foreach (DataRow row in dt.Rows)
             {
-                Enum.TryParse(row["TransactionType"].ToString(), out TransactionType parsedType);
+                Enum.TryParse(row["TransactionType"].ToString(), out TransactionAction parsedType);
 
                 transactions.Add(new InventoryTransaction
                 {
@@ -57,8 +56,6 @@ namespace NexusERP.Infrastructure.Repositories
                     SupplierName = row["SupplierName"] == DBNull.Value ? string.Empty : row["SupplierName"].ToString()!,
                     TransactionType = parsedType,
                     Quantity = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]),
-                    Amount = row["Amount"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Amount"]),
-                    TransactionDate = row["TransactionDate"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(row["TransactionDate"])
                 });
             }
             return transactions;

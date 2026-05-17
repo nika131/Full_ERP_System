@@ -36,6 +36,7 @@ namespace NexusERP.Infrastructure.Repositories
             return new User
             {
                 UserId = Convert.ToInt32(row["UserId"]),
+                Username = row["Username"].ToString()!,
                 FullName = row["FullName"].ToString()!,
                 PasswordHashed = row["PasswordHash"].ToString()!,
                 Role = Enum.Parse<UserRole>(row["Role"].ToString()!),

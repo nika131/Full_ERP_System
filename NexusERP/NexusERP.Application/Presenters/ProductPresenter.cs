@@ -1,13 +1,15 @@
-﻿using System;
+﻿using NexusERP.Application.Interfaces.Repositories;
+using NexusERP.Application.Interfaces.Views;
+using NexusERP.Domain.Entities;
+using NexusERP.Domain.Enums;
+using NexusERP.Domain.State;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NexusERP.Application.Interfaces.Repositories;
-using NexusERP.Application.Interfaces.Views;
-using NexusERP.Domain.Entities;
-using NexusERP.Domain.State;
+using System.Transactions;
 
 namespace NexusERP.Application.Presenters
 {
@@ -120,6 +122,12 @@ namespace NexusERP.Application.Presenters
         public void SaveProduct()
         {
 
+            if (UserSession.Role == UserRole.Cashier)
+            {
+                _view.ShowError("Security Violation: Cashiers are strictly forbidden from modifying master product records.");
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(_view.ViewProductName))
             {
                 _view.ShowMessage("Product Name is Required");
@@ -154,22 +162,27 @@ namespace NexusERP.Application.Presenters
                     SupplierId = _view.SupplierId
                 };
 
-                _repository.UpSert(product);
-
-                string changesMade = isNewProduct
-                    ? $"Create new product '{product.ProductName}' with initial quantity {product.Quantity}."
-                    : $"Updated product '{product.ProductName}'. price: {product.ProductPrice:C}, Cost: {product.ProductCostPrice:C}.";
+                using (var scope = new TransactionScope())
+                {
+                    _repository.UpSert(product);
 
 
-                _repository.LogSystemAudit(
-                    userId: UserSession.UserId,
-                    entityType: "Product",
-                    entityId: _view.ProductId,
-                    action: action,
-                    chnagesMade: changesMade
-                );
-                
-                
+                    string changesMade = isNewProduct
+                        ? $"Create new product '{product.ProductName}' with initial quantity {product.Quantity}."
+                        : $"Updated product '{product.ProductName}'. price: {product.ProductPrice:C}, Cost: {product.ProductCostPrice:C}.";
+
+
+                    _repository.LogSystemAudit(
+                        userId: UserSession.UserId,
+                        entityType: "Product",
+                        entityId: _view.ProductId,
+                        action: action,
+                        chnagesMade: changesMade
+                    );
+
+                    scope.Complete();
+                }
+
                 _view.ShowMessage("Product saved successfully.");
                 RefreshData(); 
             }
@@ -181,6 +194,12 @@ namespace NexusERP.Application.Presenters
 
         public void MakeTransaction()
         {
+            if (UserSession.Role == UserRole.Cashier && _view.TransactionType != TransactionAction.Sale.ToString())
+            {
+                _view.ShowError("Security Violation: Cashiers are restricted to outbound sales only.");
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(_view.TransactionType))
             {
                 _view.ShowMessage("Transaction Type is Required");
@@ -199,11 +218,11 @@ namespace NexusERP.Application.Presenters
                 return;
             }
 
-            int finalQty = _view.TransactionType == "OUT" ? (_view.SoldQty * -1) : _view.SoldQty;
-            decimal unitPrice = _view.TransactionType == "OUT" ? _view.ProductPrice : _view.CostPrice;
+            int finalQty = _view.TransactionType == "Sale" ? (_view.SoldQty * -1) : _view.SoldQty;
+            decimal unitPrice = _view.TransactionType == "Sale" ? _view.ProductPrice : _view.CostPrice;
             decimal totalAmount = unitPrice * _view.SoldQty;
 
-            decimal profit = _view.TransactionType == "OUT" ? totalAmount - (_view.CostPrice * _view.SoldQty) : 0;
+            decimal profit = _view.TransactionType == "Sale" ? totalAmount - (_view.CostPrice * _view.SoldQty) : 0;
 
             try
             {

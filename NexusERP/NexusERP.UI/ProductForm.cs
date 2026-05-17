@@ -31,6 +31,7 @@ namespace NexusERP.UI
             this.dgvProducts.CellFormatting += new DataGridViewCellFormattingEventHandler(this.dgvProducts_CellFormatting);
             this.dgvProducts.MouseDown += new MouseEventHandler(this.dgvProducts_MouseDown);
             this.Click += new EventHandler(this.Form1_Click);
+            txtId.Enabled = false;
 
             ApplyInventoryFormRestrictions();
 
@@ -95,24 +96,46 @@ namespace NexusERP.UI
         {
             var currentRole = UserSession.Role;
 
-            if (currentRole == UserRole.Cashier)
+            if (currentRole == UserRole.Admin)
             {
-                cbTransaction.DataSource = new[] { TransactionAction.Sale };
-                cbTransaction.SelectedItem = TransactionAction.Sale;
-
-                txtId.ReadOnly = true;
-                txtName.ReadOnly = true;
-                numPrice.ReadOnly = true;
-                numcolCostPrice.ReadOnly = true;
-                numQuantity.ReadOnly = true;
-                cbSupplier.Enabled = false;
-                cbCategory.Enabled = false;
-
-                numSell.ReadOnly = false;
+                cbTransaction.DataSource = Enum.GetValues(typeof(TransactionAction));
+                btnDelete.Enabled = true;
+            }
+            else if (currentRole == UserRole.Manager)
+            {
+                cbTransaction.DataSource = Enum.GetValues(typeof(TransactionAction));
+                btnDelete.Enabled = false;
             }
             else
             {
-                cbTransaction.DataSource = Enum.GetValues(typeof(TransactionAction));
+                cbTransaction.DataSource = new[] { TransactionAction.Sale };
+                cbTransaction.SelectedItem = TransactionAction.Sale;
+                btnDelete.Enabled = false;
+            }
+        }
+
+        private void cbTransaction_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cbTransaction.SelectedItem is TransactionAction action)
+            {
+                bool isModifyingProduct = (action == TransactionAction.Create || action == TransactionAction.Edit);
+                bool isMovingStock = (action == TransactionAction.Sale || action == TransactionAction.Restock || action == TransactionAction.Adjustment);
+
+                txtId.Enabled = isModifyingProduct;
+                txtName.Enabled = isModifyingProduct;
+                numPrice.Enabled = isModifyingProduct;
+                numcolCostPrice.Enabled = isModifyingProduct;
+                numQuantity.Enabled = isModifyingProduct;
+                cbCategory.Enabled = isModifyingProduct;
+                cbSupplier.Enabled = isModifyingProduct;
+
+
+                numSell.Enabled = isMovingStock;
+
+                if (action == TransactionAction.Create)
+                {
+                    ClearInputFields();
+                }
             }
         }
         public void ShowError(string message) => MessageBox.Show(message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -170,13 +193,13 @@ namespace NexusERP.UI
 
                 if (row.IsNewRow) return;
 
-                txtId.Text = row.Cells["ProductId"].Value.ToString();
-                txtName.Text = row.Cells["ProductName"].Value.ToString();
-                numPrice.Value = (decimal)row.Cells["ProductPrice"].Value;
-                numQuantity.Value = (int)row.Cells["Quantity"].Value;
-                numcolCostPrice.Value = (decimal)row.Cells["CostPrice"].Value;
-                cbCategory.SelectedValue = Convert.ToInt32(row.Cells["CategoryId"].Value);
-                cbSupplier.SelectedValue = Convert.ToInt32(row.Cells["SupplierId"].Value);
+                txtId.Text = row.Cells["colProductId"].Value.ToString();
+                txtName.Text = row.Cells["colProductName"].Value.ToString();
+                numPrice.Value = (decimal)row.Cells["colProductPrice"].Value;
+                numQuantity.Value = (int)row.Cells["colQuantity"].Value;
+                numcolCostPrice.Value = (decimal)row.Cells["colCostPrice"].Value;
+                cbCategory.SelectedValue = Convert.ToInt32(row.Cells["colCategoryId"].Value);
+                cbSupplier.SelectedValue = Convert.ToInt32(row.Cells["colSupplierId"].Value);
             }
             else
             {
@@ -237,23 +260,16 @@ namespace NexusERP.UI
                 if (action == TransactionAction.Create)
                     txtId.Text = "0";
 
-                _presenter.SaveProduct(); 
+                _presenter.SaveProduct();
                 ClearInputFields();
             }
             else if (action == TransactionAction.Sale || action == TransactionAction.Restock || action == TransactionAction.Adjustment)
             {
-                _presenter.MakeTransaction(); 
+                _presenter.MakeTransaction();
                 ClearInputFields();
             }
         }
 
-        private void cbTransaction_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (cbTransaction.SelectedItem?.ToString() == "New Product")
-            {
-                ClearInputFields();
-            }
-        }
 
         public void LoadCategories(IEnumerable<Category> categories)
         {
@@ -281,6 +297,11 @@ namespace NexusERP.UI
         }
 
         private void txtId_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void dgvProducts_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
 
         }

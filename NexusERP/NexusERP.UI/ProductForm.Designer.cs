@@ -73,6 +73,7 @@ namespace NexusERP.UI
             dgvProducts.Size = new Size(802, 408);
             dgvProducts.TabIndex = 0;
             dgvProducts.CellClick += dgvProducts_CellClick;
+            dgvProducts.CellContentClick += dgvProducts_CellContentClick;
             dgvProducts.MouseDown += dgvProducts_MouseDown;
             // 
             // colProductId

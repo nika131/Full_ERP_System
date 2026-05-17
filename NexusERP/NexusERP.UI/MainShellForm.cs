@@ -33,7 +33,7 @@ namespace NexusERP.UI
                 btnSuppliers.Enabled = false;
                 btnDashboard.Enabled = false;
                 btnRegister.Enabled = false;
-            }else if(currentRole != NexusERP.Domain.Enums.UserRole.Admi)
+            }else if(currentRole != NexusERP.Domain.Enums.UserRole.Admin)
             {
                 btnRegister.Enabled = false;
             }

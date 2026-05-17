@@ -31,7 +31,7 @@ namespace NexusERP.Infrastructure.Services
                         {
                             col.Item().Text("TRANSACTION INVOICE").FontSize(22).SemiBold().FontColor(Colors.Blue.Medium);
                             col.Item().Text($"Transaction ID: #{model.TransactionId}").FontSize(12);
-                            col.Item().Text($"Date: {model.TransactionDate:MMMM dd, yyyy HH:mm}");
+                            col.Item().Text($"Date: {model.CreatedAt:MMMM dd, yyyy HH:mm}");
                         });
 
                         row.RelativeItem().AlignRight().Column(col =>
@@ -70,10 +70,10 @@ namespace NexusERP.Infrastructure.Services
                             table.Cell().Element(ValueStyle).Text(model.ProductName);
                             table.Cell().Element(ValueStyle).Text(model.TransactionType.ToString());
                             table.Cell().Element(ValueStyle).Text(model.Quantity.ToString());
-                            table.Cell().Element(ValueStyle).Text($"{model.Amount:C2}");
+                            table.Cell().Element(ValueStyle).Text($"{model.TotalAmount:C2}");
                         });
 
-                        col.Item().PaddingTop(20).AlignRight().Text($"Total Amount: {model.Amount:C2}").FontSize(16).SemiBold();
+                        col.Item().PaddingTop(20).AlignRight().Text($"Total Amount: {model.TotalAmount:C2}").FontSize(16).SemiBold();
                     });
 
                     page.Footer().AlignCenter().Text(x => {

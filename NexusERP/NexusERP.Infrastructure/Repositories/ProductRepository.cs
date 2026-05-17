@@ -88,15 +88,15 @@ namespace NexusERP.Infrastructure.Repositories
             DatabaseHelper.ExecuteNonQuery("sp_LogInventoryTransaction", args);
         }
 
-        public void LogSystemAudit(int userId, string entityType, int entityId, string action, string chnagesMade)
+        public void LogSystemAudit(int userId, string entityType, int entityId, string action, string changesMade)
         {
             var args = new Dictionary<string, object>
             {
                 { "@UserId", userId },
                 { "@EntityType", entityType },
-                { "@EntityId", entityType },
+                { "@EntityId", entityId },
                 { "@Action", action },
-                { "@ChnagesMade", chnagesMade }
+                { "@ChangesMade", changesMade }
             };
 
             DatabaseHelper.ExecuteNonQuery("sp_LogSystemAudit", args);
