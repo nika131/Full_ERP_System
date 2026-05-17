@@ -1,0 +1,33 @@
+[33maf5ad2a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m HEAD@{0}: reset: moving to HEAD~1
+[33m0265ee8[m HEAD@{1}: reset: moving to HEAD~1
+[33m5935c87[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{2}: commit: fix(db): realign report stored procedures with split-ledger schema
+[33m0265ee8[m HEAD@{3}: commit: fix(product): implement transaction safety and resolve product page workflow
+[33maf5ad2a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m HEAD@{4}: commit: feat(db): implement split-ledger architecture for transactions and auditing
+[33mc6d3b1c[m HEAD@{5}: commit: feat(ui): implement RBAC enforcement and transaction routing in ProductForm
+[33m06c7a3f[m HEAD@{6}: commit: feat(auth): implement internal registration UI and presenter logic
+[33m6fb8659[m HEAD@{7}: commit: feat(auth): implement login UI gateway and session management
+[33m14d12dd[m HEAD@{8}: commit: feat(db): add Users table and authentication stored procedures
+[33m31b81b2[m HEAD@{9}: commit: feat(auth): establish backend foundation for authentication, authorization and JWT generation
+[33m3673db9[m HEAD@{10}: commit: test(ProductPresenter): implement comprehensive xUnit test suite
+[33m8df84bd[m HEAD@{11}: pull origin master: Merge made by the 'ort' strategy.
+[33m53d64ef[m HEAD@{12}: commit: fix: resolve SQL mapping crashes, patch UI bindings, and add transaction profit tracking
+[33mdd5d2e1[m HEAD@{13}: commit: feat(Transactions): track profit margins and patch ADO.NET data pipeline
+[33m5dd06fe[m HEAD@{14}: commit: refactor!: complete migration to Clean Architecture and MVP pattern
+[33mab7f1e6[m HEAD@{15}: commit: feat: implement PDF invoice generation
+[33m2ed6df2[m HEAD@{16}: commit: feat(db): add ledger auditing procedures and amount calculation support
+[33m2f22d4c[m HEAD@{17}: commit: feat: implement Transaction Ledger view and Excel export service
+[33m0bf3ac8[m HEAD@{18}: commit: feat(db): implement transaction ledger table and secure stock movement procedures
+[33ma6fb928[m HEAD@{19}: commit: feat: deploy transaction ledger and sales tracking to unified dashboard
+[33mce46428[m HEAD@{20}: commit: feat: implement Business Intelligence Dashboard
+[33m55d7378[m HEAD@{21}: commit: feat: implement MainShell navigation hub with dynamic form injection
+[33mc53a279[m HEAD@{22}: commit: sql: add Suppliers management and expand Products with Cost/Supplier tracking
+[33m91c4d47[m HEAD@{23}: commit: feat: transform to ERP structure with relational Supplier module
+[33md8ccbc2[m HEAD@{24}: commit: feat: add NUnit test project and refactor to N-Tier folder structure
+[33m2298fea[m HEAD@{25}: commit: fix: resolve UI data-binding race conditions and grid schema mismatches
+[33m90b9a87[m HEAD@{26}: commit: refactor: move category loading to presenter and finalize repository integration
+[33m9cb0ae0[m HEAD@{27}: commit: db: add transactions and error handling to stored procs
+[33m51f075a[m HEAD@{28}: commit: feat: refactor to MVP architecture and implement inventory dashboard
+[33m64791a7[m HEAD@{29}: commit: feat: complete inventory manager with DAL and SQL setup scripts
+[33mf3a03fd[m HEAD@{30}: commit: feat: implement DatabaseHelper and configure SQL connection string
+[33m053bf2c[m HEAD@{31}: commit: Add project files.
+[33m2656ddd[m HEAD@{32}: commit (initial): Add .gitattributes and .gitignore.
