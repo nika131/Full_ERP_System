@@ -37,7 +37,7 @@ namespace NexusERP.UI
 
         private void btnExportExcel_Click(object sender, EventArgs e)
         {
-            using (SaveFileDialog sfd =  new SaveFileDialog())
+            using (SaveFileDialog sfd = new SaveFileDialog())
             {
                 sfd.Filter = "Excel Workbook|*.xlsx";
                 sfd.Title = "Save Inventory Report";
@@ -86,6 +86,11 @@ namespace NexusERP.UI
                     _presenter.ExportPdf(sfd.FileName, selectedTransaction);
                 }
             }
+        }
+
+        private void cbFilterType_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            _presenter.FilterByType(cbFilterType.SelectedIndex.ToString());
         }
     }
 }

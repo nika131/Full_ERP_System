@@ -7,6 +7,8 @@ using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Application.Interfaces.Views;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Enums;
+using NexusERP.Domain.State;
 
 namespace NexusERP.Application.Presenters
 {
@@ -16,6 +18,8 @@ namespace NexusERP.Application.Presenters
         private readonly IExcelExportService _excelService;
         private readonly IPdfExportService _pdfService;
         private IReportView _view = null!;
+
+        private IEnumerable<InventoryTransaction> _allLoadedTransactions = new List<InventoryTransaction>();
 
         public ReportPresenter(IReportRepository repository, IExcelExportService excelService, IPdfExportService pdfService)
         {
@@ -33,12 +37,13 @@ namespace NexusERP.Application.Presenters
         {
             try
             {
-                IEnumerable<InventoryTransaction> dt = _repository.GetAll();
-                _view.GridDataSource = dt;
+                _allLoadedTransactions = _repository.GetAll();
+                var secureData = ApplyRbacRestrictions(_allLoadedTransactions);
+                _view.GridDataSource = secureData;
             }
             catch (Exception ex)
             {
-                _view.ShowMessage(ex.Message);
+                _view.ShowMessage("Database Error: " + ex.Message);
             }
         }
 
@@ -46,12 +51,27 @@ namespace NexusERP.Application.Presenters
         {
             try
             {
-                IEnumerable<InventoryTransaction> dt = _repository.Search(Keyword);
-                _view.GridDataSource = dt;
+                _allLoadedTransactions = _repository.Search(Keyword);
+                var secureData = ApplyRbacRestrictions(_allLoadedTransactions);
+                _view.GridDataSource = secureData;
             }
             catch(Exception ex)
             {
-                _view.ShowMessage(ex.Message);
+                _view.ShowMessage("Search Error: " +  ex.Message);
+            }
+        }
+
+        public void FilterByType(string typeFilter)
+        {
+            var secureData = ApplyRbacRestrictions(_allLoadedTransactions);
+
+            if (typeFilter == "All")
+            {
+                _view.GridDataSource = secureData;
+            }
+            else if (Enum.TryParse(typeFilter, out TransactionAction action))
+            {
+                _view.GridDataSource = secureData.Where(t => t.TransactionType == action).ToList();
             }
         }
 
@@ -80,6 +100,16 @@ namespace NexusERP.Application.Presenters
             {
                 _view.ShowMessage("Error generating PDF: " + ex.Message);
             }
+        }
+
+        private IEnumerable<InventoryTransaction> ApplyRbacRestrictions(IEnumerable<InventoryTransaction> rawData)
+        {
+            if (UserSession.Role == Domain.Enums.UserRole.Cashier)
+            {
+                return rawData.Where(t => t.TransactionType == Domain.Enums.TransactionAction.Sale && t.UserId == UserSession.UserId).ToList();
+            }
+
+            return rawData;
         }
     }
 }

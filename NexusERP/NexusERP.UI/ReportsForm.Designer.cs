@@ -35,23 +35,27 @@
             txtId = new TextBox();
             btnExportExcel = new Button();
             btnExportPdf = new Button();
+            label2 = new Label();
+            cbFilterType = new ComboBox();
             TransactionId = new DataGridViewTextBoxColumn();
             ProductId = new DataGridViewTextBoxColumn();
+            SupplierId = new DataGridViewTextBoxColumn();
+            UserId = new DataGridViewTextBoxColumn();
             ProductName = new DataGridViewTextBoxColumn();
             Quantity = new DataGridViewTextBoxColumn();
-            Amount = new DataGridViewTextBoxColumn();
-            SupplierName = new DataGridViewTextBoxColumn();
             TransactionType = new DataGridViewTextBoxColumn();
-            TransactionDate = new DataGridViewTextBoxColumn();
-            SupplierId = new DataGridViewTextBoxColumn();
+            UnitPrice = new DataGridViewTextBoxColumn();
+            Amount = new DataGridViewTextBoxColumn();
             Profit = new DataGridViewTextBoxColumn();
+            SupplierName = new DataGridViewTextBoxColumn();
+            TransactionDate = new DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)dgvReports).BeginInit();
             SuspendLayout();
             // 
             // dgvReports
             // 
             dgvReports.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvReports.Columns.AddRange(new DataGridViewColumn[] { TransactionId, ProductId, ProductName, Quantity, Amount, SupplierName, TransactionType, TransactionDate, SupplierId, Profit });
+            dgvReports.Columns.AddRange(new DataGridViewColumn[] { TransactionId, ProductId, SupplierId, UserId, ProductName, Quantity, TransactionType, UnitPrice, Amount, Profit, SupplierName, TransactionDate });
             dgvReports.Location = new Point(1, 1);
             dgvReports.Margin = new Padding(3, 4, 3, 4);
             dgvReports.Name = "dgvReports";
@@ -81,7 +85,7 @@
             // lblId
             // 
             lblId.AutoSize = true;
-            lblId.Location = new Point(1140, 98);
+            lblId.Location = new Point(1137, 170);
             lblId.Name = "lblId";
             lblId.Size = new Size(125, 20);
             lblId.TabIndex = 35;
@@ -89,7 +93,7 @@
             // 
             // txtId
             // 
-            txtId.Location = new Point(1141, 129);
+            txtId.Location = new Point(1138, 201);
             txtId.Margin = new Padding(3, 4, 3, 4);
             txtId.Name = "txtId";
             txtId.Size = new Size(100, 27);
@@ -98,7 +102,7 @@
             // btnExportExcel
             // 
             btnExportExcel.Font = new Font("Microsoft Sans Serif", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btnExportExcel.Location = new Point(1141, 196);
+            btnExportExcel.Location = new Point(1138, 268);
             btnExportExcel.Margin = new Padding(3, 4, 3, 4);
             btnExportExcel.Name = "btnExportExcel";
             btnExportExcel.Size = new Size(147, 39);
@@ -110,7 +114,7 @@
             // btnExportPdf
             // 
             btnExportPdf.Font = new Font("Microsoft Sans Serif", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btnExportPdf.Location = new Point(1143, 261);
+            btnExportPdf.Location = new Point(1140, 333);
             btnExportPdf.Margin = new Padding(3, 4, 3, 4);
             btnExportPdf.Name = "btnExportPdf";
             btnExportPdf.Size = new Size(147, 39);
@@ -118,6 +122,25 @@
             btnExportPdf.Text = "Export to PDF";
             btnExportPdf.UseVisualStyleBackColor = true;
             btnExportPdf.Click += btnExportPdf_Click;
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(1140, 89);
+            label2.Name = "label2";
+            label2.Size = new Size(125, 20);
+            label2.TabIndex = 38;
+            label2.Text = "Current Report ID";
+            // 
+            // cbFilterType
+            // 
+            cbFilterType.FormattingEnabled = true;
+            cbFilterType.Items.AddRange(new object[] { "All", "Sale", "Restock", "Adjustment" });
+            cbFilterType.Location = new Point(1143, 125);
+            cbFilterType.Name = "cbFilterType";
+            cbFilterType.Size = new Size(151, 28);
+            cbFilterType.TabIndex = 39;
+            cbFilterType.SelectedIndexChanged += cbFilterType_SelectedIndexChanged;
             // 
             // TransactionId
             // 
@@ -135,6 +158,22 @@
             ProductId.Name = "ProductId";
             ProductId.Width = 125;
             // 
+            // SupplierId
+            // 
+            SupplierId.DataPropertyName = "SupplierId";
+            SupplierId.HeaderText = "Supplier Id";
+            SupplierId.MinimumWidth = 6;
+            SupplierId.Name = "SupplierId";
+            SupplierId.Width = 125;
+            // 
+            // UserId
+            // 
+            UserId.DataPropertyName = "UserId";
+            UserId.HeaderText = "UserId";
+            UserId.MinimumWidth = 6;
+            UserId.Name = "UserId";
+            UserId.Width = 125;
+            // 
             // ProductName
             // 
             ProductName.DataPropertyName = "ProductName";
@@ -151,22 +190,6 @@
             Quantity.Name = "Quantity";
             Quantity.Width = 125;
             // 
-            // Amount
-            // 
-            Amount.DataPropertyName = "Amount";
-            Amount.HeaderText = "Amount Paid";
-            Amount.MinimumWidth = 6;
-            Amount.Name = "Amount";
-            Amount.Width = 125;
-            // 
-            // SupplierName
-            // 
-            SupplierName.DataPropertyName = "SupplierName";
-            SupplierName.HeaderText = "Supplier Name";
-            SupplierName.MinimumWidth = 6;
-            SupplierName.Name = "SupplierName";
-            SupplierName.Width = 125;
-            // 
             // TransactionType
             // 
             TransactionType.DataPropertyName = "TransactionType";
@@ -175,21 +198,21 @@
             TransactionType.Name = "TransactionType";
             TransactionType.Width = 125;
             // 
-            // TransactionDate
+            // UnitPrice
             // 
-            TransactionDate.DataPropertyName = "TransactionDate";
-            TransactionDate.HeaderText = "Transaction Date";
-            TransactionDate.MinimumWidth = 6;
-            TransactionDate.Name = "TransactionDate";
-            TransactionDate.Width = 125;
+            UnitPrice.DataPropertyName = "UnitPrice";
+            UnitPrice.HeaderText = "Unit Price";
+            UnitPrice.MinimumWidth = 6;
+            UnitPrice.Name = "UnitPrice";
+            UnitPrice.Width = 125;
             // 
-            // SupplierId
+            // Amount
             // 
-            SupplierId.DataPropertyName = "SupplierId";
-            SupplierId.HeaderText = "Supplier Id";
-            SupplierId.MinimumWidth = 6;
-            SupplierId.Name = "SupplierId";
-            SupplierId.Width = 125;
+            Amount.DataPropertyName = "TotalAmount";
+            Amount.HeaderText = "Amount Paid";
+            Amount.MinimumWidth = 6;
+            Amount.Name = "Amount";
+            Amount.Width = 125;
             // 
             // Profit
             // 
@@ -199,11 +222,29 @@
             Profit.Name = "Profit";
             Profit.Width = 125;
             // 
+            // SupplierName
+            // 
+            SupplierName.DataPropertyName = "SupplierName";
+            SupplierName.HeaderText = "Supplier Name";
+            SupplierName.MinimumWidth = 6;
+            SupplierName.Name = "SupplierName";
+            SupplierName.Width = 125;
+            // 
+            // TransactionDate
+            // 
+            TransactionDate.DataPropertyName = "CreatedAt";
+            TransactionDate.HeaderText = "Transaction Date";
+            TransactionDate.MinimumWidth = 6;
+            TransactionDate.Name = "TransactionDate";
+            TransactionDate.Width = 125;
+            // 
             // ReportsForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1391, 562);
+            Controls.Add(cbFilterType);
+            Controls.Add(label2);
             Controls.Add(btnExportPdf);
             Controls.Add(btnExportExcel);
             Controls.Add(lblId);
@@ -229,15 +270,19 @@
         private System.Windows.Forms.TextBox txtId;
         private System.Windows.Forms.Button btnExportExcel;
         private System.Windows.Forms.Button btnExportPdf;
+        private Label label2;
+        private ComboBox cbFilterType;
         private DataGridViewTextBoxColumn TransactionId;
         private DataGridViewTextBoxColumn ProductId;
+        private DataGridViewTextBoxColumn SupplierId;
+        private DataGridViewTextBoxColumn UserId;
         private DataGridViewTextBoxColumn ProductName;
         private DataGridViewTextBoxColumn Quantity;
-        private DataGridViewTextBoxColumn Amount;
-        private DataGridViewTextBoxColumn SupplierName;
         private DataGridViewTextBoxColumn TransactionType;
-        private DataGridViewTextBoxColumn TransactionDate;
-        private DataGridViewTextBoxColumn SupplierId;
+        private DataGridViewTextBoxColumn UnitPrice;
+        private DataGridViewTextBoxColumn Amount;
         private DataGridViewTextBoxColumn Profit;
+        private DataGridViewTextBoxColumn SupplierName;
+        private DataGridViewTextBoxColumn TransactionDate;
     }
 }
