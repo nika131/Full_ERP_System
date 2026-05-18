@@ -29,14 +29,6 @@
         private void InitializeComponent()
         {
             dgvReports = new DataGridView();
-            label1 = new Label();
-            txtSearch = new TextBox();
-            lblId = new Label();
-            txtId = new TextBox();
-            btnExportExcel = new Button();
-            btnExportPdf = new Button();
-            label2 = new Label();
-            cbFilterType = new ComboBox();
             TransactionId = new DataGridViewTextBoxColumn();
             ProductId = new DataGridViewTextBoxColumn();
             SupplierId = new DataGridViewTextBoxColumn();
@@ -49,6 +41,14 @@
             Profit = new DataGridViewTextBoxColumn();
             SupplierName = new DataGridViewTextBoxColumn();
             TransactionDate = new DataGridViewTextBoxColumn();
+            label1 = new Label();
+            txtSearch = new TextBox();
+            lblId = new Label();
+            txtId = new TextBox();
+            btnExportExcel = new Button();
+            btnExportPdf = new Button();
+            label2 = new Label();
+            cbFilterType = new ComboBox();
             ((System.ComponentModel.ISupportInitialize)dgvReports).BeginInit();
             SuspendLayout();
             // 
@@ -64,83 +64,6 @@
             dgvReports.Size = new Size(1047, 561);
             dgvReports.TabIndex = 0;
             dgvReports.CellClick += dgvReports_CellClick;
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Location = new Point(1138, 15);
-            label1.Name = "label1";
-            label1.Size = new Size(107, 20);
-            label1.TabIndex = 8;
-            label1.Text = "search product";
-            // 
-            // txtSearch
-            // 
-            txtSearch.Location = new Point(1138, 42);
-            txtSearch.Margin = new Padding(3, 4, 3, 4);
-            txtSearch.Name = "txtSearch";
-            txtSearch.Size = new Size(208, 27);
-            txtSearch.TabIndex = 7;
-            // 
-            // lblId
-            // 
-            lblId.AutoSize = true;
-            lblId.Location = new Point(1137, 170);
-            lblId.Name = "lblId";
-            lblId.Size = new Size(125, 20);
-            lblId.TabIndex = 35;
-            lblId.Text = "Current Report ID";
-            // 
-            // txtId
-            // 
-            txtId.Location = new Point(1138, 201);
-            txtId.Margin = new Padding(3, 4, 3, 4);
-            txtId.Name = "txtId";
-            txtId.Size = new Size(100, 27);
-            txtId.TabIndex = 34;
-            // 
-            // btnExportExcel
-            // 
-            btnExportExcel.Font = new Font("Microsoft Sans Serif", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btnExportExcel.Location = new Point(1138, 268);
-            btnExportExcel.Margin = new Padding(3, 4, 3, 4);
-            btnExportExcel.Name = "btnExportExcel";
-            btnExportExcel.Size = new Size(147, 39);
-            btnExportExcel.TabIndex = 36;
-            btnExportExcel.Text = "Export to Excel";
-            btnExportExcel.UseVisualStyleBackColor = true;
-            btnExportExcel.Click += btnExportExcel_Click;
-            // 
-            // btnExportPdf
-            // 
-            btnExportPdf.Font = new Font("Microsoft Sans Serif", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btnExportPdf.Location = new Point(1140, 333);
-            btnExportPdf.Margin = new Padding(3, 4, 3, 4);
-            btnExportPdf.Name = "btnExportPdf";
-            btnExportPdf.Size = new Size(147, 39);
-            btnExportPdf.TabIndex = 37;
-            btnExportPdf.Text = "Export to PDF";
-            btnExportPdf.UseVisualStyleBackColor = true;
-            btnExportPdf.Click += btnExportPdf_Click;
-            // 
-            // label2
-            // 
-            label2.AutoSize = true;
-            label2.Location = new Point(1140, 89);
-            label2.Name = "label2";
-            label2.Size = new Size(125, 20);
-            label2.TabIndex = 38;
-            label2.Text = "Current Report ID";
-            // 
-            // cbFilterType
-            // 
-            cbFilterType.FormattingEnabled = true;
-            cbFilterType.Items.AddRange(new object[] { "All", "Sale", "Restock", "Adjustment" });
-            cbFilterType.Location = new Point(1143, 125);
-            cbFilterType.Name = "cbFilterType";
-            cbFilterType.Size = new Size(151, 28);
-            cbFilterType.TabIndex = 39;
-            cbFilterType.SelectedIndexChanged += cbFilterType_SelectedIndexChanged;
             // 
             // TransactionId
             // 
@@ -237,6 +160,84 @@
             TransactionDate.MinimumWidth = 6;
             TransactionDate.Name = "TransactionDate";
             TransactionDate.Width = 125;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(1138, 15);
+            label1.Name = "label1";
+            label1.Size = new Size(107, 20);
+            label1.TabIndex = 8;
+            label1.Text = "search product";
+            // 
+            // txtSearch
+            // 
+            txtSearch.Location = new Point(1138, 42);
+            txtSearch.Margin = new Padding(3, 4, 3, 4);
+            txtSearch.Name = "txtSearch";
+            txtSearch.Size = new Size(208, 27);
+            txtSearch.TabIndex = 7;
+            txtSearch.TextChanged += txtSearch_TextChanged_1;
+            // 
+            // lblId
+            // 
+            lblId.AutoSize = true;
+            lblId.Location = new Point(1144, 169);
+            lblId.Name = "lblId";
+            lblId.Size = new Size(125, 20);
+            lblId.TabIndex = 35;
+            lblId.Text = "Current Report ID";
+            // 
+            // txtId
+            // 
+            txtId.Location = new Point(1145, 200);
+            txtId.Margin = new Padding(3, 4, 3, 4);
+            txtId.Name = "txtId";
+            txtId.Size = new Size(100, 27);
+            txtId.TabIndex = 34;
+            // 
+            // btnExportExcel
+            // 
+            btnExportExcel.Font = new Font("Microsoft Sans Serif", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btnExportExcel.Location = new Point(1138, 268);
+            btnExportExcel.Margin = new Padding(3, 4, 3, 4);
+            btnExportExcel.Name = "btnExportExcel";
+            btnExportExcel.Size = new Size(147, 39);
+            btnExportExcel.TabIndex = 36;
+            btnExportExcel.Text = "Export to Excel";
+            btnExportExcel.UseVisualStyleBackColor = true;
+            btnExportExcel.Click += btnExportExcel_Click;
+            // 
+            // btnExportPdf
+            // 
+            btnExportPdf.Font = new Font("Microsoft Sans Serif", 7.8F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btnExportPdf.Location = new Point(1140, 333);
+            btnExportPdf.Margin = new Padding(3, 4, 3, 4);
+            btnExportPdf.Name = "btnExportPdf";
+            btnExportPdf.Size = new Size(147, 39);
+            btnExportPdf.TabIndex = 37;
+            btnExportPdf.Text = "Export to PDF";
+            btnExportPdf.UseVisualStyleBackColor = true;
+            btnExportPdf.Click += btnExportPdf_Click;
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(1140, 89);
+            label2.Name = "label2";
+            label2.Size = new Size(42, 20);
+            label2.TabIndex = 38;
+            label2.Text = "Filter";
+            // 
+            // cbFilterType
+            // 
+            cbFilterType.FormattingEnabled = true;
+            cbFilterType.Items.AddRange(new object[] { "All", "Sale", "Restock", "Adjustment" });
+            cbFilterType.Location = new Point(1143, 125);
+            cbFilterType.Name = "cbFilterType";
+            cbFilterType.Size = new Size(151, 28);
+            cbFilterType.TabIndex = 39;
+            cbFilterType.SelectedIndexChanged += cbFilterType_SelectedIndexChanged;
             // 
             // ReportsForm
             // 

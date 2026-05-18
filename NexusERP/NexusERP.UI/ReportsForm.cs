@@ -90,7 +90,14 @@ namespace NexusERP.UI
 
         private void cbFilterType_SelectedIndexChanged(object sender, EventArgs e)
         {
-            _presenter.FilterByType(cbFilterType.SelectedIndex.ToString());
+            string typeFilter = cbFilterType.SelectedItem?.ToString() ?? "All";
+
+            _presenter.FilterByType(typeFilter);
+        }
+
+        private void txtSearch_TextChanged_1(object sender, EventArgs e)
+        {
+            _presenter.Search(txtSearch.Text);
         }
     }
 }

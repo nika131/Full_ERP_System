@@ -61,17 +61,37 @@ namespace NexusERP.Application.Presenters
             }
         }
 
+        private List<InventoryTransaction> ApplyRbacRestrictions(IEnumerable<InventoryTransaction> rawData)
+        {
+            var dataList = rawData?.ToList() ?? new List<InventoryTransaction>();
+
+            if (UserSession.Role == UserRole.Cashier)
+            {
+                return dataList
+                    .Where(t => t.TransactionType == TransactionAction.Sale && t.UserId == UserSession.UserId)
+                    .ToList();
+            }
+
+            return dataList;
+        }
+
         public void FilterByType(string typeFilter)
         {
             var secureData = ApplyRbacRestrictions(_allLoadedTransactions);
 
-            if (typeFilter == "All")
+            if (string.IsNullOrWhiteSpace(typeFilter) || typeFilter == "All")
             {
                 _view.GridDataSource = secureData;
+                return;
             }
-            else if (Enum.TryParse(typeFilter, out TransactionAction action))
+
+            if (Enum.TryParse(typeFilter, true, out TransactionAction action))
             {
                 _view.GridDataSource = secureData.Where(t => t.TransactionType == action).ToList();
+            }
+            else
+            {
+                _view.GridDataSource = new List<InventoryTransaction>();
             }
         }
 
@@ -102,14 +122,5 @@ namespace NexusERP.Application.Presenters
             }
         }
 
-        private IEnumerable<InventoryTransaction> ApplyRbacRestrictions(IEnumerable<InventoryTransaction> rawData)
-        {
-            if (UserSession.Role == Domain.Enums.UserRole.Cashier)
-            {
-                return rawData.Where(t => t.TransactionType == Domain.Enums.TransactionAction.Sale && t.UserId == UserSession.UserId).ToList();
-            }
-
-            return rawData;
-        }
     }
 }
