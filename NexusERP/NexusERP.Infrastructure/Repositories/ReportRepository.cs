@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -14,59 +15,77 @@ namespace NexusERP.Infrastructure.Repositories
 {
     public class ReportRepository : IReportRepository
     {
+        private readonly ApplicationDbContext _context;
+
+        public ReportRepository(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
         public IEnumerable<InventoryTransaction> GetAll()
         {
-            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_GetAllTransactions");
-            var transactions = new List<InventoryTransaction>();
+            var query = from t in _context.InventoryTransactions.AsNoTracking()
 
-            foreach (DataRow row in dt.Rows)
-            {
-                Enum.TryParse(row["TransactionType"].ToString(), out TransactionAction parsedType);
+                        join p in _context.Products on t.ProductId equals p.ProductId into pJoin
+                        from p in pJoin.DefaultIfEmpty()
 
-                transactions.Add(new InventoryTransaction
-                {
-                    TransactionId = row["TransactionId"] == DBNull.Value ? 0 : Convert.ToInt32(row["TransactionId"]),
-                    ProductId = row["ProductId"] == DBNull.Value ? 0 : Convert.ToInt32(row["ProductId"]),
-                    SupplierId = row["SupplierId"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["SupplierId"]),
-                    UserId = row["UserId"] == DBNull.Value ? 0 : Convert.ToInt32(row["UserId"]),
-                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
-                    SupplierName = row["SupplierName"] == DBNull.Value ? string.Empty : row["SupplierName"].ToString()!,
-                    TransactionType = parsedType,
-                    Quantity = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]),
-                    UnitPrice = row["UnitPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(row["UnitPrice"]),
-                    TotalAmount = row["TotalAmount"] == DBNull.Value ? 0m : Convert.ToDecimal(row["TotalAmount"]),
-                    Profit = row["Profit"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Profit"]),
-                    CreatedAt = row["CreatedAt"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(row["CreatedAt"]),
-                });
-            }
-            return transactions;
+                        join s in _context.Suppliers on t.SupplierId equals s.SupplierId into sJoin
+                        from s in sJoin.DefaultIfEmpty()
+
+                        orderby t.CreatedAt descending
+
+                        select new InventoryTransaction
+                        {
+                            TransactionId = t.TransactionId,
+                            ProductId = t.ProductId,
+                            SupplierId = t.SupplierId,
+                            UserId = t.UserId,
+                            TransactionType = t.TransactionType,
+                            Quantity = t.Quantity,
+                            UnitPrice = t.UnitPrice,
+                            TotalAmount = t.TotalAmount,
+                            Profit = t.Profit,
+                            CreatedAt = t.CreatedAt,
+
+                            ProductName = p != null ? p.Name : string.Empty,
+                            SupplierName = s != null ? s.CompanyName : string.Empty
+                        };
+
+            return query.ToList();
         }
-        public IEnumerable<InventoryTransaction> Search(string Keyword)
+
+        public IEnumerable<InventoryTransaction> Search(string keyword)
         {
-            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_SearchTransactions", new Dictionary<string, object> { { "@Keyword", Keyword } });
-            var transactions = new List<InventoryTransaction>();
+            var baseQuery = from t in _context.InventoryTransactions.AsNoTracking()
+                            join p in _context.Products on t.ProductId equals p.ProductId into pJoin
+                            from p in pJoin.DefaultIfEmpty()
+                            join s in _context.Suppliers on t.SupplierId equals s.SupplierId into sJoin
+                            from s in sJoin.DefaultIfEmpty()
+                            select new { t, p, s }; 
 
-            foreach (DataRow row in dt.Rows)
-            {
-                Enum.TryParse(row["TransactionType"].ToString(), out TransactionAction parsedType);
 
-                transactions.Add(new InventoryTransaction
-                {
-                    TransactionId = row["TransactionId"] == DBNull.Value ? 0 : Convert.ToInt32(row["TransactionId"]),
-                    ProductId = row["ProductId"] == DBNull.Value ? 0 : Convert.ToInt32(row["ProductId"]),
-                    SupplierId = row["SupplierId"] == DBNull.Value ? (int?)null : Convert.ToInt32(row["SupplierId"]),
-                    UserId = row["UserId"] == DBNull.Value ? 0 : Convert.ToInt32(row["UserId"]), // MAPPED!
-                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
-                    SupplierName = row["SupplierName"] == DBNull.Value ? string.Empty : row["SupplierName"].ToString()!,
-                    TransactionType = parsedType,
-                    Quantity = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]),
-                    UnitPrice = row["UnitPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(row["UnitPrice"]),
-                    TotalAmount = row["TotalAmount"] == DBNull.Value ? 0m : Convert.ToDecimal(row["TotalAmount"]),
-                    Profit = row["Profit"] == DBNull.Value ? 0m : Convert.ToDecimal(row["Profit"]),
-                    CreatedAt = row["CreatedAt"] == DBNull.Value ? DateTime.MinValue : Convert.ToDateTime(row["CreatedAt"]),
-                });
-            }
-            return transactions;
+            var filteredQuery = from item in baseQuery
+                                where (item.s != null && item.s.CompanyName.Contains(keyword)) ||
+                                      (item.p != null && item.p.Name.Contains(keyword)) ||
+                                      item.t.TransactionId.ToString().Contains(keyword)
+                                orderby item.t.CreatedAt descending
+                                select new InventoryTransaction
+                                {
+                                    TransactionId = item.t.TransactionId,
+                                    ProductId = item.t.ProductId,
+                                    SupplierId = item.t.SupplierId,
+                                    UserId = item.t.UserId,
+                                    TransactionType = item.t.TransactionType,
+                                    Quantity = item.t.Quantity,
+                                    UnitPrice = item.t.UnitPrice,
+                                    TotalAmount = item.t.TotalAmount,
+                                    Profit = item.t.Profit,
+                                    CreatedAt = item.t.CreatedAt,
+                                    ProductName = item.p != null ? item.p.Name : string.Empty,
+                                    SupplierName = item.s != null ? item.s.CompanyName : string.Empty
+                                };
+
+            return filteredQuery.ToList();
         }
     }
 }

@@ -8,136 +8,115 @@ using Microsoft.Data.SqlClient;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Infrastructure.Database;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace NexusERP.Infrastructure.Repositories
 {
     public class ProductRepository : IProductRepository
     {
+        private readonly ApplicationDbContext _context;
+
+        public ProductRepository(ApplicationDbContext context)
+        {
+            _context = context;
+        }
         public IEnumerable<Product> GetAll()
         {
-            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_GetAllProducts");
-            var products = new List<Product>();
+            var query = from p in _context.Products.AsNoTracking()
+                        join c in _context.Categories on p.CategoryId equals c.CategoryId
+                        select new Product
+                        {
+                            ProductId = p.ProductId,
+                            Name = p.Name,
+                            CategoryId = p.CategoryId,
+                            CategoryName = c.CategoryName, 
+                            Quantity = p.Quantity,
+                            Price = p.Price,
+                            CostPrice = p.CostPrice,
+                            SupplierId = p.SupplierId
+                        };
 
-            foreach (DataRow row in dt.Rows)
-            {
-                products.Add(new Product
-                {
-                    ProductId = Convert.ToInt32(row["ProductId"]),
-                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
-                    ProductCategoryId = row["CategoryId"] == DBNull.Value ? 0 : Convert.ToInt32(row["CategoryId"]),
-                    Category = row["Category"] == DBNull.Value ? string.Empty : row["Category"].ToString()!,
-                    Quantity = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]),
-                    ProductPrice = row["ProductPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(row["ProductPrice"]),
-                    ProductCostPrice = row["CostPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(row["CostPrice"]),
-                    SupplierId = row["SupplierId"] == DBNull.Value ? 0 : Convert.ToInt32(row["SupplierId"])
-                });
-            }
-            return products;
+            return query.ToList();
         }
 
         public IEnumerable<Product> Search(string keyword)
         {
-            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_SearchProducts", new Dictionary<string, object> { { "@Keyword", keyword } });
-            var products = new List<Product>();
-        
-            foreach (DataRow row in dt.Rows)
-            {
-                products.Add(new Product
-                {
-                    ProductId = Convert.ToInt32(row["ProductId"]),
-                    ProductName = row["ProductName"] == DBNull.Value ? string.Empty : row["ProductName"].ToString()!,
-                    ProductCategoryId = row["CategoryId"] == DBNull.Value ? 0 : Convert.ToInt32(row["CategoryId"]),
-                    Quantity = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]),
-                    ProductPrice = row["ProductPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(row["ProductPrice"]),
-                    ProductCostPrice = row["CostPrice"] == DBNull.Value ? 0m : Convert.ToDecimal(row["CostPrice"]),
-                    SupplierId = row["SupplierId"] == DBNull.Value ? 0 : Convert.ToInt32(row["SupplierId"])
-                });
-            }
-            return products;
+            var query = from p in _context.Products.AsNoTracking()
+                        join c in _context.Categories on p.CategoryId equals c.CategoryId
+                        where p.Name.Contains(keyword) || p.ProductId.ToString().Contains(keyword)
+                        select new Product
+                        {
+                            ProductId = p.ProductId,
+                            Name = p.Name,
+                            CategoryId = p.CategoryId,
+                            CategoryName = c.CategoryName,
+                            Quantity = p.Quantity,
+                            Price = p.Price,
+                            CostPrice = p.CostPrice,
+                            SupplierId = p.SupplierId 
+                        };
+
+            return query.ToList();
         }
-            
+
 
         public void UpSert(Product product)
         {
-            var args = new Dictionary<string, object>
-            {
-                { "@id", product.ProductId },
-                { "@name", product.ProductName },
-                { "@catId", product.ProductCategoryId },
-                { "@qty", product.Quantity },
-                { "@price", product.ProductPrice },
-                { "@costPrice", product.ProductCostPrice },
-                { "@supplierId", product.SupplierId }
-            };
-            DatabaseHelper.ExecuteNonQuery("sp_UpsertProduct", args);
+            _context.Database.ExecuteSqlRaw(
+                "EXEC sp_UpsertProduct @id, @name, @catId, @qty, @price, @costPrice, @supplierId",
+                new SqlParameter("@id", product.ProductId),
+                new SqlParameter("@name", product.Name),
+                new SqlParameter("@catId", product.CategoryId),
+                new SqlParameter("@qty", product.Quantity),
+                new SqlParameter("@price", product.Price),
+                new SqlParameter("@costPrice", product.CostPrice),
+                new SqlParameter("@supplierId", product.SupplierId)
+            );
         }
 
-        public void LogInventoryTransaction(int productId, int? SupplierId, int UserId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit)
+        public void LogInventoryTransaction(int productId, int? supplierId, int userId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit)
         {
-            var args = new Dictionary<string, object>
-            {
-                { "@ProductId", productId },
-                { "@SupplierId",  SupplierId ?? (object)DBNull.Value },
-                { "@UserId", UserId },
-                { "@TransactionType", transactionType },
-                { "@Quantity", quantity },
-                { "@UnitPrice", unitPrice },
-                { "@TotalAmount", totalAmount },
-                { "@Profit",  profit }
-            };
-            DatabaseHelper.ExecuteNonQuery("sp_LogInventoryTransaction", args);
+            _context.Database.ExecuteSqlRaw(
+                "EXEC sp_LogInventoryTransaction @ProductId, @SupplierId, @UserId, @TransactionType, @Quantity, @UnitPrice, @TotalAmount, @Profit",
+                new SqlParameter("@ProductId", productId),
+                new SqlParameter("@SupplierId", supplierId ?? (object)DBNull.Value),
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@TransactionType", transactionType),
+                new SqlParameter("@Quantity", quantity),
+                new SqlParameter("@UnitPrice", unitPrice),
+                new SqlParameter("@TotalAmount", totalAmount),
+                new SqlParameter("@Profit", profit)
+            );
         }
 
         public void LogSystemAudit(int userId, string entityType, int entityId, string action, string changesMade)
         {
-            var args = new Dictionary<string, object>
-            {
-                { "@UserId", userId },
-                { "@EntityType", entityType },
-                { "@EntityId", entityId },
-                { "@Action", action },
-                { "@ChangesMade", changesMade }
-            };
-
-            DatabaseHelper.ExecuteNonQuery("sp_LogSystemAudit", args);
+            _context.Database.ExecuteSqlRaw(
+                "EXEC sp_LogSystemAudit @UserId, @EntityType, @EntityId, @Action, @ChangesMade",
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@EntityType", entityType),
+                new SqlParameter("@EntityId", entityId),
+                new SqlParameter("@Action", action),
+                new SqlParameter("@ChangesMade", changesMade)
+            );
         }
 
         public void Delete(int id)
         {
-            DatabaseHelper.ExecuteNonQuery("sp_DeleteProduct", new Dictionary<string, object> { { "@productId", id } });
+            _context.Database.ExecuteSqlRaw("EXEC sp_DeleteProduct @productId", new SqlParameter("@productId", id));
         }
-
 
         public IEnumerable<Category> GetCategories()
         {
-            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_GetCategories");
-            var categories = new List<Category>();
-
-            foreach (DataRow row in dt.Rows)
-            {
-                categories.Add(new Category
-                {
-                    CategoryId = Convert.ToInt32(row["CategoryId"]),
-                    CategoryName = row["Name"] == DBNull.Value ? string.Empty : row["Name"].ToString()!
-                });
-            }
-            return categories;
+            return _context.Categories.AsNoTracking().ToList();
         }
 
         public IEnumerable<Supplier> GetSuppliers()
         {
-            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_GetSuppliers");
-            var suppliers = new List<Supplier>();
-
-            foreach (DataRow row in dt.Rows)
-            {
-                suppliers.Add(new Supplier
-                {
-                    SupplierId = Convert.ToInt32(row["SupplierId"]),
-                    CompanyName = row["CompanyName"] == DBNull.Value ? string.Empty : row["CompanyName"].ToString()!
-                });
-            }
-            return suppliers;
+            return _context.Suppliers.AsNoTracking().ToList();
         }
     }
 }

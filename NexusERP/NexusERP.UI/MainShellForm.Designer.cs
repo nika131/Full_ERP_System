@@ -34,10 +34,6 @@
             panel1 = new Panel();
             label1 = new Label();
             btnSideBar = new PictureBox();
-            panel2 = new Panel();
-            button2 = new Button();
-            button1 = new Button();
-            btnHome = new Button();
             panel3 = new Panel();
             btnDashboard = new Button();
             button4 = new Button();
@@ -57,13 +53,13 @@
             btnRegister = new Button();
             SideBarTimer = new System.Windows.Forms.Timer(components);
             TopPanel = new Panel();
+            btnLogOut = new Button();
             lblUserInfo = new Label();
             lblModuleTitle = new Label();
             MainPanel = new Panel();
             SideBarPanel.SuspendLayout();
             panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)btnSideBar).BeginInit();
-            panel2.SuspendLayout();
             panel3.SuspendLayout();
             panel4.SuspendLayout();
             panel5.SuspendLayout();
@@ -75,7 +71,6 @@
             // 
             SideBarPanel.BackColor = Color.FromArgb(23, 32, 42);
             SideBarPanel.Controls.Add(panel1);
-            SideBarPanel.Controls.Add(panel2);
             SideBarPanel.Controls.Add(panel3);
             SideBarPanel.Controls.Add(panel4);
             SideBarPanel.Controls.Add(panel5);
@@ -124,74 +119,12 @@
             btnSideBar.TabStop = false;
             btnSideBar.Click += btnSideBar_Click;
             // 
-            // panel2
-            // 
-            panel2.Controls.Add(button2);
-            panel2.Controls.Add(button1);
-            panel2.Controls.Add(btnHome);
-            panel2.Location = new Point(3, 151);
-            panel2.Margin = new Padding(3, 4, 3, 4);
-            panel2.Name = "panel2";
-            panel2.Size = new Size(272, 81);
-            panel2.TabIndex = 1;
-            // 
-            // button2
-            // 
-            button2.FlatStyle = FlatStyle.Flat;
-            button2.Font = new Font("Verdana", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            button2.ForeColor = Color.White;
-            button2.Image = Properties.Resources.icons8_home_32;
-            button2.ImageAlign = ContentAlignment.MiddleLeft;
-            button2.Location = new Point(-2, -4);
-            button2.Margin = new Padding(3, 4, 3, 4);
-            button2.Name = "button2";
-            button2.Padding = new Padding(30, 0, 0, 0);
-            button2.Size = new Size(304, 109);
-            button2.TabIndex = 4;
-            button2.Text = "        Home";
-            button2.TextAlign = ContentAlignment.MiddleLeft;
-            button2.UseVisualStyleBackColor = true;
-            // 
-            // button1
-            // 
-            button1.FlatStyle = FlatStyle.Flat;
-            button1.Font = new Font("Verdana", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            button1.ForeColor = Color.White;
-            button1.Image = Properties.Resources.icons8_home_32;
-            button1.ImageAlign = ContentAlignment.MiddleLeft;
-            button1.Location = new Point(-10, -14);
-            button1.Margin = new Padding(3, 4, 3, 4);
-            button1.Name = "button1";
-            button1.Padding = new Padding(30, 0, 0, 0);
-            button1.Size = new Size(331, 109);
-            button1.TabIndex = 3;
-            button1.Text = "        Home";
-            button1.TextAlign = ContentAlignment.MiddleLeft;
-            button1.UseVisualStyleBackColor = true;
-            // 
-            // btnHome
-            // 
-            btnHome.FlatStyle = FlatStyle.Flat;
-            btnHome.Font = new Font("Verdana", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            btnHome.ForeColor = Color.White;
-            btnHome.Image = Properties.Resources.icons8_home_32;
-            btnHome.ImageAlign = ContentAlignment.MiddleLeft;
-            btnHome.Location = new Point(-10, -12);
-            btnHome.Margin = new Padding(3, 4, 3, 4);
-            btnHome.Name = "btnHome";
-            btnHome.Padding = new Padding(30, 0, 0, 0);
-            btnHome.Size = new Size(331, 109);
-            btnHome.TabIndex = 2;
-            btnHome.Text = "        Home";
-            btnHome.TextAlign = ContentAlignment.MiddleLeft;
-            btnHome.UseVisualStyleBackColor = true;
-            // 
             // panel3
             // 
             panel3.Controls.Add(btnDashboard);
             panel3.Controls.Add(button4);
             panel3.Controls.Add(button5);
-            panel3.Location = new Point(3, 240);
+            panel3.Location = new Point(3, 151);
             panel3.Margin = new Padding(3, 4, 3, 4);
             panel3.Name = "panel3";
             panel3.Size = new Size(272, 81);
@@ -254,7 +187,7 @@
             panel4.Controls.Add(btnInventory);
             panel4.Controls.Add(button7);
             panel4.Controls.Add(button8);
-            panel4.Location = new Point(3, 329);
+            panel4.Location = new Point(3, 240);
             panel4.Margin = new Padding(3, 4, 3, 4);
             panel4.Name = "panel4";
             panel4.Size = new Size(272, 81);
@@ -317,7 +250,7 @@
             panel5.Controls.Add(btnSuppliers);
             panel5.Controls.Add(button10);
             panel5.Controls.Add(button11);
-            panel5.Location = new Point(3, 418);
+            panel5.Location = new Point(3, 329);
             panel5.Margin = new Padding(3, 4, 3, 4);
             panel5.Name = "panel5";
             panel5.Size = new Size(272, 81);
@@ -380,7 +313,7 @@
             panel6.Controls.Add(btnReports);
             panel6.Controls.Add(button13);
             panel6.Controls.Add(button14);
-            panel6.Location = new Point(3, 507);
+            panel6.Location = new Point(3, 418);
             panel6.Margin = new Padding(3, 4, 3, 4);
             panel6.Name = "panel6";
             panel6.Size = new Size(272, 81);
@@ -445,7 +378,7 @@
             btnRegister.ForeColor = Color.White;
             btnRegister.Image = (Image)resources.GetObject("btnRegister.Image");
             btnRegister.ImageAlign = ContentAlignment.MiddleLeft;
-            btnRegister.Location = new Point(3, 596);
+            btnRegister.Location = new Point(3, 507);
             btnRegister.Margin = new Padding(3, 4, 3, 4);
             btnRegister.Name = "btnRegister";
             btnRegister.Padding = new Padding(30, 0, 0, 0);
@@ -464,14 +397,25 @@
             // TopPanel
             // 
             TopPanel.BackColor = Color.FromArgb(23, 32, 42);
+            TopPanel.Controls.Add(btnLogOut);
             TopPanel.Controls.Add(lblUserInfo);
             TopPanel.Controls.Add(lblModuleTitle);
             TopPanel.Dock = DockStyle.Top;
             TopPanel.Location = new Point(0, 0);
             TopPanel.Margin = new Padding(3, 4, 3, 4);
             TopPanel.Name = "TopPanel";
-            TopPanel.Size = new Size(1222, 81);
+            TopPanel.Size = new Size(1499, 81);
             TopPanel.TabIndex = 1;
+            // 
+            // btnLogOut
+            // 
+            btnLogOut.Location = new Point(1350, 22);
+            btnLogOut.Name = "btnLogOut";
+            btnLogOut.Size = new Size(108, 36);
+            btnLogOut.TabIndex = 7;
+            btnLogOut.Text = "LogOut";
+            btnLogOut.UseVisualStyleBackColor = true;
+            btnLogOut.Click += btnLogOut_Click;
             // 
             // lblUserInfo
             // 
@@ -501,14 +445,14 @@
             MainPanel.Location = new Point(97, 81);
             MainPanel.Margin = new Padding(3, 4, 3, 4);
             MainPanel.Name = "MainPanel";
-            MainPanel.Size = new Size(1125, 777);
+            MainPanel.Size = new Size(1402, 777);
             MainPanel.TabIndex = 2;
             // 
             // MainShellForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1222, 858);
+            ClientSize = new Size(1499, 858);
             Controls.Add(MainPanel);
             Controls.Add(SideBarPanel);
             Controls.Add(TopPanel);
@@ -520,7 +464,6 @@
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)btnSideBar).EndInit();
-            panel2.ResumeLayout(false);
             panel3.ResumeLayout(false);
             panel4.ResumeLayout(false);
             panel5.ResumeLayout(false);
@@ -535,10 +478,6 @@
 
         private System.Windows.Forms.FlowLayoutPanel SideBarPanel;
         private System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.Panel panel2;
-        private System.Windows.Forms.Button btnHome;
-        private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Panel panel3;
         private System.Windows.Forms.Button btnDashboard;
         private System.Windows.Forms.Button button4;
@@ -563,5 +502,6 @@
         private System.Windows.Forms.Panel MainPanel;
         private Button btnRegister;
         private Label lblUserInfo;
+        private Button btnLogOut;
     }
 }

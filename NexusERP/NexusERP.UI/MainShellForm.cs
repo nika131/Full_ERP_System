@@ -19,21 +19,22 @@ namespace NexusERP.UI
         {
             InitializeComponent();
 
-            lblUserInfo.Text = $"{NexusERP.Domain.State.UserSession.Role} : {NexusERP.Domain.State.UserSession.FullName}";
-        
+            lblUserInfo.Text = $"{NexusERP.Application.State.UserSession.Role} : {NexusERP.Application.State.UserSession.FullName}";
+            
             ApplyPageRestrictions();
         }
 
         private void ApplyPageRestrictions()
         {
-            var currentRole = NexusERP.Domain.State.UserSession.Role;
+            var currentRole = NexusERP.Application.State.UserSession.Role;
 
             if (currentRole != NexusERP.Domain.Enums.UserRole.Admin && currentRole != NexusERP.Domain.Enums.UserRole.Manager)
             {
                 btnSuppliers.Enabled = false;
                 btnDashboard.Enabled = false;
                 btnRegister.Enabled = false;
-            }else if(currentRole != NexusERP.Domain.Enums.UserRole.Admin)
+            }
+            else if (currentRole != NexusERP.Domain.Enums.UserRole.Admin)
             {
                 btnRegister.Enabled = false;
             }
@@ -83,6 +84,11 @@ namespace NexusERP.UI
             }
         }
 
+
+        private void MainShell_Load(object sender, EventArgs e)
+        {
+            btnInventory_Click(this, EventArgs.Empty);
+        }
         private void btnSideBar_Click(object sender, EventArgs e)
         {
             SideBarTimer.Start();
@@ -98,11 +104,6 @@ namespace NexusERP.UI
         {
             var SupplierForm = Program.serviceProvider.GetRequiredService<SupplierForm>();
             OpenModule(SupplierForm, "Supplier Directory");
-        }
-
-        private void MainShell_Load(object sender, EventArgs e)
-        {
-            btnDashboard_Click(this, EventArgs.Empty);
         }
 
         private void btnDashboard_Click(object sender, EventArgs e)
@@ -121,6 +122,18 @@ namespace NexusERP.UI
         {
             var RegisterForm = Program.serviceProvider.GetRequiredService<RegisterForm>();
             OpenModule(RegisterForm, "Register");
+        }
+
+        private void btnLogOut_Click(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show("Are you sure you want to logout?", "LogOut", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                NexusERP.Application.State.UserSession.Logout();
+
+                System.Windows.Forms.Application.Restart();
+            }
         }
     }
 }
