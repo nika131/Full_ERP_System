@@ -8,9 +8,6 @@ using Microsoft.Data.SqlClient;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Infrastructure.Database;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
 namespace NexusERP.Infrastructure.Repositories
@@ -23,6 +20,7 @@ namespace NexusERP.Infrastructure.Repositories
         {
             _context = context;
         }
+
         public IEnumerable<Product> GetAll()
         {
             var query = from p in _context.Products.AsNoTracking()
@@ -31,12 +29,12 @@ namespace NexusERP.Infrastructure.Repositories
                         {
                             ProductId = p.ProductId,
                             Name = p.Name,
-                            CategoryId = p.CategoryId,
-                            CategoryName = c.CategoryName, 
+                            CategoryId = c.CategoryId,
+                            CategoryName = c.CategoryName,
                             Quantity = p.Quantity,
                             Price = p.Price,
                             CostPrice = p.CostPrice,
-                            SupplierId = p.SupplierId
+                            SupplierId = p.SupplierId,
                         };
 
             return query.ToList();
@@ -52,61 +50,85 @@ namespace NexusERP.Infrastructure.Repositories
                             ProductId = p.ProductId,
                             Name = p.Name,
                             CategoryId = p.CategoryId,
-                            CategoryName = c.CategoryName,
+                            CategoryName = p.CategoryName,
                             Quantity = p.Quantity,
                             Price = p.Price,
                             CostPrice = p.CostPrice,
-                            SupplierId = p.SupplierId 
+                            SupplierId = p.SupplierId,
                         };
 
             return query.ToList();
         }
 
-
         public void UpSert(Product product)
         {
-            _context.Database.ExecuteSqlRaw(
-                "EXEC sp_UpsertProduct @id, @name, @catId, @qty, @price, @costPrice, @supplierId",
-                new SqlParameter("@id", product.ProductId),
-                new SqlParameter("@name", product.Name),
-                new SqlParameter("@catId", product.CategoryId),
-                new SqlParameter("@qty", product.Quantity),
-                new SqlParameter("@price", product.Price),
-                new SqlParameter("@costPrice", product.CostPrice),
-                new SqlParameter("@supplierId", product.SupplierId)
-            );
+            if(product.ProductId == 0)
+            {
+                _context.Products.Add(product);
+            }
+            else
+            {
+                _context.Products.Update(product);
+            }
+            _context.SaveChanges();
         }
 
-        public void LogInventoryTransaction(int productId, int? supplierId, int userId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit)
+        public void LogInventoryTransaction(int productId, int? supplierId, int UserId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit)
         {
-            _context.Database.ExecuteSqlRaw(
-                "EXEC sp_LogInventoryTransaction @ProductId, @SupplierId, @UserId, @TransactionType, @Quantity, @UnitPrice, @TotalAmount, @Profit",
-                new SqlParameter("@ProductId", productId),
-                new SqlParameter("@SupplierId", supplierId ?? (object)DBNull.Value),
-                new SqlParameter("@UserId", userId),
-                new SqlParameter("@TransactionType", transactionType),
-                new SqlParameter("@Quantity", quantity),
-                new SqlParameter("@UnitPrice", unitPrice),
-                new SqlParameter("@TotalAmount", totalAmount),
-                new SqlParameter("@Profit", profit)
-            );
+            var trasnsaction = new InventoryTransaction
+            {
+                ProductId = productId,
+                SupplierId = supplierId,
+                UserId = UserId,
+                TransactionType = Enum.Parse<Domain.Enums.TransactionAction>(transactionType),
+                Quantity = quantity,
+                UnitPrice = unitPrice,
+                TotalAmount = totalAmount,
+                Profit = profit,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.InventoryTransactions.Add(trasnsaction);
+
+            var product = _context.Products.Find(productId);
+
+            if(product != null)
+            {
+                product.Quantity += quantity;
+            }
+            else
+            {
+                throw new Exception("Product not found. Cannot log transaction.");
+            }
+
+            _context.SaveChanges(); 
         }
 
         public void LogSystemAudit(int userId, string entityType, int entityId, string action, string changesMade)
         {
-            _context.Database.ExecuteSqlRaw(
-                "EXEC sp_LogSystemAudit @UserId, @EntityType, @EntityId, @Action, @ChangesMade",
-                new SqlParameter("@UserId", userId),
-                new SqlParameter("@EntityType", entityType),
-                new SqlParameter("@EntityId", entityId),
-                new SqlParameter("@Action", action),
-                new SqlParameter("@ChangesMade", changesMade)
-            );
+            var auditLog = new SystemAuditLog
+            {
+                UserId = userId,
+                EntityType = entityType,
+                EntityId = entityId,
+                Action = action,
+                ChangeMade = changesMade,
+                CreatedAt = DateTime.Now,
+            };
+
+            _context.SystemAuditLogs.Add(auditLog);
+            _context.SaveChanges();
         }
 
         public void Delete(int id)
         {
-            _context.Database.ExecuteSqlRaw("EXEC sp_DeleteProduct @productId", new SqlParameter("@productId", id));
+            var product = _context.Products.Find(id);
+
+            if(product != null)
+            {
+                _context.Products.Remove(product);
+                _context.SaveChanges();
+            }
         }
 
         public IEnumerable<Category> GetCategories()
@@ -118,5 +140,6 @@ namespace NexusERP.Infrastructure.Repositories
         {
             return _context.Suppliers.AsNoTracking().ToList();
         }
+
     }
 }

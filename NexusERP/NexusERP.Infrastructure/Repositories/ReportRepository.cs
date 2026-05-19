@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -15,6 +16,7 @@ namespace NexusERP.Infrastructure.Repositories
 {
     public class ReportRepository : IReportRepository
     {
+
         private readonly ApplicationDbContext _context;
 
         public ReportRepository(ApplicationDbContext context)
@@ -37,11 +39,11 @@ namespace NexusERP.Infrastructure.Repositories
                         select new InventoryTransaction
                         {
                             TransactionId = t.TransactionId,
-                            ProductId = t.ProductId,
-                            SupplierId = t.SupplierId,
+                            ProductId = p.ProductId,
+                            SupplierId = p.SupplierId,
                             UserId = t.UserId,
                             TransactionType = t.TransactionType,
-                            Quantity = t.Quantity,
+                            Quantity = p.Quantity,
                             UnitPrice = t.UnitPrice,
                             TotalAmount = t.TotalAmount,
                             Profit = t.Profit,
@@ -54,20 +56,19 @@ namespace NexusERP.Infrastructure.Repositories
             return query.ToList();
         }
 
-        public IEnumerable<InventoryTransaction> Search(string keyword)
+        public IEnumerable<InventoryTransaction> Search(string Keyword)
         {
             var baseQuery = from t in _context.InventoryTransactions.AsNoTracking()
                             join p in _context.Products on t.ProductId equals p.ProductId into pJoin
                             from p in pJoin.DefaultIfEmpty()
                             join s in _context.Suppliers on t.SupplierId equals s.SupplierId into sJoin
                             from s in sJoin.DefaultIfEmpty()
-                            select new { t, p, s }; 
-
+                            select new { t, p, s };
 
             var filteredQuery = from item in baseQuery
-                                where (item.s != null && item.s.CompanyName.Contains(keyword)) ||
-                                      (item.p != null && item.p.Name.Contains(keyword)) ||
-                                      item.t.TransactionId.ToString().Contains(keyword)
+                                where (item.s != null && item.s.CompanyName.Contains(Keyword)) ||
+                                    (item.p != null && item.p.Name.Contains(Keyword)) ||
+                                    item.t.TransactionId.ToString().Contains(Keyword)
                                 orderby item.t.CreatedAt descending
                                 select new InventoryTransaction
                                 {
@@ -84,7 +85,6 @@ namespace NexusERP.Infrastructure.Repositories
                                     ProductName = item.p != null ? item.p.Name : string.Empty,
                                     SupplierName = item.s != null ? item.s.CompanyName : string.Empty
                                 };
-
             return filteredQuery.ToList();
         }
     }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -14,61 +15,48 @@ namespace NexusERP.Infrastructure.Repositories
 {
     public class SupplierRepository : ISupplierRepository
     {
+        private readonly ApplicationDbContext _context;
+
+        public SupplierRepository(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
         public IEnumerable<Supplier> GetAllSuppliers()
         {
-            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_GetSuppliers");
-            var suppliers = new List<Supplier>();
-
-            foreach (DataRow row in dt.Rows)
-            {
-                suppliers.Add(new Supplier
-                {
-                    SupplierId = Convert.ToInt32(row["SupplierId"]),
-                    CompanyName = row["CompanyName"] == DBNull.Value ? string.Empty : row["CompanyName"].ToString()!,
-                    ContactName = row["ContactName"] == DBNull.Value ? string.Empty : row["ContactName"].ToString()!,
-                    Phone = row["Phone"] == DBNull.Value ? string.Empty : row["Phone"].ToString()!,
-                    Email = row["Email"] == DBNull.Value ? string.Empty : row["Email"].ToString()!
-                });
-            }
-            return suppliers;
+            return _context.Suppliers.AsNoTracking().ToList();
         }
 
         public IEnumerable<Supplier> SearchSuppliers(string Keyword)
         {
-            DataTable dt = DatabaseHelper.ExecuteStoredProcedure("sp_SearchSuppliers", new Dictionary<string, object> { { "@Keyword", Keyword } });
-            var suppliers = new List<Supplier>();
-
-            foreach (DataRow row in dt.Rows)
-            {
-                suppliers.Add(new Supplier
-                {
-                    SupplierId = Convert.ToInt32(row["SupplierId"]),
-                    CompanyName = row["CompanyName"] == DBNull.Value ? string.Empty : row["CompanyName"].ToString()!,
-                    ContactName = row["ContactName"] == DBNull.Value ? string.Empty : row["ContactName"].ToString()!,
-                    Phone = row["Phone"] == DBNull.Value ? string.Empty : row["Phone"].ToString()!,
-                    Email = row["Email"] == DBNull.Value ? string.Empty : row["Email"].ToString()!
-                });
-            }
-            return suppliers;
+            return _context.Suppliers.AsNoTracking()
+                                    .Where(s => s.CompanyName.Contains(Keyword))
+                                    .ToList();
         }
-            
 
         public void UpsertSuppliers(Supplier supplier)
         {
-            var args = new Dictionary<string, object>
+            if (supplier.SupplierId == 0)
             {
-                { "@supplierId", supplier.SupplierId },
-                { "@companyName", supplier.CompanyName },
-                { "@contactName", supplier.ContactName },
-                { "@phone", supplier.Phone },
-                { "@email", supplier.Email }
-            };
-            DatabaseHelper.ExecuteNonQuery("sp_UsertSupplier", args);
+                _context.Suppliers.Add(supplier);
+            }
+            else
+            {
+                _context.Suppliers.Update(supplier);
+            }
+
+            _context.SaveChanges();
         }
 
         public void DeleteSupplier(int id)
         {
-            DatabaseHelper.ExecuteNonQuery("sp_DeleteSupplier", new Dictionary<string, object> { { "@supplierId", id } });
+            var supplier = _context.Suppliers.Find(id);
+
+            if (supplier != null)
+            {
+                _context.Suppliers.Remove(supplier);
+                _context.SaveChanges();
+            }
         }
     }
 }
