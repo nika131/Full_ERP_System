@@ -90,8 +90,8 @@ namespace NexusERP.Application.Presenters
 
             foreach (var product in products)
             {
-                totalValue += (product.ProductPrice * product.Quantity);
-                totalPotentialProfit += ((product.ProductPrice - product.ProductCostPrice) * product.Quantity);
+                totalValue += (product.Price * product.Quantity);
+                totalPotentialProfit += ((product.Price - product.CostPrice) * product.Quantity);
 
                 if (product.Quantity < 5)
                     lowStock++;
@@ -154,11 +154,11 @@ namespace NexusERP.Application.Presenters
                 var product = new Product
                 {
                     ProductId = _view.ProductId,
-                    ProductName = _view.ViewProductName,
-                    ProductCategoryId = _view.CategoryId,
+                    Name = _view.ViewProductName,
+                    CategoryId = _view.CategoryId,
                     Quantity = _view.ProductQuantity,
-                    ProductPrice = _view.ProductPrice,
-                    ProductCostPrice = _view.CostPrice,
+                    Price = _view.ProductPrice,
+                    CostPrice = _view.CostPrice,
                     SupplierId = _view.SupplierId
                 };
 
@@ -168,8 +168,8 @@ namespace NexusERP.Application.Presenters
 
 
                     string changesMade = isNewProduct
-                        ? $"Create new product '{product.ProductName}' with initial quantity {product.Quantity}."
-                        : $"Updated product '{product.ProductName}'. price: {product.ProductPrice:C}, Cost: {product.ProductCostPrice:C}.";
+                        ? $"Create new product '{product.Name}' with initial quantity {product.Quantity}."
+                        : $"Updated product '{product.Name}'. price: {product.Price:C}, Cost: {product.CostPrice:C}.";
 
 
                     _repository.LogSystemAudit(

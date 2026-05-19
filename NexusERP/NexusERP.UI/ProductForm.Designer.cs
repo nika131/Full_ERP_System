@@ -327,6 +327,7 @@ namespace NexusERP.UI
             cbCategory.Name = "cbCategory";
             cbCategory.Size = new Size(121, 28);
             cbCategory.TabIndex = 30;
+            cbCategory.SelectedIndexChanged += cbCategory_SelectedIndexChanged;
             // 
             // lblId
             // 

@@ -39,7 +39,7 @@ namespace NexusERP.Infrastructure.Services
             {
                 FullName = fullname,
                 Username = username,
-                PasswordHashed = hashedPassword,
+                PasswordHash = hashedPassword,
                 Role = role
             };
 
@@ -52,7 +52,7 @@ namespace NexusERP.Infrastructure.Services
             if (user == null) 
                 throw new Exception("Invalid username or Password");
 
-            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(plaintextpassword, user.PasswordHashed);
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(plaintextpassword, user.PasswordHash);
             if (!isPasswordValid)
                 throw new Exception("Inavlid username or password");
 

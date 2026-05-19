@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NexusERP.Application.Interfaces.Repositories;
@@ -46,6 +47,8 @@ namespace NexusERP.UI
 
             services.AddSingleton<IConfiguration>(config);
 
+            services.AddDbContext<NexusERP.Infrastructure.Database.ApplicationDbContext>(options =>
+                options.UseSqlServer(config.GetConnectionString("InventoryDb")));
 
             services.AddTransient<IProductRepository, ProductRepository>();
             services.AddTransient<IReportRepository, ReportRepository>();

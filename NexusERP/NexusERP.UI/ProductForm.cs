@@ -275,7 +275,7 @@ namespace NexusERP.UI
         {
             cbCategory.DataSource = null;
 
-            cbCategory.DisplayMember = "CategoryName";
+            cbCategory.DisplayMember = "Category";
             cbCategory.ValueMember = "CategoryId";
 
             if (categories != null && categories.Any())
@@ -302,6 +302,11 @@ namespace NexusERP.UI
         }
 
         private void dgvProducts_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void cbCategory_SelectedIndexChanged(object sender, EventArgs e)
         {
 
         }

@@ -37,8 +37,8 @@ namespace NexusERP.Application.Presenters
 
             foreach (Product product in products)
             {
-                decimal price = product.ProductPrice;
-                decimal cost = product.ProductCostPrice;
+                decimal price = product.Price;
+                decimal cost = product.CostPrice;
                 int qty = product.Quantity;
 
                 totalValue += (price * qty);
