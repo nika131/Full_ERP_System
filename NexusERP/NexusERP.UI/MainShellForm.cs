@@ -19,14 +19,12 @@ namespace NexusERP.UI
         {
             InitializeComponent();
 
-            lblUserInfo.Text = $"{NexusERP.Application.State.UserSession.Role} : {NexusERP.Application.State.UserSession.FullName}";
-            
-            ApplyPageRestrictions();
+            this.Load += MainShell_Load;
         }
 
         private void ApplyPageRestrictions()
         {
-            var currentRole = NexusERP.Application.State.UserSession.Role;
+            var currentRole = NexusERP.Domain.State.UserSession.Role;
 
             if (currentRole != NexusERP.Domain.Enums.UserRole.Admin && currentRole != NexusERP.Domain.Enums.UserRole.Manager)
             {
@@ -87,6 +85,10 @@ namespace NexusERP.UI
 
         private void MainShell_Load(object sender, EventArgs e)
         {
+            lblUserInfo.Text = $"{NexusERP.Domain.State.UserSession.Role} : {NexusERP.Domain.State.UserSession.FullName}";
+
+            ApplyPageRestrictions();
+
             btnInventory_Click(this, EventArgs.Empty);
         }
         private void btnSideBar_Click(object sender, EventArgs e)
@@ -130,10 +132,15 @@ namespace NexusERP.UI
 
             if (result == DialogResult.Yes)
             {
-                NexusERP.Application.State.UserSession.Logout();
+                NexusERP.Domain.State.UserSession.Logout();
 
                 System.Windows.Forms.Application.Restart();
             }
+        }
+
+        private void lblUserInfo_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

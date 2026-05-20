@@ -25,7 +25,7 @@ namespace NexusERP.Application.Presenters
 
         public void Register()
         {
-            if(string.IsNullOrWhiteSpace(_view.Username) || string.IsNullOrWhiteSpace(_view.Username) || string.IsNullOrEmpty(_view.FullName))
+            if(string.IsNullOrWhiteSpace(_view.Username) || string.IsNullOrWhiteSpace(_view.Password) || string.IsNullOrEmpty(_view.FullName))
             {
                 _view.ShowError("Username, Password and Fullname is required.");
                 return;

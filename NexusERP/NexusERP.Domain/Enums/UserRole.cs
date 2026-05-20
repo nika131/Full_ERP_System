@@ -8,8 +8,8 @@ namespace NexusERP.Domain.Enums
 {
     public enum UserRole
     {
-        Admin,
         Manager,
-        Cashier
+        Cashier,
+        Admin
     }
 }

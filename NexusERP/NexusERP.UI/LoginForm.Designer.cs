@@ -29,12 +29,12 @@
         private void InitializeComponent()
         {
             panel1 = new Panel();
-            label1 = new Label();
-            label2 = new Label();
-            txtUsername = new TextBox();
+            btnLogin = new Button();
             txtPassword = new TextBox();
             label3 = new Label();
-            btnLogin = new Button();
+            txtUsername = new TextBox();
+            label2 = new Label();
+            label1 = new Label();
             panel1.SuspendLayout();
             SuspendLayout();
             // 
@@ -52,31 +52,18 @@
             panel1.Size = new Size(390, 297);
             panel1.TabIndex = 0;
             // 
-            // label1
+            // btnLogin
             // 
-            label1.AutoSize = true;
-            label1.Font = new Font("Verdana", 22.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label1.Location = new Point(123, 30);
-            label1.Name = "label1";
-            label1.Size = new Size(141, 45);
-            label1.TabIndex = 0;
-            label1.Text = "LogIn";
-            // 
-            // label2
-            // 
-            label2.AutoSize = true;
-            label2.Location = new Point(44, 91);
-            label2.Name = "label2";
-            label2.Size = new Size(75, 20);
-            label2.TabIndex = 1;
-            label2.Text = "Username";
-            // 
-            // txtUsername
-            // 
-            txtUsername.Location = new Point(48, 121);
-            txtUsername.Name = "txtUsername";
-            txtUsername.Size = new Size(285, 27);
-            txtUsername.TabIndex = 2;
+            btnLogin.BackColor = Color.FromArgb(23, 32, 42);
+            btnLogin.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            btnLogin.ForeColor = Color.White;
+            btnLogin.Location = new Point(133, 246);
+            btnLogin.Name = "btnLogin";
+            btnLogin.Size = new Size(116, 37);
+            btnLogin.TabIndex = 5;
+            btnLogin.Text = "Log In";
+            btnLogin.UseVisualStyleBackColor = false;
+            btnLogin.Click += btnLogin_Click;
             // 
             // txtPassword
             // 
@@ -95,18 +82,31 @@
             label3.TabIndex = 3;
             label3.Text = "Password";
             // 
-            // btnLogin
+            // txtUsername
             // 
-            btnLogin.BackColor = Color.FromArgb(23, 32, 42);
-            btnLogin.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            btnLogin.ForeColor = Color.White;
-            btnLogin.Location = new Point(133, 246);
-            btnLogin.Name = "btnLogin";
-            btnLogin.Size = new Size(116, 37);
-            btnLogin.TabIndex = 5;
-            btnLogin.Text = "Log In";
-            btnLogin.UseVisualStyleBackColor = false;
-            btnLogin.Click += btnLogin_Click;
+            txtUsername.Location = new Point(48, 121);
+            txtUsername.Name = "txtUsername";
+            txtUsername.Size = new Size(285, 27);
+            txtUsername.TabIndex = 2;
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(44, 91);
+            label2.Name = "label2";
+            label2.Size = new Size(75, 20);
+            label2.TabIndex = 1;
+            label2.Text = "Username";
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Font = new Font("Verdana", 22.2F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label1.Location = new Point(123, 30);
+            label1.Name = "label1";
+            label1.Size = new Size(141, 45);
+            label1.TabIndex = 0;
+            label1.Text = "LogIn";
             // 
             // LoginForm
             // 

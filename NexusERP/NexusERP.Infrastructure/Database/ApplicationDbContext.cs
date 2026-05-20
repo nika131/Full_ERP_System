@@ -49,6 +49,7 @@ namespace NexusERP.Infrastructure.Database
                           v => v.ToString(),
                           v => (TransactionAction)System.Enum.Parse(typeof(TransactionAction), v));
 
+
                 entity.Ignore(e => e.ProductName);
                 entity.Ignore(e => e.SupplierName);
             });
@@ -62,6 +63,9 @@ namespace NexusERP.Infrastructure.Database
                       .HasConversion(
                           v => v.ToString(),
                           v => (UserRole)System.Enum.Parse(typeof(UserRole), v));
+                entity.Property(e => e.CreatedAt)
+                  .HasDefaultValueSql("GETDATE()")
+                  .ValueGeneratedOnAdd();
             });
 
             modelBuilder.Entity<Category>().HasKey(e => e.CategoryId);

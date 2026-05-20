@@ -94,7 +94,7 @@ namespace NexusERP.UI
 
         private void ApplyInventoryFormRestrictions()
         {
-            var currentRole = NexusERP.Application.State.UserSession.Role;
+            var currentRole = NexusERP.Domain.State.UserSession.Role;
 
             if (currentRole == UserRole.Admin)
             {
@@ -247,7 +247,7 @@ namespace NexusERP.UI
             }
 
             var action = (TransactionAction)cbTransaction.SelectedItem;
-            var currentRole = NexusERP.Application.State.UserSession.Role;
+            var currentRole = NexusERP.Domain.State.UserSession.Role;
 
             if (currentRole == UserRole.Cashier && action != TransactionAction.Sale)
             {
@@ -275,7 +275,7 @@ namespace NexusERP.UI
         {
             cbCategory.DataSource = null;
 
-            cbCategory.DisplayMember = "Category";
+            cbCategory.DisplayMember = "CategoryName";
             cbCategory.ValueMember = "CategoryId";
 
             if (categories != null && categories.Any())

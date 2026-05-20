@@ -50,6 +50,7 @@ namespace NexusERP.UI
             services.AddDbContext<NexusERP.Infrastructure.Database.ApplicationDbContext>(options =>
                 options.UseSqlServer(config.GetConnectionString("InventoryDb")));
 
+
             services.AddTransient<IProductRepository, ProductRepository>();
             services.AddTransient<IReportRepository, ReportRepository>();
             services.AddTransient<ISupplierRepository, SupplierRepository>();

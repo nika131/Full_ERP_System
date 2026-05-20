@@ -21,14 +21,6 @@ namespace NexusERP.UI
         private void InitializeComponent()
         {
             dgvProducts = new DataGridView();
-            colProductId = new DataGridViewTextBoxColumn();
-            colProductName = new DataGridViewTextBoxColumn();
-            Category = new DataGridViewTextBoxColumn();
-            colCategoryId = new DataGridViewTextBoxColumn();
-            colProductPrice = new DataGridViewTextBoxColumn();
-            colQuantity = new DataGridViewTextBoxColumn();
-            colCostPrice = new DataGridViewTextBoxColumn();
-            colSupplierId = new DataGridViewTextBoxColumn();
             txtSearch = new TextBox();
             label1 = new Label();
             lblTotalItems = new Label();
@@ -55,6 +47,14 @@ namespace NexusERP.UI
             txtId = new TextBox();
             btnSave = new Button();
             btnDelete = new Button();
+            colProductId = new DataGridViewTextBoxColumn();
+            colProductName = new DataGridViewTextBoxColumn();
+            Category = new DataGridViewTextBoxColumn();
+            colCategoryId = new DataGridViewTextBoxColumn();
+            colProductPrice = new DataGridViewTextBoxColumn();
+            colQuantity = new DataGridViewTextBoxColumn();
+            colCostPrice = new DataGridViewTextBoxColumn();
+            colSupplierId = new DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)dgvProducts).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numcolCostPrice).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numPrice).BeginInit();
@@ -75,70 +75,6 @@ namespace NexusERP.UI
             dgvProducts.CellClick += dgvProducts_CellClick;
             dgvProducts.CellContentClick += dgvProducts_CellContentClick;
             dgvProducts.MouseDown += dgvProducts_MouseDown;
-            // 
-            // colProductId
-            // 
-            colProductId.DataPropertyName = "ProductId";
-            colProductId.HeaderText = "ProductId";
-            colProductId.MinimumWidth = 6;
-            colProductId.Name = "colProductId";
-            colProductId.Width = 125;
-            // 
-            // colProductName
-            // 
-            colProductName.DataPropertyName = "ProductName";
-            colProductName.HeaderText = "ProductName";
-            colProductName.MinimumWidth = 6;
-            colProductName.Name = "colProductName";
-            colProductName.Width = 125;
-            // 
-            // Category
-            // 
-            Category.DataPropertyName = "Category";
-            Category.HeaderText = "Category";
-            Category.MinimumWidth = 6;
-            Category.Name = "Category";
-            Category.Width = 125;
-            // 
-            // colCategoryId
-            // 
-            colCategoryId.DataPropertyName = "ProductCategoryId";
-            colCategoryId.HeaderText = "CategoryId";
-            colCategoryId.MinimumWidth = 6;
-            colCategoryId.Name = "colCategoryId";
-            colCategoryId.Width = 125;
-            // 
-            // colProductPrice
-            // 
-            colProductPrice.DataPropertyName = "ProductPrice";
-            colProductPrice.HeaderText = "ProductPrice";
-            colProductPrice.MinimumWidth = 6;
-            colProductPrice.Name = "colProductPrice";
-            colProductPrice.Width = 125;
-            // 
-            // colQuantity
-            // 
-            colQuantity.DataPropertyName = "Quantity";
-            colQuantity.HeaderText = "Quantity";
-            colQuantity.MinimumWidth = 6;
-            colQuantity.Name = "colQuantity";
-            colQuantity.Width = 125;
-            // 
-            // colCostPrice
-            // 
-            colCostPrice.DataPropertyName = "ProductCostPrice";
-            colCostPrice.HeaderText = "CostPrice";
-            colCostPrice.MinimumWidth = 6;
-            colCostPrice.Name = "colCostPrice";
-            colCostPrice.Width = 125;
-            // 
-            // colSupplierId
-            // 
-            colSupplierId.DataPropertyName = "SupplierId";
-            colSupplierId.HeaderText = "SupplierId";
-            colSupplierId.MinimumWidth = 6;
-            colSupplierId.Name = "colSupplierId";
-            colSupplierId.Width = 125;
             // 
             // txtSearch
             // 
@@ -366,6 +302,70 @@ namespace NexusERP.UI
             btnDelete.UseVisualStyleBackColor = true;
             btnDelete.Click += btnDelete_Click_1;
             // 
+            // colProductId
+            // 
+            colProductId.DataPropertyName = "ProductId";
+            colProductId.HeaderText = "ProductId";
+            colProductId.MinimumWidth = 6;
+            colProductId.Name = "colProductId";
+            colProductId.Width = 125;
+            // 
+            // colProductName
+            // 
+            colProductName.DataPropertyName = "Name";
+            colProductName.HeaderText = "ProductName";
+            colProductName.MinimumWidth = 6;
+            colProductName.Name = "colProductName";
+            colProductName.Width = 125;
+            // 
+            // Category
+            // 
+            Category.DataPropertyName = "CategoryName";
+            Category.HeaderText = "Category";
+            Category.MinimumWidth = 6;
+            Category.Name = "Category";
+            Category.Width = 125;
+            // 
+            // colCategoryId
+            // 
+            colCategoryId.DataPropertyName = "CategoryId";
+            colCategoryId.HeaderText = "CategoryId";
+            colCategoryId.MinimumWidth = 6;
+            colCategoryId.Name = "colCategoryId";
+            colCategoryId.Width = 125;
+            // 
+            // colProductPrice
+            // 
+            colProductPrice.DataPropertyName = "Price";
+            colProductPrice.HeaderText = "ProductPrice";
+            colProductPrice.MinimumWidth = 6;
+            colProductPrice.Name = "colProductPrice";
+            colProductPrice.Width = 125;
+            // 
+            // colQuantity
+            // 
+            colQuantity.DataPropertyName = "Quantity";
+            colQuantity.HeaderText = "Quantity";
+            colQuantity.MinimumWidth = 6;
+            colQuantity.Name = "colQuantity";
+            colQuantity.Width = 125;
+            // 
+            // colCostPrice
+            // 
+            colCostPrice.DataPropertyName = "CostPrice";
+            colCostPrice.HeaderText = "CostPrice";
+            colCostPrice.MinimumWidth = 6;
+            colCostPrice.Name = "colCostPrice";
+            colCostPrice.Width = 125;
+            // 
+            // colSupplierId
+            // 
+            colSupplierId.DataPropertyName = "SupplierId";
+            colSupplierId.HeaderText = "SupplierId";
+            colSupplierId.MinimumWidth = 6;
+            colSupplierId.Name = "colSupplierId";
+            colSupplierId.Width = 125;
+            // 
             // ProductForm
             // 
             ClientSize = new Size(1603, 671);
@@ -437,14 +437,14 @@ namespace NexusERP.UI
         private System.Windows.Forms.TextBox txtId;
         private System.Windows.Forms.Button btnSave;
         private System.Windows.Forms.Button btnDelete;
-        private System.Windows.Forms.DataGridViewTextBoxColumn colProductId;
-        private System.Windows.Forms.DataGridViewTextBoxColumn colProductName;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Category;
-        private System.Windows.Forms.DataGridViewTextBoxColumn colCategoryId;
-        private System.Windows.Forms.DataGridViewTextBoxColumn colProductPrice;
-        private System.Windows.Forms.DataGridViewTextBoxColumn colQuantity;
-        private System.Windows.Forms.DataGridViewTextBoxColumn colCostPrice;
-        private System.Windows.Forms.DataGridViewTextBoxColumn colSupplierId;
+        private DataGridViewTextBoxColumn colProductId;
+        private DataGridViewTextBoxColumn colProductName;
+        private DataGridViewTextBoxColumn Category;
+        private DataGridViewTextBoxColumn colCategoryId;
+        private DataGridViewTextBoxColumn colProductPrice;
+        private DataGridViewTextBoxColumn colQuantity;
+        private DataGridViewTextBoxColumn colCostPrice;
+        private DataGridViewTextBoxColumn colSupplierId;
     }
 }
 

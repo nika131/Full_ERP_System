@@ -427,6 +427,7 @@
             lblUserInfo.Size = new Size(133, 36);
             lblUserInfo.TabIndex = 6;
             lblUserInfo.Text = "User Info";
+            lblUserInfo.Click += lblUserInfo_Click;
             // 
             // lblModuleTitle
             // 
