@@ -31,6 +31,7 @@ namespace NexusERP.UI
                 btnSuppliers.Enabled = false;
                 btnDashboard.Enabled = false;
                 btnRegister.Enabled = false;
+                btnEmployees.Enabled = false;
             }
             else if (currentRole != NexusERP.Domain.Enums.UserRole.Admin)
             {
@@ -137,10 +138,10 @@ namespace NexusERP.UI
                 System.Windows.Forms.Application.Restart();
             }
         }
-
-        private void lblUserInfo_Click(object sender, EventArgs e)
+        private void btnEmployees_Click(object sender, EventArgs e)
         {
-
+            var EmployeesForm = Program.serviceProvider.GetRequiredService<EmployeesForm>();
+            OpenModule(EmployeesForm, "Employee Management");
         }
     }
 }

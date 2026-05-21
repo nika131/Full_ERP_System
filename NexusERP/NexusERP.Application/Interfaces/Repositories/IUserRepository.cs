@@ -11,5 +11,9 @@ namespace NexusERP.Application.Interfaces.Repositories
     {
         void CreateUser(User user);
         User? GetUserByUsername(string username);
+        IEnumerable<User> GetAllUsers();
+        IEnumerable<User> SearchUsers(string keyword);
+        void DeleteUser(int id);
+        void UpdateUser(User user);
     }
 }

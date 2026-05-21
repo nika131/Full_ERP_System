@@ -67,6 +67,7 @@ namespace NexusERP.UI
             services.AddTransient<DashboardPresenter>();
             services.AddTransient<LoginPresenter>();
             services.AddTransient<RegisterPresenter>();
+            services.AddTransient<EmployeePresenter>();
 
             services.AddTransient<DashboardForm>();
             services.AddTransient<ReportsForm>();
@@ -75,8 +76,8 @@ namespace NexusERP.UI
             services.AddTransient<MainShellForm>();
             services.AddTransient<LoginForm>();
             services.AddTransient<RegisterForm>();
+            services.AddTransient<EmployeesForm>();
 
-            
         }
     }
 }

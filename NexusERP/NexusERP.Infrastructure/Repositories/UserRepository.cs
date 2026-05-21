@@ -23,6 +23,7 @@ namespace NexusERP.Infrastructure.Repositories
 
         public void CreateUser(User user)
         {
+            user.IsActive = true;
             _context.Users.Add(user);
             _context.SaveChanges();
         }
@@ -30,7 +31,47 @@ namespace NexusERP.Infrastructure.Repositories
         public User? GetUserByUsername(string username)
         {
             return _context.Users.AsNoTracking()
-                                .FirstOrDefault(u => u.Username == username);
+                                .FirstOrDefault(u => u.Username == username && u.IsActive);
+        }
+
+        public IEnumerable<User> GetAllUsers()
+        {
+            return _context.Users.AsNoTracking()
+                                .Where(u => u.IsActive)
+                                .ToList();
+        }
+
+        public IEnumerable<User> SearchUsers(string keyword)
+        {
+            return _context.Users.AsNoTracking()
+                                .Where(u => u.IsActive &&
+                                    (u.Username.Contains(keyword) ||
+                                    u.FullName.Contains(keyword) ||
+                                    u.UserId.ToString().Contains(keyword)))
+                                .ToList();
+        }
+
+        public void DeleteUser(int id)
+        {
+            var user = _context.Users.Find(id);
+            if (user != null)
+            {
+                user.IsActive = false;
+                _context.SaveChanges();
+            }
+        }
+
+        public void UpdateUser(User user)
+        {
+            var existingUser = _context.Users.Find(user.UserId);
+            if (existingUser != null)
+            {
+                existingUser.FullName = user.FullName;
+                existingUser.Username = user.Username;
+                existingUser.Role = user.Role;
+
+                _context.SaveChanges();
+            }
         }
     }
 }
