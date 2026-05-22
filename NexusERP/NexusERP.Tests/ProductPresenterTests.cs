@@ -56,10 +56,10 @@ namespace NexusERP.Tests
 
             mockRepo.Verify(r => r.UpSert(It.Is<Product>(p =>
                 p.ProductId == 0 &&
-                p.ProductName == "Gaming Mouse" &&
-                p.ProductCategoryId == 1 &&
-                p.ProductPrice == 50m &&
-                p.ProductCostPrice == 20m &&
+                p.Name == "Gaming Mouse" &&
+                p.CategoryId == 1 &&
+                p.Price == 50m &&
+                p.Price == 20m &&
                 p.Quantity == 100 &&
                 p.SupplierId == 2
             )), Times.Once);
@@ -193,9 +193,9 @@ namespace NexusERP.Tests
         {
             var Products = new List<Product>
             {
-                new Product{ ProductCostPrice = 15.50m, Quantity = 35, ProductPrice = 55.5m },
-                new Product{ ProductCostPrice = 10.99m, Quantity = 3, ProductPrice = 39.99m },
-                new Product{ ProductCostPrice = 5.75m, Quantity = 25, ProductPrice = 14.99m }
+                new Product{ CostPrice = 15.50m, Quantity = 35, Price = 55.5m },
+                new Product{ CostPrice = 10.99m, Quantity = 3, Price = 39.99m },
+                new Product{ CostPrice = 5.75m, Quantity = 25, Price = 14.99m }
             };
 
             var mockRepo = new Mock<IProductRepository>();

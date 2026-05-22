@@ -1,4 +1,5 @@
-﻿using NexusERP.Domain.Enums;
+﻿using NexusERP.Domain.Entities;
+using NexusERP.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +12,6 @@ namespace NexusERP.Application.Interfaces.Services
     {
         void Register(string fullname, string username, string plaintextPassword, UserRole role);
         string Login(string username, string password);
+        string GenerateJwtToken(User user);
     }
 }
