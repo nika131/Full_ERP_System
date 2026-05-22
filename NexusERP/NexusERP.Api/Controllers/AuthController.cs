@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
@@ -33,6 +34,8 @@ namespace NexusERP.Api.Controllers
             
         }
 
+        [HttpPost("register")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Register([FromBody] RegisterRequestDto request)
         {
             try
