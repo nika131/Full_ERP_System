@@ -40,7 +40,8 @@ namespace NexusERP.Api.Controllers
         {
             try
             {
-                if (!Enum.TryParse<UserRole>(request.Role, true, out var parseRole){
+                if (!Enum.TryParse<UserRole>(request.Role, true, out var parseRole))
+                {
                     return BadRequest(new { message = "Invalid role specified." });
                 }
 
