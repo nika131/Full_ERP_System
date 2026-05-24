@@ -9,6 +9,8 @@ namespace NexusERP.Application.Interfaces.Services
 {
     public interface IExcelExportService
     {
-        void ExcelTransactions(IEnumerable<InventoryTransaction> Data, string filePath, string sheetName = "Transactions");
+        void ExcelTransactions(IEnumerable<InventoryTransaction> data, string filePath, string sheetName = "Transactions");
+
+        byte[] ExcelTransactions(IEnumerable<InventoryTransaction> data, string sheetName = "Transactions");
     }
 }

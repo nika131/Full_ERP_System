@@ -14,7 +14,7 @@ namespace NexusERP.Infrastructure.Services
 {
     public class PdfExportService : IPdfExportService
     {
-        public void GenerateInvoice(InventoryTransaction model, string filePath)
+        public byte[] GenerateInvoice(InventoryTransaction model)
         {
             Document.Create(container =>
             {
@@ -81,7 +81,15 @@ namespace NexusERP.Infrastructure.Services
                         x.CurrentPageNumber();
                     });
                 });
-            }).GeneratePdf(filePath);
+            }).GeneratePdf();
+        }
+
+
+        public void GenerateInvoice(InventoryTransaction model, string filePath)
+        {
+            byte[] fileBytes = GenerateInvoice(model);
+
+            File.WriteAllBytes(filePath, fileBytes);
         }
     }
 }

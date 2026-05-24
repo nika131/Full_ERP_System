@@ -10,5 +10,7 @@ namespace NexusERP.Application.Interfaces.Services
     public interface IPdfExportService
     {
         void GenerateInvoice(InventoryTransaction transaction, string filePath);
+
+        byte[] GenerateInvoice(InventoryTransaction transaction);
     }
 }

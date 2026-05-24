@@ -13,7 +13,7 @@ namespace NexusERP.Infrastructure.Services
 {
     public class ExcelExportService : IExcelExportService
     {
-        public void ExcelTransactions(IEnumerable<InventoryTransaction> data, string filePath, string sheetName)
+        public byte[] ExcelTransactions(IEnumerable<InventoryTransaction> data, string sheetName = "Transactions")
         {
             if (data == null || !data.Any())
                 throw new Exception("There is no datato export.");
@@ -22,10 +22,21 @@ namespace NexusERP.Infrastructure.Services
             {
                 var worksheet = workbook.Worksheets.Add(sheetName);
                 worksheet.Cell(1, 1).InsertTable(data);
-
                 worksheet.Columns().AdjustToContents();
-                workbook.SaveAs(filePath);
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
             }
+        }
+
+        public void ExcelTransactions(IEnumerable<InventoryTransaction> data, string filePath, string sheetName = "Transactions")
+        {
+            byte[] fileBytes = ExcelTransactions(data, sheetName);
+
+            File.WriteAllBytes(filePath, fileBytes);
         }
     }
 }
