@@ -16,7 +16,7 @@ namespace NexusERP.Infrastructure.Services
     {
         public byte[] GenerateInvoice(InventoryTransaction model)
         {
-            Document.Create(container =>
+            return Document.Create(container =>
             {
                 container.Page(page =>
                 {
