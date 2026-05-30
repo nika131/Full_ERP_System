@@ -30,8 +30,8 @@ namespace NexusERP.Infrastructure.Database
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasKey(e => e.ProductId);
-                entity.Property(e => e.Price).HasColumnType("decimal(10,2)");
-                entity.Property(e => e.CostPrice).HasColumnType("decimal(10,2)");
+                entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CostPrice).HasColumnType("decimal(18,2)");
 
                 entity.Ignore(e => e.CategoryName);
             });
@@ -47,7 +47,7 @@ namespace NexusERP.Infrastructure.Database
                 entity.Property(e => e.TransactionType)
                       .HasConversion(
                           v => v.ToString(),
-                          v => (TransactionAction)System.Enum.Parse(typeof(TransactionAction), v));
+                          v => (TransactionAction)Enum.Parse(typeof(TransactionAction), v));
 
 
                 entity.Ignore(e => e.ProductName);
@@ -62,7 +62,8 @@ namespace NexusERP.Infrastructure.Database
                  entity.Property(e => e.Role)
                       .HasConversion(
                           v => v.ToString(),
-                          v => (UserRole)System.Enum.Parse(typeof(UserRole), v));
+                          v => (UserRole)Enum.Parse(typeof(UserRole), v));
+                
                 entity.Property(e => e.CreatedAt)
                   .HasDefaultValueSql("GETDATE()")
                   .ValueGeneratedOnAdd();

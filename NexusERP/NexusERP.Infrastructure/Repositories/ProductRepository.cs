@@ -25,6 +25,7 @@ namespace NexusERP.Infrastructure.Repositories
         {
             var query = from p in _context.Products.AsNoTracking()
                         join c in _context.Categories on p.CategoryId equals c.CategoryId
+                        where p.IsActive
                         select new Product
                         {
                             ProductId = p.ProductId,
@@ -68,6 +69,7 @@ namespace NexusERP.Infrastructure.Repositories
             }
             else
             {
+                product.UpdatedAt = DateTime.Now;
                 _context.Products.Update(product);
             }
             _context.SaveChanges();
@@ -94,6 +96,7 @@ namespace NexusERP.Infrastructure.Repositories
 
             if(product != null)
             {
+                product.UpdatedAt = DateTime.Now;
                 product.Quantity += quantity;
             }
             else
@@ -112,7 +115,7 @@ namespace NexusERP.Infrastructure.Repositories
                 EntityType = entityType,
                 EntityId = entityId,
                 Action = action,
-                ChangeMade = changesMade,
+                ChangesMade = changesMade,
                 CreatedAt = DateTime.Now,
             };
 
@@ -126,7 +129,8 @@ namespace NexusERP.Infrastructure.Repositories
 
             if(product != null)
             {
-                _context.Products.Remove(product);
+                product.IsActive = false;
+                product.UpdatedAt = DateTime.Now;
                 _context.SaveChanges();
             }
         }

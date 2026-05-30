@@ -24,7 +24,9 @@ namespace NexusERP.Infrastructure.Repositories
 
         public IEnumerable<Supplier> GetAllSuppliers()
         {
-            return _context.Suppliers.AsNoTracking().ToList();
+            return _context.Suppliers.AsNoTracking()
+                                    .Where(s => s.IsActive)
+                                    .ToList();
         }
 
         public IEnumerable<Supplier> SearchSuppliers(string Keyword)
@@ -42,6 +44,7 @@ namespace NexusERP.Infrastructure.Repositories
             }
             else
             {
+                supplier.UpdatedAt = DateTime.Now;
                 _context.Suppliers.Update(supplier);
             }
 
@@ -54,7 +57,8 @@ namespace NexusERP.Infrastructure.Repositories
 
             if (supplier != null)
             {
-                _context.Suppliers.Remove(supplier);
+                supplier.IsActive = false;
+                supplier.UpdatedAt = DateTime.Now;
                 _context.SaveChanges();
             }
         }

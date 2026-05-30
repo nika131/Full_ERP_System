@@ -32,7 +32,7 @@ namespace NexusERP.Infrastructure.Repositories
                             EntityType = log.EntityType,
                             EntityId = log.EntityId,
                             Action = log.Action,
-                            ChangeMade = log.ChangeMade,
+                            ChangesMade = log.ChangesMade,
                             CreatedAt = log.CreatedAt,
                             PerformedBy = u != null ? u.FullName : "Unknown User"
                         };  
@@ -50,7 +50,7 @@ namespace NexusERP.Infrastructure.Repositories
             var fillteredQuery = from item in baseQuery
                                  where item.log.Action.Contains(keyword) ||
                                        item.log.EntityType.Contains(keyword) ||
-                                       item.log.ChangeMade.Contains(keyword) ||
+                                       item.log.ChangesMade.Contains(keyword) ||
                                        (item.u != null && item.u.FullName.Contains(keyword))
                                 orderby item.log.CreatedAt descending
                                 select new SystemAuditLog
@@ -60,7 +60,7 @@ namespace NexusERP.Infrastructure.Repositories
                                     EntityType = item.log.EntityType,
                                     EntityId = item.log.EntityId,
                                     Action = item.log.Action,
-                                    ChangeMade = item.log.ChangeMade,
+                                    ChangesMade = item.log.ChangesMade,
                                     CreatedAt = item.log.CreatedAt,
                                     PerformedBy = item.u != null ? item.u.FullName : "Unknown User"
                                 };
