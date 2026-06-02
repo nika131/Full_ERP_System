@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const login = (token: string) => {
+        localStorage.setItem('jwt_token', token);
         decodeAndSetUser(token);
     };
 

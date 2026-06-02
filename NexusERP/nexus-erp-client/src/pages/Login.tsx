@@ -19,8 +19,8 @@ export default function Login() {
         setIsLoading(true);
 
         try {
-            const token = await authService.login({ username, password });
-            login(String(token));
+            const response = await authService.login({ username, password });
+            login(response.data.token);
             navigate('/dashboard');
         } catch (err: any) {
             setError('Invalid username or password');
