@@ -7,7 +7,7 @@ using System.ComponentModel;
 namespace NexusERP.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controler]")]
+    [Route("api/[controller]")]
     [Authorize]
     public class DashboardController : Controller
     {

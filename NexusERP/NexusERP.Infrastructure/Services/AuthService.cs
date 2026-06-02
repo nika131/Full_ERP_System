@@ -25,7 +25,7 @@ namespace NexusERP.Infrastructure.Services
         public AuthService(IUserRepository userRepository, IConfiguration config)
         {
             _userRepository = userRepository;
-            _jwtSecret = config["JwtSettings:Secret"] ?? throw new Exception("JWT Secret missing!");
+            _jwtSecret = config["Jwt:Key"] ?? throw new Exception("JWT Secret missing!");
         }
 
         public void Register(string fullname, string username, string plaintextPassword, UserRole role)

@@ -9,7 +9,7 @@ using System.Security.Claims;
 namespace NexusERP.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controler]")]
+    [Route("api/[controller]")]
     [Authorize]
     public class ReportsController : Controller
     {

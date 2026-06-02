@@ -33,7 +33,7 @@ namespace NexusERP.Api.Controllers
                     PerformedBy = log.PerformedBy,
                     Action = log.Action,
                     EntityType = log.EntityType,
-                    ChangeMade = log.ChangeMade,
+                    ChangeMade = log.ChangesMade,
                     CreatedAt = log.CreatedAt
                 }).ToList();
 

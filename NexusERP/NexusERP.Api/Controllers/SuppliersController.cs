@@ -7,7 +7,7 @@ using NexusERP.Domain.Entities;
 namespace NexusERP.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controler]")]
+    [Route("api/[controller]")]
     [Authorize]
     public class SuppliersController : Controller
     {
