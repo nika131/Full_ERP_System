@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Login from './pages/Login';
 import MainLayout from './layouts/MainLayout';
+import InventoryList from './pages/InventoryList';
 
 
 const DashboardPlaceholder = () => (
@@ -25,7 +26,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPlaceholder />} />
               
               {/* Future endpoints to be built: */}
-              <Route path="/inventory" element={<div>Inventory Grid (Pending)</div>} />
+              <Route path="/inventory" element={<InventoryList/>} />
               <Route path="/suppliers" element={<div>Suppliers Grid (Pending)</div>} />
 
               <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
