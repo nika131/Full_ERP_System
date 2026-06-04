@@ -41,6 +41,7 @@ namespace NexusERP.Application.Presenters
             }
         }
 
+        /*
         public void RefreshData()
         {
             try
@@ -70,7 +71,7 @@ namespace NexusERP.Application.Presenters
             {
                 _view.ShowError(ex.Message);
             }
-        }
+        }*/
 
         public void UpdateCalculations(IEnumerable<Product> products)
         {
@@ -103,6 +104,7 @@ namespace NexusERP.Application.Presenters
             _view.LowStockText = $"Low Stock Alerts: {lowStock}";
         }
 
+        /*
         public void DeleteProduct(int id, string name)
         {
             if (_view.ConfirmDelete(name))
@@ -244,7 +246,7 @@ namespace NexusERP.Application.Presenters
             {
                 _view.ShowMessage("Transaction Failed: " + ex.Message);
             }
-        }
+        }*/
     }
 }
 

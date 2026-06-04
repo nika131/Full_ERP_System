@@ -1,14 +1,18 @@
 import apiClient from "./apiClient";
 import { type Product } from "../types/product";
+import { type PageResult } from "../types/pagination";
+
 
 export const productService = {
-    getAll: async (): Promise<Product[]> => {
-        const response = await apiClient.get('/products');
-        return response.data;
-    },
+    getProducts: async (page: number = 1, pageSize: number = 10, search?: string): Promise<PageResult<Product>> => {
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+        params.append('pageSize', pageSize.toString());
+        if (search) {
+            params.append('search', search);
+        }
 
-    search: async (keyword: string): Promise<Product[]> => {
-        const response = await apiClient.get(`/products/search?keyword=${keyword}`);
+        const response = await apiClient.get(`/products?${params.toString()}`)
         return response.data;
     }
-}
+};

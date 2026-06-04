@@ -18,12 +18,13 @@ namespace NexusERP.Api.Controllers
             _repository = repository;
         }
 
+        /*
         [HttpGet("statistics")]
         public IActionResult GetDashboardStatistics()
         {
             try
             {
-                var products = _repository.GetAll();
+                var products = _repository.GetPaged();
 
                 decimal totalValue = 0;
                 decimal totalProfit = 0;
@@ -79,6 +80,6 @@ namespace NexusERP.Api.Controllers
             {
                 return StatusCode(500, new { message = "Error calculating dashboard statistics: " + ex.Message });
             }
-        }
+        }*/
     }
 }

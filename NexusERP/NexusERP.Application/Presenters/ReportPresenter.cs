@@ -33,6 +33,8 @@ namespace NexusERP.Application.Presenters
             _view = view;
         }
 
+
+        /*
         public void RefreshData()
         {
             try
@@ -59,7 +61,7 @@ namespace NexusERP.Application.Presenters
             {
                 _view.ShowMessage("Search Error: " +  ex.Message);
             }
-        }
+        }*/
 
         private List<InventoryTransaction> ApplyRbacRestrictions(IEnumerable<InventoryTransaction> rawData)
         {

@@ -26,6 +26,7 @@ namespace NexusERP.Application.Presenters
         {
             _view = view;
         }
+        /*
         public void LoadStatistics()
         {
             IEnumerable<Product> products = _repository.GetAll();
@@ -66,6 +67,6 @@ namespace NexusERP.Application.Presenters
             {
                 _view.InventoryHealth = "STABLE";
             }
-        }
+        }*/
     }
 }
