@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
@@ -14,114 +15,88 @@ namespace NexusERP.Api.Controllers
     public class ReportsController : Controller
     {
         private readonly IReportRepository _repository;
+        private readonly IUserRepository _userRepository;
         private readonly IExcelExportService _excelService;
         private readonly IPdfExportService _pdfService;
 
-        public ReportsController(IReportRepository repository, IExcelExportService excelService, IPdfExportService pdfService)
+        public ReportsController(IReportRepository repository, IUserRepository userRepository, IExcelExportService excelService, IPdfExportService pdfService)
         {
             _repository = repository;
+            _userRepository = userRepository;
             _excelService = excelService;
             _pdfService = pdfService;
         }
 
-        private int GetCurrentuserId()
+        private (int UserId, string Role) GetIdentity()
         {
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return int.TryParse(idClaim, out int id) ? id : 0;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+            return (int.TryParse(idClaim, out int id) ? id : 0, role);
         }
 
-        private string GetCurrentUserRole()
-        {
-            return User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
-        }
-
-        private IEnumerable<InventoryTransaction> ApplyRbacRestrictions(IEnumerable<InventoryTransaction> rawData)
-        {
-            var dataList = rawData?.ToList() ?? new List<InventoryTransaction>();
-
-            if (GetCurrentUserRole() == "Cashier")
-            {
-                int currentUserID = GetCurrentuserId();
-                return dataList
-                    .Where(t => t.TransactionType == Domain.Enums.TransactionAction.Sale && t.UserId == currentUserID)
-                    .ToList();
-            }
-
-            return dataList;
-        }
 
         [HttpGet]
-        public IActionResult GetTransactions([FromQuery] string? keyword, [FromQuery] string typeFilter = "All")
+        public IActionResult GetTransactions(
+            [FromQuery] string? searchTerm = null, 
+            [FromQuery] int pageNumber = 1, 
+            [FromQuery] int pageSize = 10, 
+            [FromQuery] string typeFilter = "All")
         {
-            try
-            {
-                var transactions = string.IsNullOrWhiteSpace(keyword)
-                    ? _repository.GetAll()
-                    : _repository.Search(keyword);
+            if (pageSize > 100) pageSize = 100;
+            var identity = GetIdentity();
 
-                var secureData = ApplyRbacRestrictions(transactions);
-
-                if (typeFilter != "All" && Enum.TryParse(typeFilter, true, out TransactionAction action))
-                {
-                    secureData = secureData.Where(t => t.TransactionType == action).ToList();
-                }
-
-                return Ok(secureData);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Database Error: " + ex.Message });
-            }
+            var secureData = _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, identity.UserId, identity.Role, typeFilter);
+            return Ok(secureData);
         }
 
         [HttpGet("export/excel")]
-        public IActionResult ExportExcel([FromQuery] string? keyword, [FromQuery] string typeFilter = "All")
+        public IActionResult ExportExcel([FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? keyword, [FromQuery] string typeFilter = "All")
         {
-            try
-            {
-                var transactions = string.IsNullOrWhiteSpace(keyword)
-                    ? _repository.GetAll()
-                    : _repository.Search(keyword);
+            var identity = GetIdentity();
 
-                var secureData = ApplyRbacRestrictions(transactions);
-
-                if (typeFilter != "All" && Enum.TryParse(typeFilter, true, out TransactionAction action))
-                {
-                    secureData = secureData.Where(t => t.TransactionType == action).ToList();
-                }
-
-                byte[] fileContents = _excelService.ExcelTransactions(secureData, "Transactions");
-
-                return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InventoryReport.xlsx");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Error generating Excel: " + ex.Message });
-            }
+            var data = _repository.GetPagedTransactions(pageNumber, pageSize, keyword, identity.UserId, identity.Role, typeFilter).Items;
+            
+            byte[] fileContents = _excelService.ExcelTransactions(data, "Transactions");
+            return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InventoryReport.xlsx");
         }
 
         [HttpGet("export/pdf/{transactionId}")]
         public IActionResult ExportPdf(int transactionId)
         {
-            try
+            var identity = GetIdentity();
+            var transaction = _repository.GetById(transactionId);
+
+            if (transaction == null) return NotFound("Transaction not found.");
+
+            if (identity.Role == "Admin")
             {
-                var transaction = _repository.GetAll().FirstOrDefault(t => t.TransactionId == transactionId);
-
-                if (transaction == null) return NotFound("Transaction not found.");
-
-                if (GetCurrentUserRole() == "Cashier" && transaction.UserId != GetCurrentuserId())
+                
+            }
+            else if (identity.Role == "Manager")
+            {
+                 if (transaction.UserId != identity.UserId)
+                {
+                    var targetUser = _userRepository.GetAllUsers().FirstOrDefault(u => u.UserId == transaction.UserId);
+                    if (targetUser == null || targetUser.Role != UserRole.Cashier)
+                    {
+                        return Forbid();
+                    }
+                }
+            }
+            else if (identity.Role == "Cashier")
+            {
+                if (transaction.UserId != identity.UserId || transaction.TransactionType != TransactionAction.Sale)
                 {
                     return Forbid();
                 }
-
-                byte[] fileContents = _pdfService.GenerateInvoice(transaction);
-
-                return File(fileContents, "application/pdf", $"Invoice_{transactionId}.pdf");
             }
-            catch (Exception ex)
+            else
             {
-                return StatusCode(500, new { message = "Error generating PDF: " + ex.Message });
+                return Forbid();
             }
+
+            byte[] fileContents = _pdfService.GenerateInvoice(transaction);
+            return File(fileContents, "application/pdf", $"Invoice_{transactionId}.pdf");
         }
     }
 }

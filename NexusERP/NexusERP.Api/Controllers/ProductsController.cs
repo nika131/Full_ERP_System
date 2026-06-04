@@ -32,33 +32,15 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAllProducts()
+        public IActionResult GetProducts(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null)
         {
-            try
-            {
-                var products = _repository.GetAll();
-                return Ok(products);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-            }
-        }
+            if (pageSize > 100) pageSize = 100;
 
-        [HttpGet("search")]
-        public IActionResult SearchProducts([FromQuery] string keyword)
-        {
-            if (string.IsNullOrEmpty(keyword)) return BadRequest("Keyword is requires");
-
-            try
-            {
-                var products = _repository.Search(keyword);
-                return Ok(products);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-            }
+            var result = _repository.GetPaged(page, pageSize, searchTerm);
+            return Ok(result);
         }
 
         [HttpGet("references")]

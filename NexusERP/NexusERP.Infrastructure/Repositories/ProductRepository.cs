@@ -9,6 +9,7 @@ using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using NexusERP.Domain.Models;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -21,44 +22,40 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public IEnumerable<Product> GetAll()
+        public PagedResult<Product> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
-            var query = from p in _context.Products.AsNoTracking()
-                        join c in _context.Categories on p.CategoryId equals c.CategoryId
-                        where p.IsActive
-                        select new Product
-                        {
-                            ProductId = p.ProductId,
-                            Name = p.Name,
-                            CategoryId = c.CategoryId,
-                            CategoryName = c.CategoryName,
-                            Quantity = p.Quantity,
-                            Price = p.Price,
-                            CostPrice = p.CostPrice,
-                            SupplierId = p.SupplierId,
-                        };
+            var baseQuery = _context.Products.AsNoTracking().Where(p => p.IsActive);
 
-            return query.ToList();
-        }
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                baseQuery = baseQuery.Where(p => p.Name.Contains(searchTerm) || p.ProductId.ToString() == searchTerm);
+            }
 
-        public IEnumerable<Product> Search(string keyword)
-        {
-            var query = from p in _context.Products.AsNoTracking()
-                        join c in _context.Categories on p.CategoryId equals c.CategoryId
-                        where p.Name.Contains(keyword) || p.ProductId.ToString().Contains(keyword)
-                        select new Product
-                        {
-                            ProductId = p.ProductId,
-                            Name = p.Name,
-                            CategoryId = p.CategoryId,
-                            CategoryName = p.CategoryName,
-                            Quantity = p.Quantity,
-                            Price = p.Price,
-                            CostPrice = p.CostPrice,
-                            SupplierId = p.SupplierId,
-                        };
+            var totalCount = baseQuery.Count();
 
-            return query.ToList();
+            var items = baseQuery
+                .OrderByDescending(p => p.ProductId)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new Product
+                {
+                    ProductId = p.ProductId,
+                    Name = p.Name,
+                    CategoryId = p.CategoryId,
+                    CategoryName = _context.Categories.FirstOrDefault(c => c.CategoryId == p.CategoryId).CategoryName,
+                    Quantity = p.Quantity,
+                    Price = p.Price,
+                    CostPrice = p.CostPrice,
+                    SupplierId = p.SupplierId,
+                }).ToList();
+
+            return new PagedResult<Product>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
         public void UpSert(Product product)
