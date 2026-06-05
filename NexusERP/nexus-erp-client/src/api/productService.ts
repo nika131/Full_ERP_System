@@ -39,5 +39,9 @@ export const productService = {
     getSuppliers: async (): Promise<Supplier[]> => {
         const response = await apiClient.get('/Suppliers');
         return response.data;
+    },
+
+    deleteProduct: async (productId: number): Promise<void> => {
+        await apiClient.delete(`/products/${productId}`);
     }
 };
