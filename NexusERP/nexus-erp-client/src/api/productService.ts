@@ -1,6 +1,8 @@
 import apiClient from "./apiClient";
 import { type Product } from "../types/product";
 import { type PageResult } from "../types/pagination";
+import type { Category } from "../types/category";
+import type { Supplier } from "../types/supplier";
 
 
 export const productService = {
@@ -18,6 +20,24 @@ export const productService = {
         }
 
         const response = await apiClient.get(`/products?${params.toString()}`, { signal });
+        return response.data;
+    },
+
+    saveProduct: async (productData: any): Promise<void> => {
+        if (productData.productId) {
+            await apiClient.put(`/products/${productData.productId}`, productData);
+        } else {
+            await apiClient.post('/products', productData);
+        }
+    },
+
+    getCategories: async (): Promise<Category[]> => {
+        const response = await apiClient.get('/categories');
+        return response.data;
+    },
+
+    getSuppliers: async (): Promise<Supplier[]> => {
+        const response = await apiClient.get('/Suppliers');
         return response.data;
     }
 };

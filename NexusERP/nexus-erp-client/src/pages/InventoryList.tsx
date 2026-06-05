@@ -2,6 +2,9 @@ import { useEffect, useState, useMemo } from 'react';
 import { productService } from '../api/productService';
 import { type Product } from '../types/product';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
+import type { ProductFormData } from '../schemas/productSchema';
+import { SlideOver } from '../components/Ui/SlideOver';
+import { ProductForm } from '../components/forms/ProductForm';
 
 export default function InventoryList() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -13,6 +16,9 @@ export default function InventoryList() {
     const [totalCount, setTotalCount] = useState(0);
 
     const [searchTerm, setSearchTerm] = useState('');
+
+    const [isSildeOverOpen, setIsSlideOverOpen] = useState(false);
+    const [selectedProduct, setSelectedProduct]= useState<Product | null>(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -52,6 +58,33 @@ export default function InventoryList() {
         } 
     };
 
+    const handleAddClick = () => {
+        setSelectedProduct(null);
+        setIsSlideOverOpen(true);
+    }
+
+    const handleEditClick = (product: Product) => {
+        setSelectedProduct(product);
+        setIsSlideOverOpen(true);
+    };
+
+    const handleFormSubmit = async (FormData: ProductFormData) => {
+        try {
+            const payload = {
+                ...FormData,
+                productId: selectedProduct?.productId
+            };
+
+            await productService.saveProduct(payload);
+            setIsSlideOverOpen(false);
+
+            const controller = new AbortController();
+            loadProducts(controller.signal);
+        } catch (err) {
+            console.error("Failed to save", err);
+        }
+    }
+
     const columns = useMemo<ColumnDef<Product>[]>(() => [
     { header: 'ID', accessor: 'productId', className: 'w-16' },
     { header: 'Product Name', accessor: 'name', className: 'font-medium' },
@@ -84,9 +117,13 @@ export default function InventoryList() {
       header: 'Actions',
       accessor: 'actions',
       className: 'text-center',
-      render: () => (
+      render: (item) => (
         <div>
-          <button className="text-emerald-600 hover:text-emerald-800 font-medium mr-3 transition-colors">Edit</button>
+          <button 
+            onClick={() => handleEditClick(item)}
+            className="text-emerald-600 hover:text-emerald-800 font-medium mr-3 transition-colors">
+                Edit
+            </button>
           <button className="text-red-600 hover:text-red-800 font-medium transition-colors">Delete</button>
         </div>
       )
@@ -97,7 +134,9 @@ export default function InventoryList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-800">Inventory</h2>
-        <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+        <button 
+            onClick={handleAddClick}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
           + Add Product
         </button>
       </div>
@@ -130,6 +169,19 @@ export default function InventoryList() {
         totalCount={totalCount}
         onPageChange={(newPage) => setPage(newPage)}
       />
+
+      <SlideOver
+        isOpen={isSildeOverOpen}
+        onClose={() => setIsSlideOverOpen(false)}
+        title={selectedProduct ? `Edit ${selectedProduct.name}` : "Create New Product"}
+      >
+        <ProductForm
+            initialData={selectedProduct}
+            onSubmit={handleFormSubmit}
+            onCancel={() => setIsSlideOverOpen(false)}
+        />
+      </SlideOver>
+
     </div>
   );
 }
