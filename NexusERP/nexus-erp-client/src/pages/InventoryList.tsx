@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { productService } from '../api/productService';
 import { type Product } from '../types/product';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
@@ -15,28 +15,44 @@ export default function InventoryList() {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
+        const controller = new AbortController();
+
         const timer = setTimeout(() => {
-            loadProducts();
+            loadProducts(controller.signal);
         }, 300);
-        return () => clearTimeout(timer);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
     }, [page, searchTerm]);
 
-    const loadProducts = async () => {
+    const loadProducts = async (signal: AbortSignal) => {
         try {
+            setError('');
             setIsLoading(true);
-            const data = await productService.getProducts(page, 10, searchTerm);
+
+            const data = await productService.getProducts(page, 10, searchTerm, signal);
+            
             setProducts(data.items);
             setTotalPages(data.totalPages);
             setTotalCount(data.totalCount);
-        } catch (err) {
+
+            setIsLoading(false);
+        } catch (err: any) {
+
+            if (err.name === 'CanceledError' || err.name === 'canceled') {
+                return;
+            }
+
             console.error(err);
             setError('Failed to load Inventory Data. Please try again later.');
-        } finally {
+        
             setIsLoading(false);
-        }
+        } 
     };
 
-    const columns: ColumnDef<Product>[] = [
+    const columns = useMemo<ColumnDef<Product>[]>(() => [
     { header: 'ID', accessor: 'productId', className: 'w-16' },
     { header: 'Product Name', accessor: 'name', className: 'font-medium' },
     { 
@@ -75,7 +91,7 @@ export default function InventoryList() {
         </div>
       )
     }
-  ];
+  ], []);
 
     return (
     <div className="space-y-6">

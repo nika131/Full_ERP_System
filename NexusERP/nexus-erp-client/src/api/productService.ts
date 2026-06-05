@@ -4,7 +4,12 @@ import { type PageResult } from "../types/pagination";
 
 
 export const productService = {
-    getProducts: async (page: number = 1, pageSize: number = 10, search?: string): Promise<PageResult<Product>> => {
+    getProducts: async (
+        page: number = 1, 
+        pageSize: number = 10, 
+        search?: string,
+        signal?: AbortSignal
+    ): Promise<PageResult<Product>> => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('pageSize', pageSize.toString());
@@ -12,7 +17,7 @@ export const productService = {
             params.append('search', search);
         }
 
-        const response = await apiClient.get(`/products?${params.toString()}`)
+        const response = await apiClient.get(`/products?${params.toString()}`, { signal });
         return response.data;
     }
 };
