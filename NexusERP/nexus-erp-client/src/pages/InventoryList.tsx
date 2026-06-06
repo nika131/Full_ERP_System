@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { productService } from '../api/productService';
+import { productService, type TransactionPayLoad } from '../api/productService';
 import { type Product } from '../types/product';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import type { ProductFormData } from '../schemas/productSchema';
@@ -23,6 +23,10 @@ export default function InventoryList() {
 
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    const [isSellModalOpen, setIsSellModalOpen] = useState(false);
+    const [sellQuantity, setSellQuantity] = useState<number>(1);
+    const [isSelling, setIsSelling] = useState(false);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -113,6 +117,40 @@ export default function InventoryList() {
         }
     }
 
+    const handleSellClick = (product: Product) => {
+        setSelectedProduct(product);
+        setSellQuantity(1);
+        setIsSellModalOpen(true);
+    }
+
+    const handleConfrimSell = async () => {
+        if (!selectedProduct) return;
+
+        try {
+            setIsSelling(true);
+            const payload: TransactionPayLoad = {
+                productId: selectedProduct.productId,
+                supplierId: selectedProduct.supplierId || null,
+                transactionType: "Sale",
+                soldQty: sellQuantity,
+                productPrice: selectedProduct.price,
+                costPrice: selectedProduct.costPrice 
+            };
+
+            await productService.makeTransaction(payload);
+
+            setIsSellModalOpen(false);
+            setSelectedProduct(null);
+
+            const controller = new AbortController()
+            loadProducts(controller.signal);
+        } catch (err) {
+            console.error("Failed to process sale", err);
+        } finally {
+            setIsSelling(false);
+        }
+    }
+
     const columns = useMemo<ColumnDef<Product>[]>(() => [
         { header: 'ID', accessor: 'productId', className: 'w-16' },
         { header: 'Product Name', accessor: 'name', className: 'font-medium' },
@@ -147,15 +185,20 @@ export default function InventoryList() {
         className: 'text-center',
         render: (item) => (
             <div>
-            <button 
-                onClick={() => handleEditClick(item)}
-                className="text-emerald-600 hover:text-emerald-800 font-medium mr-3 transition-colors">
-                    Edit
+                <button
+                    onClick={() => handleSellClick(item)}
+                    className="text-blue-600 hover:text-blue-800 font-medium mr-3 transition-colors">
+                    Sell
                 </button>
-            <button 
-                onClick={() => handleDeleteClick(item)}
-                className="text-red-600 hover:text-red-800 font-medium transition-colors">
-                    Delete
+                <button 
+                    onClick={() => handleEditClick(item)}
+                    className="text-emerald-600 hover:text-emerald-800 font-medium mr-3 transition-colors">
+                        Edit
+                </button>
+                <button 
+                    onClick={() => handleDeleteClick(item)}
+                    className="text-red-600 hover:text-red-800 font-medium transition-colors">
+                        Delete
                 </button>
             </div>
         )
@@ -226,6 +269,49 @@ export default function InventoryList() {
                 }}
                 isProcessing={isDeleting}
             />
+
+
+            {/*Sell Modal Overlay */}
+            {isSellModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+                        <div className="p-6">
+                            <h3 className="text-lg font-semibold text-slate-900 mb-2">Process Sale</h3>
+                            <p className="text-slate-600 text-sm mb-4">
+                                Product: <span className="font-semibold text-slate-800">{selectedProduct?.name}</span><br/>
+                                Current Stock: <span className="font-semibold text-slate-800">{selectedProduct?.quantity}</span>
+                            </p>
+                            
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Quantity to Sell</label>
+                            <input 
+                                type="number" 
+                                min="1"
+                                max={selectedProduct?.quantity} 
+                                value={sellQuantity}
+                                onChange={(e) => setSellQuantity(parseInt(e.target.value) || 1)}
+                                className="w-full px-3 py-2 border border-slate-300 rounded outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
+                        
+                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
+                            <button
+                                onClick={() => { setIsSellModalOpen(false); setSelectedProduct(null); }}
+                                disabled={isSelling}
+                                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-100 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfrimSell}
+                                disabled={isSelling || sellQuantity > (selectedProduct?.quantity || 0) || sellQuantity < 1}
+                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                                {isSelling ? 'Processing...' : 'Confirm Sale'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

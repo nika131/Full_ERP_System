@@ -130,10 +130,10 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                     <label className="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
                     <input
                     type="number"
+                    disabled
                     {...register('quantity', { valueAsNumber: true })}
-                    className={`w-full px-3 py-2 border rounded outline-none transition-colors ${errors.quantity ? 'border-red-500' : 'border-slate-300 focus:border-emerald-500'}`}
+                    className={`w-full px-3 py-2 border rounded outline-none bg-slate-100 text-slate-500 cursor-not-allowed ${errors.quantity ? 'border-red-500' : 'border-slate-300'}`}
                     />
-                    {errors.quantity && <p className="text-red-500 text-xs mt-1">{errors.quantity.message}</p>}
                 </div>
                 {/* ... Keep the existing Price and Cost Price inputs exactly as they were ... */}
                 <div>

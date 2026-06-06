@@ -4,6 +4,14 @@ import { type PagedResult } from "../types/pagination";
 import type { Category } from "../types/category";
 import type { Supplier } from "../types/supplier";
 
+export interface TransactionPayLoad {
+    productId: number;
+    supplierId: number | null;
+    transactionType: string;
+    soldQty: number;
+    productPrice: number;
+    costPrice: number;
+}
 
 export const productService = {
     getProducts: async (
@@ -43,5 +51,9 @@ export const productService = {
 
     deleteProduct: async (productId: number): Promise<void> => {
         await apiClient.delete(`/products/${productId}`);
+    },
+
+    makeTransaction: async (payload: TransactionPayLoad): Promise<void> => {
+        await apiClient.post('/products/transaction', payload);
     }
 };
