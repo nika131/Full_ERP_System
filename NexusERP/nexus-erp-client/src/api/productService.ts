@@ -1,6 +1,6 @@
 import apiClient from "./apiClient";
 import { type Product } from "../types/product";
-import { type PageResult } from "../types/pagination";
+import { type PagedResult } from "../types/pagination";
 import type { Category } from "../types/category";
 import type { Supplier } from "../types/supplier";
 
@@ -11,7 +11,7 @@ export const productService = {
         pageSize: number = 10, 
         search?: string,
         signal?: AbortSignal
-    ): Promise<PageResult<Product>> => {
+    ): Promise<PagedResult<Product>> => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('pageSize', pageSize.toString());
