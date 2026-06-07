@@ -7,6 +7,7 @@ import InventoryList from './pages/InventoryList';
 import AuditLogsList from './pages/AuditLogsList';
 import SupplierList from './pages/SupplierList';
 import Dashboard from './pages/Dashboard';
+import CategoryList from './pages/CategoryList';
 
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
               
               <Route path="/inventory" element={<InventoryList/>} />
               <Route path="/suppliers" element={<SupplierList/>} />
+              <Route path="/categories" element={<CategoryList/>} />
 
               <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
                 <Route path="/Logs" element={<AuditLogsList/>} />

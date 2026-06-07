@@ -2,9 +2,7 @@ import apiClient from "./apiClient";
 import { type Product } from "../types/product";
 import { type PagedResult } from "../types/pagination";
 import type { Category } from "../types/category";
-import type { Supplier, SupplierLookup } from "../types/supplier";
-import type { ChartData } from "recharts/types/state/chartDataSlice";
-import type { TopProduct } from "../types/dashboard";
+import type { SupplierLookup } from "../types/supplier";
 
 export interface TransactionPayLoad {
     productId: number;
@@ -42,7 +40,7 @@ export const productService = {
     },
 
     getCategories: async (): Promise<Category[]> => {
-        const response = await apiClient.get('/categories');
+        const response = await apiClient.get('/categories/lookup');
         return response.data;
     },
 

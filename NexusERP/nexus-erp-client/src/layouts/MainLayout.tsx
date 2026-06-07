@@ -40,6 +40,12 @@ export default function MainLayout() {
                 >
                     Suppliers
                 </Link>
+                <Link 
+                    to="/categories" 
+                    className={`block px-4 py-2 rounded transition-colors ${isActive('/categories') ? 'bg-blue-600' : 'hover:bg-gray-800'}`}
+                >
+                    Categories
+                </Link>
             
                 {user?.role === 'Admin' && (
                     <Link 
