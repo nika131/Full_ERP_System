@@ -6,14 +6,8 @@ import MainLayout from './layouts/MainLayout';
 import InventoryList from './pages/InventoryList';
 import AuditLogsList from './pages/AuditLogsList';
 import SupplierList from './pages/SupplierList';
+import Dashboard from './pages/Dashboard';
 
-
-const DashboardPlaceholder = () => (
-  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-    <h1 className="text-2xl font-bold mb-2">System Overview</h1>
-    <p className="text-gray-600">Select an module from the sidebar to begin.</p>
-  </div>
-);
 
 function App() {
   return (
@@ -25,7 +19,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               
-              <Route path="/dashboard" element={<DashboardPlaceholder />} />
+              <Route path="/dashboard" element={<Dashboard/>} />
               
               <Route path="/inventory" element={<InventoryList/>} />
               <Route path="/suppliers" element={<SupplierList/>} />

@@ -140,6 +140,31 @@ namespace NexusERP.Infrastructure.Repositories
             }
         }
 
+        public DashboardResponse GetDashboardAggregates()
+        {
+            var stats = _context.Products
+                .GroupBy(p => 1)
+                .Select(g => new DashboardResponse
+                {
+                    TotalValue = g.Sum(p => p.Price * p.Quantity),
+                    TotalCost = g.Sum(p => p.CostPrice * p.Quantity),
+                }).FirstOrDefault() ?? new DashboardResponse();
+
+            stats.LowStockCount = _context.Products.Count(p => p.Quantity < 5);
+
+            stats.TotalProfit = stats.TotalValue - stats.TotalCost;
+            stats.MarginPrecentage = stats.TotalValue > 0 ? (stats.TotalProfit / stats.TotalValue) * 100 : 0;
+
+            if (stats.MarginPrecentage > 30 && stats.LowStockCount == 0)
+                stats.InventoryHealth = "EXCELLENT";
+            else if (stats.LowStockCount > 0)
+                stats.InventoryHealth = "ACTION REQUIRED";
+            else
+                stats.InventoryHealth = "STABLE";
+
+            return stats;
+        }
+
         public IEnumerable<Category> GetCategories()
         {
             return _context.Categories.AsNoTracking().ToList();

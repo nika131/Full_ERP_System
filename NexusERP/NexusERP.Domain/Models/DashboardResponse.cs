@@ -1,6 +1,6 @@
-﻿namespace NexusERP.Api.DTOs
+﻿namespace NexusERP.Domain.Models
 {
-    public class DashboardResponseDto
+    public class DashboardResponse
     {
         public decimal TotalValue { get; set; }     
         public decimal TotalCost { get; set; }

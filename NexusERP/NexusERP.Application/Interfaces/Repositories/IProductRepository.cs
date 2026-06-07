@@ -16,6 +16,7 @@ namespace NexusERP.Application.Interfaces.Repositories
         void LogInventoryTransaction(int productId, int? SupplierId, int UserId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit);
         void LogSystemAudit(int userId, string entityType, int entityId, string action, string chnagesMade);
         void Delete(int id);
+        DashboardResponse GetDashboardAggregates();
         IEnumerable<Category> GetCategories();
         IEnumerable<Supplier> GetSuppliers();
     }

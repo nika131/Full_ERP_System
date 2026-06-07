@@ -11,75 +11,56 @@ namespace NexusERP.Api.Controllers
     [Authorize]
     public class DashboardController : Controller
     {
-        private readonly IProductRepository _repository;
+        private readonly IProductRepository _Productrepository;
+        private readonly IReportRepository _ReportRepository;
 
-        public DashboardController(IProductRepository repository)
+        public DashboardController(IProductRepository productRepository, IReportRepository reportRepository)
         {
-            _repository = repository;
+            _Productrepository = productRepository;
+            _ReportRepository = reportRepository;
         }
 
-        /*
+        
         [HttpGet("statistics")]
         public IActionResult GetDashboardStatistics()
         {
             try
             {
-                var products = _repository.GetPaged();
-
-                decimal totalValue = 0;
-                decimal totalProfit = 0;
-                decimal totalCost = 0;
-                int lowStockCount = 0;
-
-                foreach (var product in products)
-                {
-                    decimal price = product.Price;
-                    decimal cost = product.CostPrice;
-                    int qty = product.Quantity;
-
-                    totalValue += (price * qty);
-                    totalCost += (cost * qty);
-                    totalProfit += (price - cost) * qty;
-
-                    if (qty < 5)
-                    {
-                        lowStockCount++;
-                    }
-
-                }
-
-                decimal margin = totalValue > 0 ? (totalProfit / totalValue) * 100 : 0;
-
-                string inventoryHealth;
-                if (margin > 30 && lowStockCount == 0)
-                {
-                    inventoryHealth = "EXCELLENT";
-                }
-                else if (lowStockCount > 0)
-                {
-                    inventoryHealth = "ACTION REQUIRED";
-                }
-                else
-                {
-                    inventoryHealth = "STABLE";
-                }
-
-                var response = new DashboardResponseDto
-                {
-                    TotalValue = totalValue,
-                    TotalCost = totalCost,
-                    TotalProfit = totalProfit,
-                    LowStockCount = lowStockCount,
-                    MarginPrecentage = margin,
-                    InventoryHealth = inventoryHealth,
-                };
-
-                return Ok(response);
+                var stats = _Productrepository.GetDashboardAggregates();
+                return Ok(stats);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error calculating dashboard statistics: " + ex.Message });
             }
-        }*/
+        }
+
+        [HttpGet("revenueChart")]
+        public IActionResult GetChartData()
+        {
+            try
+            {
+                var chartData = _ReportRepository.GetWeeklyRevenueChart();
+                return Ok(chartData);
+            } 
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error loading chart data: " + ex.Message });
+            }
+        }
+
+        [HttpGet("top-Products")]
+        public IActionResult GettopProducts()
+        {
+            try
+            {
+                var data = _ReportRepository.GetTopPerformingProducts();
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error loading top Products: " + ex.Message });
+            }
+        }
     }
 }

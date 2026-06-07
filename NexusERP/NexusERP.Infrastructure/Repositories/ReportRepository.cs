@@ -109,5 +109,51 @@ namespace NexusERP.Infrastructure.Repositories
             return _context.InventoryTransactions.AsNoTracking()
                 .FirstOrDefault(t => t.TransactionId == transactionId);
         }
+
+        public List<RevenueChartData> GetWeeklyRevenueChart()
+        {
+            var startDate = DateTime.Now.Date.AddDays(-6);
+
+            var rawData = _context.InventoryTransactions
+                .Where(t => t.TransactionType == Domain.Enums.TransactionAction.Sale && t.CreatedAt >= startDate)
+                .GroupBy(t => t.CreatedAt.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Revenue = g.Sum(t => t.TotalAmount),
+                    Profit = g.Sum(t => t.Profit)
+                }).ToList();
+
+            var chartData = new List<RevenueChartData>();
+            for(int i = 0; i <= 6; i++)
+            {
+                var targetDate = startDate.AddDays(i);
+                var dayData = rawData.FirstOrDefault(d => d.Date == targetDate);
+
+                chartData.Add(new RevenueChartData
+                {
+                    Date = targetDate.ToString("MMM dd"),
+                    Revenue = dayData?.Revenue ?? 0,
+                    Profit = dayData?.Profit ?? 0
+                });
+            }
+
+            return chartData;
+        }
+
+        public List<TopProductChartData> GetTopPerformingProducts()
+        {
+            return _context.InventoryTransactions
+                .Where(t => t.TransactionType == TransactionAction.Sale)
+                .GroupBy(t => t.ProductName)
+                .Select(g => new TopProductChartData
+                {
+                    ProductName = g.Key ?? "Unknown",
+                    Revenue = g.Sum(t => t.TotalAmount)
+                })
+                .OrderByDescending(x => x.Revenue)
+                .Take(5)
+                .ToList();
+        }
     }
 }

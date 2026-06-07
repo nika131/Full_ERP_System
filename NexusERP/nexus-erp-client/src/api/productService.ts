@@ -3,6 +3,8 @@ import { type Product } from "../types/product";
 import { type PagedResult } from "../types/pagination";
 import type { Category } from "../types/category";
 import type { Supplier, SupplierLookup } from "../types/supplier";
+import type { ChartData } from "recharts/types/state/chartDataSlice";
+import type { TopProduct } from "../types/dashboard";
 
 export interface TransactionPayLoad {
     productId: number;
@@ -55,5 +57,7 @@ export const productService = {
 
     makeTransaction: async (payload: TransactionPayLoad): Promise<void> => {
         await apiClient.post('/products/transaction', payload);
-    }
+    },
+
+
 };

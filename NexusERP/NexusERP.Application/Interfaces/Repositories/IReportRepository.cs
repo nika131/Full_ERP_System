@@ -13,5 +13,7 @@ namespace NexusERP.Application.Interfaces.Repositories
     {
         PagedResult<InventoryTransaction> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, string currentUserRole, string typeFilter);
         InventoryTransaction? GetById(int transactionId);
+        List<RevenueChartData> GetWeeklyRevenueChart();
+        List<TopProductChartData> GetTopPerformingProducts();
     }
 }
