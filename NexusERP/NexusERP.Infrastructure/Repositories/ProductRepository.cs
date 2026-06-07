@@ -62,12 +62,20 @@ namespace NexusERP.Infrastructure.Repositories
         {
             if(product.ProductId == 0)
             {
+                product.Quantity = 0;
                 _context.Products.Add(product);
             }
             else
             {
-                product.UpdatedAt = DateTime.Now;
-                _context.Products.Update(product);
+                var existing = _context.Products.Find(product.ProductId);
+                if (existing == null) throw new Exception("Product not Found");
+
+                existing.Name = product.Name;
+                existing.CategoryId = product.CategoryId;
+                existing.SupplierId = product.SupplierId;
+                existing.Price = product.Price;
+                existing.CostPrice = product.CostPrice;
+                existing.UpdatedAt = DateTime.Now;
             }
             _context.SaveChanges();
         }

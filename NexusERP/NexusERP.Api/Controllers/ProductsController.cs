@@ -67,10 +67,7 @@ namespace NexusERP.Api.Controllers
         [HttpPost("upsert")]
         public IActionResult SaveProduct([FromBody] ProductUpsertDto dto)
         {
-            if (GetCurrentUserRole() == "Cashier")
-            {
-                return Forbid("Security Violation: Cashier are strictly forbiden from modifying master product records.");
-            }
+            if (GetCurrentUserRole() == "Cashier") return Forbid();
 
             try
             {
@@ -82,7 +79,6 @@ namespace NexusERP.Api.Controllers
                     ProductId = dto.ProductId,
                     Name = dto.Name,
                     CategoryId = dto.CategryId,
-                    Quantity = dto.Quantity,
                     Price = dto.Price,
                     CostPrice = dto.CostPrice,
                     SupplierId = dto.SupplierId
@@ -93,7 +89,7 @@ namespace NexusERP.Api.Controllers
                     _repository.UpSert(product);
 
                     string changeMade = isNewProduct
-                        ? $"Created new product '{product.Name}' with initial quantity {product.Quantity}."
+                        ? $"Created new product '{product.Name}' with initial quantity 0."
                         : $"Updated Product '{product.Name}'. Price: {product.Price:C}, Cost: {product.CostPrice:C}.";
 
                     _repository.LogSystemAudit(
@@ -107,7 +103,7 @@ namespace NexusERP.Api.Controllers
                     scope.Complete();
                 }
 
-                return Ok(new { message = "Product saved successfully," });
+                return Ok();
             }
             catch (Exception ex)
             {
