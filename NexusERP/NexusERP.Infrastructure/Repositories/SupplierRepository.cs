@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
+using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
 
 namespace NexusERP.Infrastructure.Repositories
@@ -21,19 +22,46 @@ namespace NexusERP.Infrastructure.Repositories
         {
             _context = context;
         }
-
-        public IEnumerable<Supplier> GetAllSuppliers()
+        public PagedResult<Supplier> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
-            return _context.Suppliers.AsNoTracking()
-                                    .Where(s => s.IsActive)
-                                    .ToList();
+            var baseQuery = _context.Suppliers.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                baseQuery = baseQuery.Where(s =>
+                    s.CompanyName.Contains(searchTerm) ||
+                    (s.ContactName != null && s.ContactName.Contains(searchTerm)) ||
+                    (s.Email != null && s.Email.Contains(searchTerm)));
+            }
+
+            var totalCount = baseQuery.Count();
+
+            var items = baseQuery
+                .OrderBy(s => s.CompanyName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PagedResult<Supplier>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
-        public IEnumerable<Supplier> SearchSuppliers(string Keyword)
+        public IEnumerable<Supplier> GetAllActive()
         {
-            return _context.Suppliers.AsNoTracking()
-                                    .Where(s => s.CompanyName.Contains(Keyword))
-                                    .ToList();
+            return _context.Suppliers
+                .AsNoTracking()
+                .Select(s => new Supplier
+                {
+                    SupplierId = s.SupplierId,
+                    CompanyName = s.CompanyName
+                })
+                .OrderBy(s => s.CompanyName)
+                .ToList();
         }
 
         public void UpsertSuppliers(Supplier supplier)

@@ -45,7 +45,7 @@ export const productService = {
     },
 
     getSuppliers: async (): Promise<Supplier[]> => {
-        const response = await apiClient.get('/Suppliers');
+        const response = await apiClient.get('/suppliers/lookup');
         return response.data;
     },
 

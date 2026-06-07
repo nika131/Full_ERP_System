@@ -18,36 +18,33 @@ namespace NexusERP.Api.Controllers
             _repository = repository;
         }
 
+
         [HttpGet]
-        public IActionResult GetAllSuppliers()
+        public IActionResult GetPagedSuppliers([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
         {
             try
             {
-                var suppliers = _repository.GetAllSuppliers();
+                if (pageSize > 100) pageSize = 100;
+                var suppliers = _repository.GetPaged(page, pageSize, search);
                 return Ok(suppliers);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error loading supplier: " + ex.Message });
+                return StatusCode(500, new { message = "Database Error: " + ex.Message });
             }
         }
 
-        [HttpGet("search")]
-        public IActionResult SearchSuppliers([FromQuery] string keyword)
+        [HttpGet("lookup")]
+        public IActionResult GetLookupList()
         {
-            if (string.IsNullOrEmpty(keyword))
-            {
-                return BadRequest(new { meesage = "Keyword is required for searching." });
-            }
-
             try
             {
-                var suppliers = _repository.SearchSuppliers(keyword);
+                var suppliers = _repository.GetAllActive();
                 return Ok(suppliers);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { meesage = "Error searching suppliers: " + ex.Message });
+                return StatusCode(500, new { message = "Database Error: " + ex.Message });
             }
         }
 
@@ -67,12 +64,11 @@ namespace NexusERP.Api.Controllers
                 };
 
                 _repository.UpsertSuppliers(supplier);
-
                 return Ok(new { message = "Supplier saved successfully." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { meesage = "Error saving supplier: " + ex.Message });
+                return StatusCode(500, new { message = "Error saving supplier: " + ex.Message });
             }
         }
 
@@ -88,7 +84,6 @@ namespace NexusERP.Api.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error deleting supplier: " + ex.Message });
-
             }
         }
     }

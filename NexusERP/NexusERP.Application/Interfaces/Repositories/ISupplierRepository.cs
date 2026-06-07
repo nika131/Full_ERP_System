@@ -5,13 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Models;
 
 namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface ISupplierRepository
     {
-        IEnumerable<Supplier> GetAllSuppliers();
-        IEnumerable<Supplier> SearchSuppliers(string Keyword);
+        PagedResult<Supplier> GetPaged(int pageNumber, int pageSize, string? searchTerm);
+        IEnumerable<Supplier> GetAllActive();
         void UpsertSuppliers(Supplier supplier);
         void DeleteSupplier(int id);
 
