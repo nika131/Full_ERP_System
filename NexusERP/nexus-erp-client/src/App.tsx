@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import MainLayout from './layouts/MainLayout';
 import InventoryList from './pages/InventoryList';
 import AuditLogsList from './pages/AuditLogsList';
+import SupplierList from './pages/SupplierList';
 
 
 const DashboardPlaceholder = () => (
@@ -27,7 +28,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPlaceholder />} />
               
               <Route path="/inventory" element={<InventoryList/>} />
-              <Route path="/suppliers" element={<div>Suppliers Grid (Pending)</div>} />
+              <Route path="/suppliers" element={<SupplierList/>} />
 
               <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
                 <Route path="/Logs" element={<AuditLogsList/>} />

@@ -2,7 +2,7 @@ import apiClient from "./apiClient";
 import { type Product } from "../types/product";
 import { type PagedResult } from "../types/pagination";
 import type { Category } from "../types/category";
-import type { Supplier } from "../types/supplier";
+import type { Supplier, SupplierLookup } from "../types/supplier";
 
 export interface TransactionPayLoad {
     productId: number;
@@ -44,7 +44,7 @@ export const productService = {
         return response.data;
     },
 
-    getSuppliers: async (): Promise<Supplier[]> => {
+    getSuppliers: async (): Promise<SupplierLookup[]> => {
         const response = await apiClient.get('/suppliers/lookup');
         return response.data;
     },
