@@ -72,7 +72,13 @@ namespace NexusERP.Infrastructure.Repositories
             }
             else
             {
+                var existing = _context.Suppliers.AsNoTracking()
+                               .FirstOrDefault(s => s.SupplierId == supplier.SupplierId);
+
+                if (existing == null) throw new Exception("Supplier not Found");
+
                 supplier.UpdatedAt = DateTime.Now;
+
                 _context.Suppliers.Update(supplier);
             }
 

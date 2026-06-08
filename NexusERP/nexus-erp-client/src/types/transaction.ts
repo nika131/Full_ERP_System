@@ -4,7 +4,7 @@ export interface Transaction {
     supplierId: number;
     userId: number;
     productName: string;
-    supplierName: string;
+    companyName: string;
     transactionType: string; 
     quantity: number;
     unitPrice: number;

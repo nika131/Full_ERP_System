@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NexusERP.Application.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace NexusERP.Domain.Entities
 {
-    public class Supplier
+    public class Supplier : IAuditableEntity
     {
         public int SupplierId { get; set; }
         public string CompanyName { get; set; } = string.Empty;
@@ -15,6 +16,6 @@ namespace NexusERP.Domain.Entities
         public string Email { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

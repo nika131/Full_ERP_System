@@ -27,7 +27,7 @@ function App() {
               <Route path="/categories" element={<CategoryList/>} />
 
               <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
-                <Route path="/Logs" element={<AuditLogsList/>} />
+                <Route path="/logs" element={<AuditLogsList/>} />
               </Route>
               
             </Route>

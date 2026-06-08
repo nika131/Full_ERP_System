@@ -6,6 +6,9 @@ using NexusERP.Domain.Entities;
 
 namespace NexusERP.Api.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
     public class CategoriesController : Controller
     {
         private readonly ICategoryRepository _repository;
@@ -19,7 +22,7 @@ namespace NexusERP.Api.Controllers
         public IActionResult GetPaged([FromQuery] int Page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
         {
             if (pageSize > 100) pageSize = 100;
-            return Ok(_repository.GetPaged(Page, pageSize, search));
+            return Ok(_repository.GetPagedCategories(Page, pageSize, search));
         }
 
         [HttpGet("lookup")]
@@ -32,7 +35,7 @@ namespace NexusERP.Api.Controllers
         [Authorize(Roles = "Admin,Manager")]
         public IActionResult SaveCategory([FromBody] CategoryUpsertDto dto)
         {
-            var category = new Category { CategoryId = dto.CategoryId, CategoryName = dto.categoryName };
+            var category = new Category { CategoryId = dto.CategoryId, CategoryName = dto.CategoryName };
             _repository.Upsert(category);
             return Ok(new { message = "Category saved." });
         }

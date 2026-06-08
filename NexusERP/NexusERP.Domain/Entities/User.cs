@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NexusERP.Application.Interfaces;
 using NexusERP.Domain.Enums;
 
 namespace NexusERP.Domain.Entities
 {
-    public class User
+    public class User : IAuditableEntity
     {
         public int UserId { get; set; }
         public string FullName { get; set; } = string.Empty;

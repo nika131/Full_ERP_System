@@ -18,39 +18,39 @@ export default function MainLayout() {
     
         <aside className="w-64 bg-gray-900 text-white flex flex-col">
             <div className="p-4 bg-gray-950 border-b border-gray-800">
-            <h2 className="text-xl font-bold tracking-wider">NEXUS ERP</h2>
+            <h2 className="text-xxl font-bold tracking-wider text-emerald-400! hover:text-emerald-600!">NEXUS ERP</h2>
             </div>
             
             <nav className="flex-1 p-4 space-y-2">
                 <Link 
                     to="/dashboard" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/dashboard') ? 'bg-blue-600' : 'hover:bg-gray-800'}`}
+                    className={`block px-4 py-2 rounded transition-colors ${isActive('/dashboard') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
                 >
                     Dashboard
                 </Link>
                 <Link 
                     to="/inventory" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/inventory') ? 'bg-blue-600' : 'hover:bg-gray-800'}`}
+                    className={`block px-4 py-2 rounded transition-colors ${isActive('/inventory') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
                 >
                     Inventory
                 </Link>
                 <Link 
                     to="/suppliers" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/suppliers') ? 'bg-blue-600' : 'hover:bg-gray-800'}`}
+                    className={`block px-4 py-2 rounded transition-colors ${isActive('/suppliers') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
                 >
                     Suppliers
                 </Link>
                 <Link 
                     to="/categories" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/categories') ? 'bg-blue-600' : 'hover:bg-gray-800'}`}
+                    className={`block px-4 py-2 rounded transition-colors ${isActive('/categories') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
                 >
                     Categories
                 </Link>
             
                 {user?.role === 'Admin' && (
                     <Link 
-                    to="/Logs" 
-                    className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/admin') ? 'bg-red-600' : 'hover:bg-gray-800 text-gray-400'}`}
+                    to="/logs" 
+                    className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/logs') ? 'bg-emerald-600' : 'hover:bg-gray-800 text-gray-400'}`}
                     >
                     System Logs
                     </Link>
@@ -66,7 +66,7 @@ export default function MainLayout() {
                 <div className="flex items-center space-x-4">
                     <div className="text-right">
                         <div className="text-sm font-medium text-gray-900">{user?.username}</div>
-                        <div className="text-xs font-semibold text-blue-600 uppercase tracking-wide">{user?.role}</div>
+                        <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">{user?.role}</div>
                     </div>
                     <button 
                     onClick={handleLogout}

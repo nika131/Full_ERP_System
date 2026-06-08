@@ -17,14 +17,14 @@ export const productService = {
     getProducts: async (
         page: number = 1, 
         pageSize: number = 10, 
-        search?: string,
+        searchTerm?: string,
         signal?: AbortSignal
     ): Promise<PagedResult<Product>> => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('pageSize', pageSize.toString());
-        if (search) {
-            params.append('search', search);
+        if (searchTerm) {
+            params.append('searchTerm', searchTerm);
         }
 
         const response = await apiClient.get(`/products?${params.toString()}`, { signal });
@@ -32,11 +32,7 @@ export const productService = {
     },
 
     saveProduct: async (productData: any): Promise<void> => {
-        if (productData.productId) {
-            await apiClient.put(`/products/${productData.productId}`, productData);
-        } else {
-            await apiClient.post('/products', productData);
-        }
+        await apiClient.post('/products/upsert', productData);
     },
 
     getCategories: async (): Promise<Category[]> => {

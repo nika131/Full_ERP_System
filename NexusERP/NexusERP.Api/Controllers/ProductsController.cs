@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Enums;
 using System.Security.Claims;
 using System.Transactions;
 
@@ -43,27 +44,6 @@ namespace NexusERP.Api.Controllers
             return Ok(result);
         }
 
-        [HttpGet("references")]
-        public IActionResult GetReferences()
-        {
-            try
-            {
-                var categories = _repository.GetCategories();
-                var suppliers = _repository.GetSuppliers();
-
-                return Ok(new
-                {
-                    categories = categories,
-                    suppliers = suppliers
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message });
-
-            }
-        }
-
         [HttpPost("upsert")]
         public IActionResult SaveProduct([FromBody] ProductUpsertDto dto)
         {
@@ -78,7 +58,7 @@ namespace NexusERP.Api.Controllers
                 {
                     ProductId = dto.ProductId,
                     Name = dto.Name,
-                    CategoryId = dto.CategryId,
+                    CategoryId = dto.CategoryId,
                     Price = dto.Price,
                     CostPrice = dto.CostPrice,
                     SupplierId = dto.SupplierId
@@ -107,7 +87,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500);
             }
         }
 
@@ -124,25 +104,20 @@ namespace NexusERP.Api.Controllers
             decimal totalAmount = unitPrice * dto.SoldQty;
             decimal profit = dto.TransactionType == "Sale" ? totalAmount - (dto.CostPrice * dto.SoldQty) : 0;
 
-            try
+            var transactionEntity = new InventoryTransaction
             {
-                _repository.LogInventoryTransaction(
-                    productId: dto.ProductId,
-                    SupplierId: dto.SupplierId > 0 ? dto.SupplierId : null,
-                    UserId: GetCurrentUserId(),
-                    transactionType: dto.TransactionType,
-                    quantity: finalQty,
-                    unitPrice: unitPrice,
-                    totalAmount: totalAmount,
-                    profit: profit
-                );
+                ProductId = dto.ProductId,
+                SupplierId = dto.SupplierId > 0 ? dto.SupplierId : null,
+                TransactionType = Enum.Parse<TransactionAction>(dto.TransactionType),
+                Quantity = finalQty,
+                UnitPrice = unitPrice,
+                TotalAmount = totalAmount,
+                Profit = profit
+            };
 
-                return Ok(new { message = $"Transaction ({dto.TransactionType}) logged successfully." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "transaction Failed: " + ex.Message });
-            }
+            _repository.LogInventoryTransaction(transactionEntity, GetCurrentUserId());
+
+            return Ok(new { message = $"Transaction logged." });
         }
 
         [HttpDelete("{id}")]
@@ -160,7 +135,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500);
             }
         }
     }

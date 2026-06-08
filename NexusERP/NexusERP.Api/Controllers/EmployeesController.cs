@@ -57,7 +57,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error loading employees: " + ex.Message });
+                return StatusCode(500, new { message = "Error loading employees." });
             }
         }
 
@@ -92,7 +92,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error updating employee: " + ex.Message });
+                return StatusCode(500, new { message = "Error updating employee." });
             }
         }
 
@@ -114,7 +114,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error deleting employee: " + ex.Message });
+                return StatusCode(500, new { message = "Error deleting employee." });
             }
         }
 

@@ -115,7 +115,7 @@ namespace NexusERP.Infrastructure.Repositories
             var startDate = DateTime.Now.Date.AddDays(-6);
 
             var rawData = _context.InventoryTransactions
-                .Where(t => t.TransactionType == Domain.Enums.TransactionAction.Sale && t.CreatedAt >= startDate)
+                .Where(t => t.TransactionType == TransactionAction.Sale && t.CreatedAt >= startDate)
                 .GroupBy(t => t.CreatedAt.Date)
                 .Select(g => new
                 {
@@ -144,8 +144,9 @@ namespace NexusERP.Infrastructure.Repositories
         public List<TopProductChartData> GetTopPerformingProducts()
         {
             return _context.InventoryTransactions
+                .Include(t => t.Product)
                 .Where(t => t.TransactionType == TransactionAction.Sale)
-                .GroupBy(t => t.ProductName)
+                .GroupBy(t => t.Product.Name)
                 .Select(g => new TopProductChartData
                 {
                     ProductName = g.Key ?? "Unknown",

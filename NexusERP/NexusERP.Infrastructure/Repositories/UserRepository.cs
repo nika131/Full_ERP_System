@@ -31,20 +31,19 @@ namespace NexusERP.Infrastructure.Repositories
         public User? GetUserByUsername(string username)
         {
             return _context.Users.AsNoTracking()
-                                .FirstOrDefault(u => u.Username == username && u.IsActive);
+                                .FirstOrDefault(u => u.Username == username);
         }
 
         public IEnumerable<User> GetAllUsers()
         {
             return _context.Users.AsNoTracking()
-                                .Where(u => u.IsActive)
                                 .ToList();
         }
 
         public IEnumerable<User> SearchUsers(string keyword)
         {
             return _context.Users.AsNoTracking()
-                                .Where(u => u.IsActive &&
+                                .Where(u => 
                                     (u.Username.Contains(keyword) ||
                                     u.FullName.Contains(keyword) ||
                                     u.UserId.ToString().Contains(keyword)))

@@ -29,7 +29,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return Unauthorized(new { message = ex.Message });
+                return Unauthorized();
             }
             
         }
@@ -51,7 +51,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest();
             }
         }
     }

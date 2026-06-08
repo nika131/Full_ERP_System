@@ -163,6 +163,15 @@ export default function InventoryList() {
             </span>
         )
         },
+        {
+            header: 'Supplier',
+            accessor: 'companyName',
+            render: (item) => (
+                <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs border border-slate-200">
+                {item.companyName}
+                </span>
+        )
+        },
         { 
         header: 'Quantity', 
         accessor: 'quantity', 

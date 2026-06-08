@@ -7,10 +7,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NexusERP.Application.Interfaces.Repositories;
 
 namespace NexusERP.Infrastructure.Repositories
 {
-    public class CategoryRepository
+    public class CategoryRepository : ICategoryRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -52,9 +53,15 @@ namespace NexusERP.Infrastructure.Repositories
         public void Upsert(Category category)
         {
             if (category.CategoryId == 0)
+            {
                 _context.Categories.Add(category);
+            }
             else
+            {
+                category.UpdatedAt = DateTime.Now;
                 _context.Categories.Update(category);
+            }
+            _context.SaveChanges();
         }
 
         public void Delete(int id)
@@ -62,7 +69,8 @@ namespace NexusERP.Infrastructure.Repositories
             var category = _context.Categories.Find(id);
             if (category != null)
             {
-                _context.Categories.Remove(category);
+                category.IsActive = false;
+                category.UpdatedAt = DateTime.Now;
                 _context.SaveChanges();
             }
         }

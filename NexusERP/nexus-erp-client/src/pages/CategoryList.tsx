@@ -68,8 +68,7 @@ export default function CategoryList() {
 
     const columns = useMemo<ColumnDef<Category>[]>(() => [
         { header: 'ID', accessor: 'categoryId', className: 'w-16' },
-        { header: 'Category Name', accessor: 'name', className: 'font-bold text-slate-800' },
-        { header: 'Description', accessor: 'description', className: 'text-slate-500 truncate max-w-md' },
+        { header: 'Category Name', accessor: 'categoryName', className: 'font-bold text-slate-800' },
         {
             header: 'Actions', accessor: 'actions', className: 'text-center w-32',
             render: (item) => (

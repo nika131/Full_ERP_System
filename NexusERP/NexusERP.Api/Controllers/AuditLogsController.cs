@@ -30,7 +30,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error retrieving audit logs: " + ex.Message });
+                return StatusCode(500, new { message = "Error retrieving audit logs: "});
             }
         }
     }

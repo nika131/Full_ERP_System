@@ -24,7 +24,10 @@ namespace NexusERP.Infrastructure.Repositories
 
         public PagedResult<Product> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
-            var baseQuery = _context.Products.AsNoTracking().Where(p => p.IsActive);
+            var baseQuery = _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Supplier)
+                .AsNoTracking();
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
@@ -37,17 +40,7 @@ namespace NexusERP.Infrastructure.Repositories
                 .OrderByDescending(p => p.ProductId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(p => new Product
-                {
-                    ProductId = p.ProductId,
-                    Name = p.Name,
-                    CategoryId = p.CategoryId,
-                    CategoryName = _context.Categories.FirstOrDefault(c => c.CategoryId == p.CategoryId).CategoryName,
-                    Quantity = p.Quantity,
-                    Price = p.Price,
-                    CostPrice = p.CostPrice,
-                    SupplierId = p.SupplierId,
-                }).ToList();
+                .ToList();
 
             return new PagedResult<Product>
             {
@@ -80,36 +73,22 @@ namespace NexusERP.Infrastructure.Repositories
             _context.SaveChanges();
         }
 
-        public void LogInventoryTransaction(int productId, int? supplierId, int UserId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit)
+        public void LogInventoryTransaction(InventoryTransaction transaction, int userId)
         {
-            var trasnsaction = new InventoryTransaction
+            transaction.UserId = userId;
+            _context.InventoryTransactions.Add(transaction);
+
+            var product = _context.Products.Find(transaction.ProductId);
+            if (product != null)
             {
-                ProductId = productId,
-                SupplierId = supplierId,
-                UserId = UserId,
-                TransactionType = Enum.Parse<Domain.Enums.TransactionAction>(transactionType),
-                Quantity = quantity,
-                UnitPrice = unitPrice,
-                TotalAmount = totalAmount,
-                Profit = profit,
-                CreatedAt = DateTime.Now
-            };
-
-            _context.InventoryTransactions.Add(trasnsaction);
-
-            var product = _context.Products.Find(productId);
-
-            if(product != null)
-            {
-                product.UpdatedAt = DateTime.Now;
-                product.Quantity += quantity;
+                product.Quantity += transaction.Quantity;
             }
             else
             {
-                throw new Exception("Product not found. Cannot log transaction.");
+                throw new Exception("Product not found.");
             }
 
-            _context.SaveChanges(); 
+            _context.SaveChanges();
         }
 
         public void LogSystemAudit(int userId, string entityType, int entityId, string action, string changesMade)

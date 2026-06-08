@@ -18,8 +18,5 @@ namespace NexusERP.Domain.Entities
         public string ChangesMade { get; set; } = string.Empty;
         
         public DateTime CreatedAt { get; set; }
-
-        [NotMapped]
-        public string PerformedBy { get; set; } = string.Empty;
     }
 }

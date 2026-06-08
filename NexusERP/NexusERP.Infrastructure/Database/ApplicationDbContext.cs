@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using NexusERP.Application.Interfaces;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 
@@ -26,6 +27,11 @@ namespace NexusERP.Infrastructure.Database
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Category>().HasQueryFilter(c => c.IsActive);
+            modelBuilder.Entity<Product>().HasQueryFilter(p => p.IsActive);
+            modelBuilder.Entity<Supplier>().HasQueryFilter(s => s.IsActive);
+            modelBuilder.Entity<User>().HasQueryFilter(u => u.IsActive);
+
             // 1. Map Product
             modelBuilder.Entity<Product>(entity =>
             {
@@ -33,7 +39,6 @@ namespace NexusERP.Infrastructure.Database
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.CostPrice).HasColumnType("decimal(18,2)");
 
-                entity.Ignore(e => e.CategoryName);
             });
 
             // 2. Map Inventory Transactions
@@ -48,10 +53,6 @@ namespace NexusERP.Infrastructure.Database
                       .HasConversion(
                           v => v.ToString(),
                           v => (TransactionAction)Enum.Parse(typeof(TransactionAction), v));
-
-
-                entity.Ignore(e => e.ProductName);
-                entity.Ignore(e => e.SupplierName);
             });
 
             // 3. Map Users
@@ -63,15 +64,34 @@ namespace NexusERP.Infrastructure.Database
                       .HasConversion(
                           v => v.ToString(),
                           v => (UserRole)Enum.Parse(typeof(UserRole), v));
-                
-                entity.Property(e => e.CreatedAt)
-                  .HasDefaultValueSql("GETDATE()")
-                  .ValueGeneratedOnAdd();
             });
 
             modelBuilder.Entity<Category>().HasKey(e => e.CategoryId);
             modelBuilder.Entity<Supplier>().HasKey(e => e.SupplierId);
             modelBuilder.Entity<SystemAuditLog>().HasKey(e => e.LogId);
+
+        }
+
+        public override int SaveChanges()
+        {
+            var entries = ChangeTracker.Entries<IAuditableEntity>();
+
+            foreach (var entry in entries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                }
+
+                if (entry.State == EntityState.Modified)
+                {
+                    entry.Property(x => x.CreatedAt).IsModified = false;
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            return base.SaveChanges();
         }
     }
 }

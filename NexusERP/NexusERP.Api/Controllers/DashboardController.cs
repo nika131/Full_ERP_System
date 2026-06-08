@@ -31,7 +31,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error calculating dashboard statistics: " + ex.Message });
+                return StatusCode(500, new { message = "Error calculating dashboard statistics."});
             }
         }
 
@@ -45,7 +45,7 @@ namespace NexusERP.Api.Controllers
             } 
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error loading chart data: " + ex.Message });
+                return StatusCode(500, new { message = "Error loading chart data." });
             }
         }
 
@@ -59,7 +59,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error loading top Products: " + ex.Message });
+                return StatusCode(500, new { message = "Error loading top Products." });
             }
         }
     }

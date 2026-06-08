@@ -1,4 +1,5 @@
-﻿using NexusERP.Domain.Enums;
+﻿using NexusERP.Application.Interfaces;
+using NexusERP.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -12,6 +13,10 @@ namespace NexusERP.Domain.Entities
     {
         public int TransactionId { get; set; }
         public int ProductId { get; set; }
+
+        [ForeignKey("ProductId")]
+        public Product? Product { get; set; }
+
         public int? SupplierId { get; set; }
         public int UserId { get; set; }
         public TransactionAction TransactionType { get; set; }
@@ -20,11 +25,5 @@ namespace NexusERP.Domain.Entities
         public decimal TotalAmount { get; set; }
         public decimal Profit { get; set; }
         public DateTime CreatedAt { get; set; }
-
-        [NotMapped]
-        public string ProductName { get; set; } = string.Empty;
-        [NotMapped]
-        public string SupplierName { get; set; } = string.Empty;
-
     }
 }

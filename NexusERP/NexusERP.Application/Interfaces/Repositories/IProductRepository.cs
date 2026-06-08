@@ -13,7 +13,7 @@ namespace NexusERP.Application.Interfaces.Repositories
     {
         PagedResult<Product> GetPaged(int pageNumber, int pageSize, string? searchTerm);
         void UpSert(Product products);
-        void LogInventoryTransaction(int productId, int? SupplierId, int UserId, string transactionType, int quantity, decimal unitPrice, decimal totalAmount, decimal profit);
+        void LogInventoryTransaction(InventoryTransaction transaction, int userId);
         void LogSystemAudit(int userId, string entityType, int entityId, string action, string chnagesMade);
         void Delete(int id);
         DashboardResponse GetDashboardAggregates();

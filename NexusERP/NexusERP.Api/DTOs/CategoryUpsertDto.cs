@@ -3,6 +3,6 @@
     public class CategoryUpsertDto
     {
         public int CategoryId { get; set; }
-        public string categoryName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
     }
 }

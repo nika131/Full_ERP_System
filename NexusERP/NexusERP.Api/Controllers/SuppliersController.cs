@@ -30,7 +30,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Database Error: " + ex.Message });
+                return StatusCode(500, new { message = "Database Error."});
             }
         }
 
@@ -44,7 +44,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Database Error: " + ex.Message });
+                return StatusCode(500, new { message = "Database Error."});
             }
         }
 
@@ -68,7 +68,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error saving supplier: " + ex.Message });
+                return StatusCode(500, new { message = "Error saving supplier."});
             }
         }
 
@@ -83,7 +83,7 @@ namespace NexusERP.Api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error deleting supplier: " + ex.Message });
+                return StatusCode(500, new { message = "Error deleting supplier."});
             }
         }
     }

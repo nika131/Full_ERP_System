@@ -11,7 +11,7 @@ namespace NexusERP.Api.DTOs
         public string Name { get; set; } = string.Empty;
 
         [Range(1, int.MaxValue, ErrorMessage = "Please select a valid category.")]
-        public int CategryId { get; set; }
+        public int CategoryId { get; set; }
 
         [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
         public decimal Price { get; set; }

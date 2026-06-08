@@ -6,7 +6,7 @@ import apiClient from "./apiClient";
 
 export const dashboaredService = {
     getStatistics: async (): Promise<DashbaordStats> => {
-        const response = await apiClient.get('/Dashboared/statistics');
+        const response = await apiClient.get('/Dashboard/statistics');
         return response.data;
     },
 
@@ -28,12 +28,12 @@ export const dashboaredService = {
     },
 
     getChartData: async (): Promise<ChartData[]> => {
-        const response = await apiClient.get('/dashboard/chart');
+        const response = await apiClient.get('/Dashboard/revenueChart');
         return response.data;
     },
 
     getTopProducts: async (): Promise<TopProduct[]> => {
-        const response = await apiClient.get('/dashboard/top-products');
+        const response = await apiClient.get('/Dashboard/top-Products');
         return response.data;
     },
 };

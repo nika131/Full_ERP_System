@@ -29,7 +29,7 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
         defaultValues: {
             name: '',
             categoryId: 0,
-            supplierId: undefined,
+            supplierId: 0,
             quantity: 0,
             price: 0,
             costPrice: 0
@@ -56,11 +56,13 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
     }, []);
 
     useEffect(() => {
+        if (isLoadingDropdowns) return;
+
         if (initialData) {
             reset({
                 name: initialData.name,
                 categoryId: initialData.categoryId,
-                supplierId: initialData.supplierId || undefined,
+                supplierId: initialData.supplierId ?? 0,
                 quantity: initialData.quantity,
                 price: initialData.price,
                 costPrice: initialData.costPrice
@@ -68,7 +70,7 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
         } else {
             reset();
         }
-    }, [initialData, reset]);
+    }, [initialData, reset, isLoadingDropdowns]);
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 flex flex-col h-full">
@@ -104,12 +106,9 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Supplier (Optional)</label>
-                    {/* The setValueAs ensures that if they select "No Supplier", React Hook Form converts it to null/undefined instead of the string "0" */}
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Supplier</label>
                     <select
-                    {...register('supplierId', { 
-                        setValueAs: (v) => v === "0" || v === "" ? undefined : parseInt(v, 10) 
-                    })}
+                    {...register('supplierId', { valueAsNumber: true })}
                     disabled={isLoadingDropdowns}
                     className={`w-full px-3 py-2 border rounded outline-none bg-white transition-colors ${errors.supplierId ? 'border-red-500' : 'border-slate-300 focus:border-emerald-500'}`}
                     >
@@ -135,7 +134,6 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                     className={`w-full px-3 py-2 border rounded outline-none bg-slate-100 text-slate-500 cursor-not-allowed ${errors.quantity ? 'border-red-500' : 'border-slate-300'}`}
                     />
                 </div>
-                {/* ... Keep the existing Price and Cost Price inputs exactly as they were ... */}
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Price</label>
                     <input

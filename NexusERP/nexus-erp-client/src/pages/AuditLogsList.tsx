@@ -36,7 +36,7 @@ export default function AuditLogsList() {
 
     const columns = useMemo<ColumnDef<AuditLog>[]>(() => [
     { header: 'Date', accessor: 'createdAt', render: (l) => new Date(l.createdAt).toLocaleString() },
-    { header: 'User', accessor: 'userName' },
+    { header: 'User', accessor: 'userId' },
     { header: 'Entity', accessor: 'entityType' },
     { header: 'Action', accessor: 'action', render: (l) => (
         <span className={`px-2 py-1 rounded text-xs font-semibold ${l.action === 'Delete' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
