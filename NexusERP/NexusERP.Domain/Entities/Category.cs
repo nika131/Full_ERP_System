@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace NexusERP.Domain.Entities
 {
-    public class Category : IAuditableEntity
+    public class Category : IAuditTracked
     {
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;

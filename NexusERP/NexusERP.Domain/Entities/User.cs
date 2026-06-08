@@ -8,7 +8,7 @@ using NexusERP.Domain.Enums;
 
 namespace NexusERP.Domain.Entities
 {
-    public class User : IAuditableEntity
+    public class User : IAuditTracked
     {
         public int UserId { get; set; }
         public string FullName { get; set; } = string.Empty;

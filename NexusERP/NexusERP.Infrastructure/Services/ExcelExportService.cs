@@ -8,6 +8,7 @@ using System.Data;
 using DocumentFormat.OpenXml.Spreadsheet;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Exceptions;
 
 namespace NexusERP.Infrastructure.Services
 {
@@ -16,7 +17,7 @@ namespace NexusERP.Infrastructure.Services
         public byte[] ExcelTransactions(IEnumerable<InventoryTransaction> data, string sheetName = "Transactions")
         {
             if (data == null || !data.Any())
-                throw new Exception("There is no datato export.");
+                throw new AppException("There is no datato export.");
 
             using (var workbook = new XLWorkbook())
             {

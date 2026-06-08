@@ -24,15 +24,15 @@ namespace NexusERP.Api.Controllers
         [HttpGet("statistics")]
         public IActionResult GetDashboardStatistics()
         {
-                var stats = _Productrepository.GetDashboardAggregates();
-                return Ok(stats);
+            var stats = _Productrepository.GetDashboardAggregates();
+            return Ok(stats);
         }
 
         [HttpGet("revenueChart")]
         public IActionResult GetChartData()
         {
-                var chartData = _ReportRepository.GetWeeklyRevenueChart();
-                return Ok(chartData);
+            var chartData = _ReportRepository.GetWeeklyRevenueChart();
+            return Ok(chartData);
         }
 
         [HttpGet("top-Products")]

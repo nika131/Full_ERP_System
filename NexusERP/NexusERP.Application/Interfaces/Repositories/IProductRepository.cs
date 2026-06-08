@@ -14,8 +14,7 @@ namespace NexusERP.Application.Interfaces.Repositories
         PagedResult<Product> GetPaged(int pageNumber, int pageSize, string? searchTerm);
         void Upsert(Product product, int userId);
         void LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType);
-        void LogSystemAudit(int userId, string entityType, int entityId, string action, string chnagesMade);
-        void Delete(int id);
+        void Delete(int id, int userId);
         DashboardResponse GetDashboardAggregates();
     }
 }

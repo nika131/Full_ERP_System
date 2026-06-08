@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
+using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
+using System.Security.Claims;
 
 namespace NexusERP.Api.Controllers
 {
@@ -36,7 +38,7 @@ namespace NexusERP.Api.Controllers
         public IActionResult SaveCategory([FromBody] CategoryUpsertDto dto)
         {
             var category = new Category { CategoryId = dto.CategoryId, CategoryName = dto.CategoryName };
-            _repository.Upsert(category);
+            _repository.Upsert(category, User.GetCurrentUserId());
             return Ok(new { message = "Category saved." });
         }
 
@@ -44,8 +46,8 @@ namespace NexusERP.Api.Controllers
         [Authorize(Roles = "Admin,Manager")]
         public IActionResult DeleteCategory(int id)
         {
-            _repository.Delete(id);
-            return Ok(new { message = "Catgeory delete." });
+            _repository.Delete(id, User.GetCurrentUserId());
+            return Ok(new { message = "Category deleted successfully." });
         }
     }
 }

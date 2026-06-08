@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NexusERP.Application.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NexusERP.Domain.Entities
 {
-    public class SystemAuditLog
+    public class SystemAuditLog : ICreationTracked
     {
         public int LogId { get; set; } 
         public int UserId { get; set; }

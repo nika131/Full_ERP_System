@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
+using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
@@ -28,13 +29,6 @@ namespace NexusERP.Api.Controllers
             _pdfService = pdfService;
         }
 
-        private (int UserId, string Role) GetIdentity()
-        {
-            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
-            return (int.TryParse(idClaim, out int id) ? id : 0, role);
-        }
-
 
         [HttpGet]
         public IActionResult GetTransactions(
@@ -44,9 +38,8 @@ namespace NexusERP.Api.Controllers
             [FromQuery] string typeFilter = "All")
         {
             if (pageSize > 100) pageSize = 100;
-            var identity = GetIdentity();
 
-            var secureData = _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, identity.UserId, identity.Role, typeFilter);
+            var secureData = _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, User.GetCurrentUserId(), User.GetCurrentUserRole(), typeFilter);
             
             var responseItems = secureData.Items.Select( t => new TransactionResponseDto
             {
@@ -73,9 +66,7 @@ namespace NexusERP.Api.Controllers
         [HttpGet("export/excel")]
         public IActionResult ExportExcel([FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? keyword, [FromQuery] string typeFilter = "All")
         {
-            var identity = GetIdentity();
-
-            var data = _repository.GetPagedTransactions(pageNumber, pageSize, keyword, identity.UserId, identity.Role, typeFilter).Items;
+            var data = _repository.GetPagedTransactions(pageNumber, pageSize, keyword, User.GetCurrentUserId(), User.GetCurrentUserRole(), typeFilter).Items;
             
             byte[] fileContents = _excelService.ExcelTransactions(data, "Transactions");
             return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InventoryReport.xlsx");
@@ -84,18 +75,17 @@ namespace NexusERP.Api.Controllers
         [HttpGet("export/pdf/{transactionId}")]
         public IActionResult ExportPdf(int transactionId)
         {
-            var identity = GetIdentity();
             var transaction = _repository.GetById(transactionId);
 
             if (transaction == null) return NotFound("Transaction not found.");
 
-            if (identity.Role == "Admin")
+            if (User.GetCurrentUserRole() == "Admin")
             {
                 
             }
-            else if (identity.Role == "Manager")
+            else if (User.GetCurrentUserRole() == "Manager")
             {
-                 if (transaction.UserId != identity.UserId)
+                 if (transaction.UserId != User.GetCurrentUserId())
                 {
                     var targetUser = _userRepository.GetAllUsers().FirstOrDefault(u => u.UserId == transaction.UserId);
                     if (targetUser == null || targetUser.Role != UserRole.Cashier)
@@ -104,9 +94,9 @@ namespace NexusERP.Api.Controllers
                     }
                 }
             }
-            else if (identity.Role == "Cashier")
+            else if (User.GetCurrentUserRole() == "Cashier")
             {
-                if (transaction.UserId != identity.UserId || transaction.TransactionType != TransactionAction.Sale)
+                if (transaction.UserId != User.GetCurrentUserId() || transaction.TransactionType != TransactionAction.Sale)
                 {
                     return Forbid();
                 }

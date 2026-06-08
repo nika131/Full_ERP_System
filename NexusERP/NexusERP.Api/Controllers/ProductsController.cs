@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
+using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -19,17 +20,6 @@ namespace NexusERP.Api.Controllers
         public ProductsController(IProductRepository repository)
         {
             _repository = repository;
-        }
-
-        private int GetCurrentUserId()
-        {
-            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return int.TryParse(idClaim, out int id) ? id : 0;
-        }
-
-        private string GetCurrentUserRole()
-        {
-            return User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
         }
 
         [HttpGet]
@@ -67,7 +57,7 @@ namespace NexusERP.Api.Controllers
         [HttpPost("upsert")]
         public IActionResult SaveProduct([FromBody] ProductUpsertDto dto)
         {
-            if (GetCurrentUserRole() == "Cashier") return Forbid();
+            if (User.GetCurrentUserRole() == "Cashier") return Forbid();
 
             var product = new Product
             {
@@ -79,7 +69,7 @@ namespace NexusERP.Api.Controllers
                 SupplierId = dto.SupplierId
             };
 
-            _repository.UpSert(product, GetCurrentUserId());
+            _repository.Upsert(product, User.GetCurrentUserId());
 
             return Ok(new { message = "Product saved successfully." });
         }
@@ -87,7 +77,7 @@ namespace NexusERP.Api.Controllers
         [HttpPost("transaction")]
         public IActionResult MakeTransaction([FromBody] TransactionRequestDto dto)
         {
-            if (GetCurrentUserRole() == "Cashier" && dto.TransactionType != "Sale")
+            if (User.GetCurrentUserRole() == "Cashier" && dto.TransactionType != "Sale")
             {
                 return Forbid("Security Violation: Cashier are restricted to outbound sales only.");
             }
@@ -107,7 +97,7 @@ namespace NexusERP.Api.Controllers
                 Profit = profit
             };
 
-            _repository.LogInventoryTransaction(transactionEntity, GetCurrentUserId(), dto.TransactionType);
+            _repository.LogInventoryTransaction(transactionEntity, User.GetCurrentUserId(), dto.TransactionType);
 
             return Ok(new { message = $"Transaction ({dto.TransactionType}) logged successfully." });
         }
@@ -115,12 +105,12 @@ namespace NexusERP.Api.Controllers
         [HttpDelete("{id}")]
         public IActionResult DeleteProduct(int id)
         {
-            if (GetCurrentUserRole() == "Cashier")
+            if (User.GetCurrentUserRole() == "Cashier")
             {
                 return Forbid("Security Violation: Cashier cannot delete products.");
             }
 
-            _repository.Delete(id);
+            _repository.Delete(id, User.GetCurrentUserId());
             return Ok(new { message = "Product deleted successfully." });
         }
     }

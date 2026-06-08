@@ -121,28 +121,24 @@ namespace NexusERP.Infrastructure.Repositories
             }
         }
 
-        public void LogSystemAudit(int userId, string entityType, int entityId, string action, string changesMade)
+        public void Delete(int productId, int userId)
         {
-            var auditLog = new SystemAuditLog
-            {
-                UserId = userId,
-                EntityType = entityType,
-                EntityId = entityId,
-                Action = action,
-                ChangesMade = changesMade,
-            };
-
-            _context.SystemAuditLogs.Add(auditLog);
-            _context.SaveChanges();
-        }
-
-        public void Delete(int id)
-        {
-            var product = _context.Products.Find(id);
+            var product = _context.Products.Find(productId);
 
             if(product != null)
             {
                 product.IsActive = false;
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = userId,
+                    EntityType = "Product",
+                    EntityId = product.ProductId,
+                    Action = "Delete",
+                    ChangesMade = $"Deleted product '{product.Name}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
                 _context.SaveChanges();
             }
         }

@@ -1,16 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
+using NexusERP.Domain.Exceptions;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -64,32 +66,65 @@ namespace NexusERP.Infrastructure.Repositories
                 .ToList();
         }
 
-        public void UpsertSuppliers(Supplier supplier)
+        public void Upsert(Supplier supplier, int userId)
         {
             if (supplier.SupplierId == 0)
             {
                 _context.Suppliers.Add(supplier);
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = userId,
+                    EntityType = "Supplier",
+                    EntityId = supplier.SupplierId,
+                    Action = "Create",
+                    ChangesMade = $"Created product '{supplier.CompanyName}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
             }
             else
             {
                 var existing = _context.Suppliers.AsNoTracking()
                                .FirstOrDefault(s => s.SupplierId == supplier.SupplierId);
 
-                if (existing == null) throw new Exception("Supplier not Found");
+                if (existing == null) throw new AppException("Supplier not Found");
 
                 _context.Suppliers.Update(supplier);
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = userId,
+                    EntityType = "Supplier",
+                    EntityId = supplier.SupplierId,
+                    Action = "Update",
+                    ChangesMade = $"Updated product '{supplier.CompanyName}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
             }
 
             _context.SaveChanges();
         }
 
-        public void DeleteSupplier(int id)
+        public void Delete(int id, int UserId)
         {
             var supplier = _context.Suppliers.Find(id);
 
             if (supplier != null)
             {
                 supplier.IsActive = false;
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = UserId,
+                    EntityType = "Supplier",
+                    EntityId = supplier.SupplierId,
+                    Action = "Delete",
+                    ChangesMade = $"Deleted product '{supplier.CompanyName}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
                 _context.SaveChanges();
             }
         }

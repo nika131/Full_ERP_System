@@ -13,8 +13,8 @@ namespace NexusERP.Application.Interfaces.Repositories
     {
         PagedResult<Supplier> GetPaged(int pageNumber, int pageSize, string? searchTerm);
         IEnumerable<Supplier> GetAllActive();
-        void Upsert(Supplier supplier);
-        void DeleteSupplier(int id);
+        void Upsert(Supplier supplier, int userId);
+        void Delete(int id, int userId);
 
     }
 }

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace NexusERP.Domain.Entities
 {
-    public class InventoryTransaction
+    public class InventoryTransaction : ICreationTracked
     {
         public int TransactionId { get; set; }
 
@@ -27,6 +27,7 @@ namespace NexusERP.Domain.Entities
         public decimal UnitPrice { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal Profit { get; set; }
+
         public DateTime CreatedAt { get; set; }
     }
 }

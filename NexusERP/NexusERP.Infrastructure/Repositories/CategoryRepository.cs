@@ -1,13 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
-using NexusERP.Domain.Models;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.EntityFrameworkCore;
+using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NexusERP.Application.Interfaces.Repositories;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -50,25 +51,58 @@ namespace NexusERP.Infrastructure.Repositories
                 .OrderBy(c => c.CategoryName).ToList();
         }
 
-        public void Upsert(Category category)
+        public void Upsert(Category category, int UserId)
         {
             if (category.CategoryId == 0)
             {
                 _context.Categories.Add(category);
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = UserId,
+                    EntityType = "Category",
+                    EntityId = category.CategoryId,
+                    Action = "Create",
+                    ChangesMade = $"Created Category '{category.CategoryName}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
             }
             else
             {
                 _context.Categories.Update(category);
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = UserId,
+                    EntityType = "Category",
+                    EntityId = category.CategoryId,
+                    Action = "Update",
+                    ChangesMade = $"Updated Category '{category.CategoryName}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
             }
             _context.SaveChanges();
         }
 
-        public void Delete(int id)
+        public void Delete(int id, int UserId)
         {
             var category = _context.Categories.Find(id);
             if (category != null)
             {
                 category.IsActive = false;
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = UserId,
+                    EntityType = "Category",
+                    EntityId = category.CategoryId,
+                    Action = "Delete",
+                    ChangesMade = $"Delete Category '{category.CategoryName}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
                 _context.SaveChanges();
             }
         }

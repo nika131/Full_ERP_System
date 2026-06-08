@@ -6,9 +6,12 @@ using System.Threading.Tasks;
 
 namespace NexusERP.Application.Interfaces
 {
-    public interface IAuditableEntity
+    public interface ICreationTracked
     {
         DateTime CreatedAt { get; set; }
+    }
+    public interface IAuditTracked : ICreationTracked
+    {
         DateTime? UpdatedAt { get; set; }
     }
 }

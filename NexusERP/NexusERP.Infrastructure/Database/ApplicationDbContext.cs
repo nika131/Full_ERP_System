@@ -74,20 +74,27 @@ namespace NexusERP.Infrastructure.Database
 
         public override int SaveChanges()
         {
-            var entries = ChangeTracker.Entries<IAuditableEntity>();
+            var entries = ChangeTracker.Entries();
 
             foreach (var entry in entries)
             {
-                if (entry.State == EntityState.Added)
+                if (entry.Entity is ICreationTracked createdEntity && entry.State == EntityState.Added)
                 {
-                    entry.Entity.CreatedAt = DateTime.UtcNow;
-                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    createdEntity.CreatedAt = DateTime.UtcNow;
                 }
 
-                if (entry.State == EntityState.Modified)
+                if (entry.Entity is IAuditTracked auditableEntity)
                 {
-                    entry.Property(x => x.CreatedAt).IsModified = false;
-                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                    if (entry.State == EntityState.Added)
+                    {
+                        auditableEntity.UpdatedAt = DateTime.UtcNow;
+                    }
+
+                    if (entry.State == EntityState.Modified)
+                    {
+                        entry.Property(nameof(ICreationTracked.CreatedAt)).IsModified = false; 
+                        auditableEntity.UpdatedAt = DateTime.UtcNow;
+                    }
                 }
             }
 
