@@ -1,6 +1,7 @@
 ﻿using NexusERP.Application.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,7 @@ namespace NexusERP.Domain.Entities
         public int ProductId { get; set; }
         public string Name { get; set; } = string.Empty;
 
+        [ConcurrencyCheck]
         public int CategoryId { get; set; }
         public Category Category { get; set; }
 

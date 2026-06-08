@@ -20,18 +20,16 @@ namespace NexusERP.Api.DTOs
         public int SupplierId { get; set; }
     }
 
-    public class TransactionRequestDto
+    public class ProductResponseDto
     {
-        [Required]
-        public string TransactionType { get; set; } = string.Empty;
-
-        [Range(1, int.MaxValue)]
         public int ProductId { get; set; }
-
-        public int SupplierId { get; set; }
-        public int SoldQty { get; set; }
-
-        public decimal ProductPrice { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public int? SupplierId { get; set; }
+        public string SupplierName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
         public decimal CostPrice { get; set; }
     }
 }

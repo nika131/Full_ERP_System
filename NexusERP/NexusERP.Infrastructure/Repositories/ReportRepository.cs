@@ -25,75 +25,55 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public PagedResult<InventoryTransaction> GetPagedTransactions(int pageNumber, int pageSize, String? searchterm, int currentUserId, string currentUserRole, string typeFilter)
+        public PagedResult<InventoryTransaction> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, string currentUserRole, string typeFilter)
         {
-            var baseQuery = from t in _context.InventoryTransactions.AsNoTracking()
-                            join p in _context.Products on t.ProductId equals p.ProductId into pJoin
-                            from p in pJoin.DefaultIfEmpty()
-                            join s in _context.Suppliers on t.SupplierId equals s.SupplierId into sJoin
-                            from s in sJoin.DefaultIfEmpty()
-                            join u in _context.Users.AsNoTracking() on t.UserId equals u.UserId into uJoin
-                            from u in uJoin.DefaultIfEmpty()
-                            select new { t, p, s, u };
+            var baseQuery = _context.InventoryTransactions
+                            .Include(t => t.Product)
+                            .Include(t => t.Supplier)
+                            .Include(t => t.User)
+                            .AsNoTracking();
 
-            if (currentUserRole == "Admin")
+            if (currentUserRole == "Manager")
             {
-                
-            }
-            else if (currentUserRole == "Manager")
-            {
-                baseQuery = baseQuery.Where(item =>
-                    item.t.UserId == currentUserId ||
-                    (item.u != null && item.u.Role == NexusERP.Domain.Enums.UserRole.Cashier)
+                baseQuery = baseQuery.Where(t =>
+                    t.UserId == currentUserId ||
+                    (t.User != null && t.User.Role == UserRole.Cashier)
                 );
             }
             else if (currentUserRole == "Cashier")
             {
-                baseQuery = baseQuery.Where(item =>
-                    item.t.TransactionType == NexusERP.Domain.Enums.TransactionAction.Sale &&
-                    item.t.UserId == currentUserId
+                baseQuery = baseQuery.Where(t =>
+                    t.TransactionType == TransactionAction.Sale &&
+                    t.UserId == currentUserId
                 );
             }
-            else
+            else if (currentUserRole != "Admin")
             {
-                baseQuery = baseQuery.Where(item => false);
+                baseQuery = baseQuery.Where(t => false); 
             }
 
-            if (typeFilter != "All" && Enum.TryParse(typeof(TransactionAction), typeFilter, true, out var actionObj))
+
+            if (typeFilter != "All" && Enum.TryParse<TransactionAction>(typeFilter, true, out var action))
             {
-                var action = (TransactionAction)actionObj;
-                baseQuery = baseQuery.Where(item => item.t.TransactionType == action);
+                baseQuery = baseQuery.Where(t => t.TransactionType == action);
             }
 
-            if (!string.IsNullOrWhiteSpace(searchterm))
+            if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                baseQuery = baseQuery.Where(item => 
-                    (item.s.CompanyName != null && item.s.CompanyName.Contains(searchterm)) ||
-                    (item.p.Name != null && item.p.Name.Contains(searchterm)) ||
-                    item.t.TransactionId.ToString().Contains(searchterm));
+                baseQuery = baseQuery.Where(t =>
+                    (t.Supplier != null && t.Supplier.CompanyName.Contains(searchTerm)) ||
+                    (t.Product != null && t.Product.Name.Contains(searchTerm)) ||
+                    t.TransactionId.ToString().Contains(searchTerm)
+                );
             }
 
             var totalCount = baseQuery.Count();
 
             var items = baseQuery
-                .OrderByDescending(item => item.t.CreatedAt)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(item => new InventoryTransaction
-                {
-                    TransactionId = item.t.TransactionId,
-                    ProductId = item.t.ProductId,
-                    SupplierId = item.t.SupplierId,
-                    UserId = item.t.UserId,
-                    TransactionType = item.t.TransactionType,
-                    Quantity = item.t.Quantity,
-                    UnitPrice = item.t.UnitPrice,
-                    TotalAmount = item.t.TotalAmount,
-                    Profit = item.t.Profit,
-                    CreatedAt = item.t.CreatedAt,
-                    ProductName = item.p != null ? item.p.Name : string.Empty,
-                    SupplierName = item.s != null ? item.s.CompanyName : string.Empty
-                }).ToList();
+                    .OrderByDescending(t => t.CreatedAt)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
 
             return new PagedResult<InventoryTransaction>
             {

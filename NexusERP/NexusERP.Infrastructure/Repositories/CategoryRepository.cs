@@ -58,7 +58,6 @@ namespace NexusERP.Infrastructure.Repositories
             }
             else
             {
-                category.UpdatedAt = DateTime.Now;
                 _context.Categories.Update(category);
             }
             _context.SaveChanges();
@@ -70,7 +69,6 @@ namespace NexusERP.Infrastructure.Repositories
             if (category != null)
             {
                 category.IsActive = false;
-                category.UpdatedAt = DateTime.Now;
                 _context.SaveChanges();
             }
         }

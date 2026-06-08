@@ -1,15 +1,16 @@
-﻿using System;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using NexusERP.Application.Interfaces.Repositories;
+using NexusERP.Domain.Entities;
+using NexusERP.Domain.Exceptions;
+using NexusERP.Domain.Models;
+using NexusERP.Infrastructure.Database;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Data;
-using Microsoft.Data.SqlClient;
-using NexusERP.Application.Interfaces.Repositories;
-using NexusERP.Domain.Entities;
-using NexusERP.Infrastructure.Database;
-using Microsoft.EntityFrameworkCore;
-using NexusERP.Domain.Models;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -51,44 +52,73 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public void UpSert(Product product)
+        public void Upsert(Product product, int userId)
         {
-            if(product.ProductId == 0)
+            bool isNew = product.ProductId == 0;
+            string action = isNew ? "Create" : "Edit";
+            string changes = isNew ? $"Created product '{product.Name}'" : $"Updated product '{product.Name}'";
+
+            if (isNew)
             {
-                product.Quantity = 0;
                 _context.Products.Add(product);
-            }
+            } 
             else
             {
                 var existing = _context.Products.Find(product.ProductId);
-                if (existing == null) throw new Exception("Product not Found");
+                if (existing == null) throw new AppException("Product not Found");
 
                 existing.Name = product.Name;
                 existing.CategoryId = product.CategoryId;
                 existing.SupplierId = product.SupplierId;
                 existing.Price = product.Price;
                 existing.CostPrice = product.CostPrice;
-                existing.UpdatedAt = DateTime.Now;
             }
+
+            var audit = new SystemAuditLog
+            {
+                UserId = userId,
+                EntityType = "Product",
+                EntityId = product.ProductId,
+                Action = action,
+                ChangesMade = changes,
+            };
+
+            _context.SystemAuditLogs.Add(audit);
             _context.SaveChanges();
         }
 
-        public void LogInventoryTransaction(InventoryTransaction transaction, int userId)
+        public void LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType)
         {
+            transaction.Quantity = Math.Abs(transaction.Quantity);
             transaction.UserId = userId;
-            _context.InventoryTransactions.Add(transaction);
 
             var product = _context.Products.Find(transaction.ProductId);
-            if (product != null)
+            if (product == null) throw new AppException("Product not found.");
+   
+            if(transactionType == "Sale")
+            {
+                if (product.Quantity < transaction.Quantity)
+                {
+                    throw new AppException($"Insufficient stock. Only {product.Quantity} unitts available.");
+                }
+
+                product.Quantity -= transaction.Quantity;
+            }
+            else if (transactionType == "Restock" || transactionType == "Adjust")
             {
                 product.Quantity += transaction.Quantity;
             }
-            else
-            {
-                throw new Exception("Product not found.");
-            }
 
-            _context.SaveChanges();
+            _context.InventoryTransactions.Add(transaction);
+
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new AppException("Inventory was modified by another user. Please refresh and try again.");
+            }
         }
 
         public void LogSystemAudit(int userId, string entityType, int entityId, string action, string changesMade)
@@ -100,7 +130,6 @@ namespace NexusERP.Infrastructure.Repositories
                 EntityId = entityId,
                 Action = action,
                 ChangesMade = changesMade,
-                CreatedAt = DateTime.Now,
             };
 
             _context.SystemAuditLogs.Add(auditLog);
@@ -114,7 +143,6 @@ namespace NexusERP.Infrastructure.Repositories
             if(product != null)
             {
                 product.IsActive = false;
-                product.UpdatedAt = DateTime.Now;
                 _context.SaveChanges();
             }
         }
@@ -142,16 +170,6 @@ namespace NexusERP.Infrastructure.Repositories
                 stats.InventoryHealth = "STABLE";
 
             return stats;
-        }
-
-        public IEnumerable<Category> GetCategories()
-        {
-            return _context.Categories.AsNoTracking().ToList();
-        }
-
-        public IEnumerable<Supplier> GetSuppliers()
-        {
-            return _context.Suppliers.AsNoTracking().ToList();
         }
 
     }

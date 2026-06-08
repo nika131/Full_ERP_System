@@ -23,37 +23,26 @@ namespace NexusERP.Infrastructure.Repositories
 
         public PagedResult<SystemAuditLog> GetPagedLogs(int pageNumber, int pageSize, string? searchTerm)
         {
-            var baseQuery = from log in _context.SystemAuditLogs.AsNoTracking()
-                            join u in _context.Users.AsNoTracking() on log.UserId equals u.UserId into userJoin
-                            from u in userJoin.DefaultIfEmpty()
-                            select new { log, u };
+            var baseQuery = _context.SystemAuditLogs
+                .Include(log => log.User)
+                .AsNoTracking();
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                baseQuery = baseQuery.Where(item =>
-                    item.log.Action.Contains(searchTerm) ||
-                    item.log.EntityType.Contains(searchTerm) ||
-                    item.log.ChangesMade.Contains(searchTerm) ||
-                    (item.u != null && item.u.FullName.Contains(searchTerm)));
+                baseQuery = baseQuery.Where(log =>
+                    log.Action.Contains(searchTerm) ||
+                    log.EntityType.Contains(searchTerm) ||
+                    log.ChangesMade.Contains(searchTerm) ||
+                    (log.User != null && log.User.FullName.Contains(searchTerm)));
             }
 
             var totalCount = baseQuery.Count();
 
             var items = baseQuery
-                .OrderByDescending(item => item.log.CreatedAt)
+                .OrderByDescending(log => log.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(item => new SystemAuditLog
-                {
-                    LogId = item.log.LogId,
-                    UserId = item.log.UserId,
-                    EntityType = item.log.EntityType,
-                    EntityId = item.log.EntityId,
-                    Action = item.log.Action,
-                    ChangesMade = item.log.ChangesMade,
-                    CreatedAt = item.log.CreatedAt,
-                    PerformedBy = item.u != null ? item.u.FullName : "Unknown User"
-                }).ToList();
+                .ToList();
 
             return new PagedResult<SystemAuditLog>
             {
@@ -63,5 +52,5 @@ namespace NexusERP.Infrastructure.Repositories
                 PageSize = pageSize
             };
         }
-     }
+    }
 }

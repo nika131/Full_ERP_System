@@ -42,7 +42,7 @@ namespace NexusERP.Api.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Manager")]
-        public IActionResult DeleteCatgeory(int id)
+        public IActionResult DeleteCategory(int id)
         {
             _repository.Delete(id);
             return Ok(new { message = "Catgeory delete." });

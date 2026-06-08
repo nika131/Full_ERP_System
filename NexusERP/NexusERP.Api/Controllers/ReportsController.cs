@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NexusERP.Api.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
@@ -46,7 +47,27 @@ namespace NexusERP.Api.Controllers
             var identity = GetIdentity();
 
             var secureData = _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, identity.UserId, identity.Role, typeFilter);
-            return Ok(secureData);
+            
+            var responseItems = secureData.Items.Select( t => new TransactionResponseDto
+            {
+                TransactionId = t.TransactionId,
+                ProductId = t.ProductId,
+                ProductName = t.Product?.Name ?? "Unknown",
+                SupplierName = t.Supplier?.ContactName ?? "N/A",
+                TransactionType = t.TransactionType.ToString(),
+                Quantity = t.Quantity,
+                TotalAmount = t.TotalAmount,
+                Profit = t.Profit,
+                CreatedAt = t.CreatedAt,
+            }).ToList();
+            
+            return Ok(new
+            {
+                items = responseItems,
+                totalCount = secureData.TotalCount,
+                pageNumber = secureData.PageNumber,
+                pageSize = secureData.PageSize,
+            });
         }
 
         [HttpGet("export/excel")]

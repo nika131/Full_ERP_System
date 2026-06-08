@@ -41,7 +41,27 @@ namespace NexusERP.Api.Controllers
             if (pageSize > 100) pageSize = 100;
 
             var result = _repository.GetPaged(page, pageSize, searchTerm);
-            return Ok(result);
+            
+            var responseItems = result.Items.Select(p => new ProductResponseDto
+            {
+                ProductId = p.ProductId,
+                Name = p.Name,
+                CategoryId = p.CategoryId,
+                CategoryName = p.Category?.CategoryName ?? "Uncategorized",
+                SupplierId = p.SupplierId,
+                SupplierName = p.Supplier?.ContactName ?? "No Supplier",
+                Quantity = p.Quantity,
+                Price = p.Price,
+                CostPrice = p.CostPrice
+            }).ToList();
+
+            return Ok(new
+            {
+                items = responseItems,
+                totalCount = result.TotalCount,
+                pageNumber = result.PageNumber,
+                pageSize = result.PageSize,
+            });
         }
 
         [HttpPost("upsert")]
@@ -49,46 +69,19 @@ namespace NexusERP.Api.Controllers
         {
             if (GetCurrentUserRole() == "Cashier") return Forbid();
 
-            try
+            var product = new Product
             {
-                bool isNewProduct = dto.ProductId == 0;
-                string action = isNewProduct ? "Create" : "Edit";
+                ProductId = dto.ProductId,
+                Name = dto.Name,
+                CategoryId = dto.CategoryId,
+                Price = dto.Price,
+                CostPrice = dto.CostPrice,
+                SupplierId = dto.SupplierId
+            };
 
-                var product = new Product
-                {
-                    ProductId = dto.ProductId,
-                    Name = dto.Name,
-                    CategoryId = dto.CategoryId,
-                    Price = dto.Price,
-                    CostPrice = dto.CostPrice,
-                    SupplierId = dto.SupplierId
-                };
+            _repository.UpSert(product, GetCurrentUserId());
 
-                using (var scope = new TransactionScope())
-                {
-                    _repository.UpSert(product);
-
-                    string changeMade = isNewProduct
-                        ? $"Created new product '{product.Name}' with initial quantity 0."
-                        : $"Updated Product '{product.Name}'. Price: {product.Price:C}, Cost: {product.CostPrice:C}.";
-
-                    _repository.LogSystemAudit(
-                        userId: GetCurrentUserId(), 
-                        entityType: "Product",
-                        entityId: product.ProductId, 
-                        action: action,
-                        chnagesMade: changeMade
-                    );
-
-                    scope.Complete();
-                }
-
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500);
-            }
+            return Ok(new { message = "Product saved successfully." });
         }
 
         [HttpPost("transaction")]
@@ -99,7 +92,6 @@ namespace NexusERP.Api.Controllers
                 return Forbid("Security Violation: Cashier are restricted to outbound sales only.");
             }
 
-            int finalQty = dto.TransactionType == "Sale" ? (dto.SoldQty * -1) : dto.SoldQty;
             decimal unitPrice = dto.TransactionType == "Sale" ? dto.ProductPrice : dto.CostPrice;
             decimal totalAmount = unitPrice * dto.SoldQty;
             decimal profit = dto.TransactionType == "Sale" ? totalAmount - (dto.CostPrice * dto.SoldQty) : 0;
@@ -109,15 +101,15 @@ namespace NexusERP.Api.Controllers
                 ProductId = dto.ProductId,
                 SupplierId = dto.SupplierId > 0 ? dto.SupplierId : null,
                 TransactionType = Enum.Parse<TransactionAction>(dto.TransactionType),
-                Quantity = finalQty,
+                Quantity = dto.SoldQty,
                 UnitPrice = unitPrice,
                 TotalAmount = totalAmount,
                 Profit = profit
             };
 
-            _repository.LogInventoryTransaction(transactionEntity, GetCurrentUserId());
+            _repository.LogInventoryTransaction(transactionEntity, GetCurrentUserId(), dto.TransactionType);
 
-            return Ok(new { message = $"Transaction logged." });
+            return Ok(new { message = $"Transaction ({dto.TransactionType}) logged successfully." });
         }
 
         [HttpDelete("{id}")]
@@ -128,15 +120,8 @@ namespace NexusERP.Api.Controllers
                 return Forbid("Security Violation: Cashier cannot delete products.");
             }
 
-            try
-            {
-                _repository.Delete(id);
-                return Ok(new { message = "Product deleted successfully." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500);
-            }
+            _repository.Delete(id);
+            return Ok(new { message = "Product deleted successfully." });
         }
     }
 }

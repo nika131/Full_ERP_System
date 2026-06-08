@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using NexusERP.Domain.Exceptions;
 
 namespace NexusERP.Infrastructure.Services
 {
@@ -25,13 +26,13 @@ namespace NexusERP.Infrastructure.Services
         public AuthService(IUserRepository userRepository, IConfiguration config)
         {
             _userRepository = userRepository;
-            _jwtSecret = config["Jwt:Key"] ?? throw new Exception("JWT Secret missing!");
+            _jwtSecret = config["Jwt:Key"] ?? throw new AppException("JWT Secret missing!");
         }
 
         public void Register(string fullname, string username, string plaintextPassword, UserRole role)
         {
             if (_userRepository.GetUserByUsername(username) != null)
-                throw new Exception("Username already exists.");
+                throw new AppException("Username already exists.");
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(plaintextPassword);
 
@@ -50,11 +51,11 @@ namespace NexusERP.Infrastructure.Services
         {
             var user = _userRepository.GetUserByUsername(username);
             if (user == null) 
-                throw new Exception("Invalid username or Password");
+                throw new AppException("Invalid username or Password");
 
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(plaintextpassword, user.PasswordHash);
             if (!isPasswordValid)
-                throw new Exception("Inavlid username or password");
+                throw new AppException("Inavlid username or password");
 
             return GenerateJwtToken(user); 
         }

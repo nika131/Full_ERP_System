@@ -37,7 +37,8 @@ namespace NexusERP.Infrastructure.Services
                         row.RelativeItem().AlignRight().Column(col =>
                         {
                             col.Item().Text("SUPPLIER INFORMATION").SemiBold();
-                            col.Item().Text(model.SupplierName).FontSize(14).Medium();
+                            // Traverse the graph, supply a fallback if null
+                            col.Item().Text(model.Supplier?.CompanyName ?? "N/A").FontSize(14).Medium();
                         });
                     });
 
@@ -67,7 +68,8 @@ namespace NexusERP.Infrastructure.Services
 
                             IContainer ValueStyle(IContainer c) => c.PaddingVertical(10);
 
-                            table.Cell().Element(ValueStyle).Text(model.ProductName);
+                            // Traverse the graph, supply a fallback if null
+                            table.Cell().Element(ValueStyle).Text(model.Product?.Name ?? "Unknown Product");
                             table.Cell().Element(ValueStyle).Text(model.TransactionType.ToString());
                             table.Cell().Element(ValueStyle).Text(model.Quantity.ToString());
                             table.Cell().Element(ValueStyle).Text($"{model.TotalAmount:C2}");
@@ -84,11 +86,9 @@ namespace NexusERP.Infrastructure.Services
             }).GeneratePdf();
         }
 
-
         public void GenerateInvoice(InventoryTransaction model, string filePath)
         {
             byte[] fileBytes = GenerateInvoice(model);
-
             File.WriteAllBytes(filePath, fileBytes);
         }
     }

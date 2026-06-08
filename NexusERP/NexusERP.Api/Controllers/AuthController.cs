@@ -21,38 +21,24 @@ namespace NexusERP.Api.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequestDto request)
         {
-            try
-            {
-                var token = _authService.Login(request.Username, request.Password);
+            var token = _authService.Login(request.Username, request.Password);
 
-                return Ok(new { token = token });
-            }
-            catch (Exception ex)
-            {
-                return Unauthorized();
-            }
-            
+            return Ok(new { token = token });
+          
         }
 
         [HttpPost("register")]
         [Authorize(Roles = "Admin")]
         public IActionResult Register([FromBody] RegisterRequestDto request)
         {
-            try
+            if (!Enum.TryParse<UserRole>(request.Role, true, out var parseRole))
             {
-                if (!Enum.TryParse<UserRole>(request.Role, true, out var parseRole))
-                {
-                    return BadRequest(new { message = "Invalid role specified." });
-                }
-
-                _authService.Register(request.FullName, request.Username, request.Password, parseRole);
-
-                return Ok(new { message = "User registered successfully." });
+                return BadRequest(new { message = "Invalid role specified." });
             }
-            catch (Exception ex)
-            {
-                return BadRequest();
-            }
+
+            _authService.Register(request.FullName, request.Username, request.Password, parseRole);
+
+            return Ok(new { message = "User registered successfully." });
         }
     }
 }

@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using NexusERP.Domain.Exceptions;
 
 namespace NexusERP.Api.Middleware
 {
@@ -26,23 +28,47 @@ namespace NexusERP.Api.Middleware
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Critical Pipeline Exception: {ex.Message}");
                 await HandleExceptionAsync(httpContext, ex);
             }
         }
 
-        private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+        private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            var response = context.Response;
+            response.ContentType = "application/json";
 
-            var errorResponse = new
+            var responseModel = new ErrorResponse { Message = "An unexpected internal server error occurred." };
+
+            switch (exception)
             {
-                message = "An Unexpected internal server error occured.",
-                details = exception.Message
-            };
+                case AppException e:
+                    response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    responseModel.Message = e.Message;
+                    break;
 
-            return context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse));
+                case UnauthorizedAccessException e:
+                    response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    responseModel.Message = "You are not authorized to perform this action.";
+                    break;
+
+                case DbUpdateConcurrencyException e:
+                    response.StatusCode = (int)HttpStatusCode.Conflict;
+                    responseModel.Message = "Data was modified by another process. Please refresh and try again.";
+                    break;
+
+                default:
+                    response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    _logger.LogError(exception, $"CRITICAL PIPELINE EXCEPTION: {exception.Message}");
+                    break;
+            }
+
+            var result = JsonSerializer.Serialize(responseModel);
+            await response.WriteAsync(result);
         }
+    }
+
+    public class ErrorResponse
+    {
+        public string Message { get; set; } = string.Empty;
     }
 }

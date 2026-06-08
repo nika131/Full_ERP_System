@@ -77,8 +77,6 @@ namespace NexusERP.Infrastructure.Repositories
 
                 if (existing == null) throw new Exception("Supplier not Found");
 
-                supplier.UpdatedAt = DateTime.Now;
-
                 _context.Suppliers.Update(supplier);
             }
 
@@ -92,7 +90,6 @@ namespace NexusERP.Infrastructure.Repositories
             if (supplier != null)
             {
                 supplier.IsActive = false;
-                supplier.UpdatedAt = DateTime.Now;
                 _context.SaveChanges();
             }
         }

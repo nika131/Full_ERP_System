@@ -12,12 +12,10 @@ namespace NexusERP.Application.Interfaces.Repositories
     public interface IProductRepository
     {
         PagedResult<Product> GetPaged(int pageNumber, int pageSize, string? searchTerm);
-        void UpSert(Product products);
-        void LogInventoryTransaction(InventoryTransaction transaction, int userId);
+        void Upsert(Product product, int userId);
+        void LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType);
         void LogSystemAudit(int userId, string entityType, int entityId, string action, string chnagesMade);
         void Delete(int id);
         DashboardResponse GetDashboardAggregates();
-        IEnumerable<Category> GetCategories();
-        IEnumerable<Supplier> GetSuppliers();
     }
 }

@@ -20,18 +20,28 @@ namespace NexusERP.Api.Controllers
         [HttpGet]
         public IActionResult GetSystemLogs([FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? searchTerm)
         {
-            try
-            {
-                if(pageSize > 100) pageSize = 100;
+            if(pageSize > 100) pageSize = 100;
 
-                var logs = _repository.GetPagedLogs(pageNumber, pageSize, searchTerm);
+            var logs = _repository.GetPagedLogs(pageNumber, pageSize, searchTerm);
 
-                return Ok(logs);
-            }
-            catch (Exception ex)
+            var responseItems = logs.Items.Select(log => new AuditLogResponseDto
             {
-                return StatusCode(500, new { message = "Error retrieving audit logs: "});
-            }
+                LogId = log.LogId,
+                UserId = log.UserId,
+                PerformedBy = log.User?.FullName ?? "System/Unknown",
+                Action = log.Action,
+                EntityType = log.EntityType,
+                ChangeMade = log.EntityType,
+                CreatedAt = log.CreatedAt,
+            }).ToList();
+
+            return Ok(new
+            {
+                items = responseItems,
+                totalCount = logs.TotalCount,
+                pageNumber = logs.PageNumber,
+                pageSize = logs.PageSize,
+            });
         }
     }
 }
