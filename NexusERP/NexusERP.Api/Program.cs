@@ -8,6 +8,7 @@ using NexusERP.Infrastructure.Database;
 using NexusERP.Infrastructure.Repositories;
 using NexusERP.Infrastructure.Services;
 using System.Text;
+using NexusERP.Domain.Constants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +38,7 @@ builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
@@ -63,6 +65,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
             };
         });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireProductUpsert", policy => policy.RequireClaim("Permission", Permissions.UpsertProducts));
+    options.AddPolicy("RequireProductDelete", policy => policy.RequireClaim("Permission", Permissions.DeleteProducts));
+
+    options.AddPolicy("RequireManageCategories", policy => policy.RequireClaim("Permission", Permissions.ManageCategories));
+    options.AddPolicy("RequireManageSuppliers", policy => policy.RequireClaim("Permission", Permissions.ManageSuppliers));
+
+    options.AddPolicy("RequireManageUsers", policy => policy.RequireClaim("Permission", Permissions.ManageUsers));
+    options.AddPolicy("RequireViewAuditLogs", policy => policy.RequireClaim("Permission", Permissions.ViewAuditLogs));
+    options.AddPolicy("RequireViewDashboard", policy => policy.RequireClaim("Permission", Permissions.ViewDashboard));
+
+    options.AddPolicy("RequireExportExcel", policy => policy.RequireClaim("Permission", Permissions.ExportExcelTransactions));
+});
 
 
 var app = builder.Build();

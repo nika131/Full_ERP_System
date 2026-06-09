@@ -7,7 +7,7 @@ namespace NexusERP.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] 
+    [Authorize(Policy = "RequireViewAuditLogs")]
     public class AuditLogsController : Controller
     {
         private readonly IAuditRepository _repository;

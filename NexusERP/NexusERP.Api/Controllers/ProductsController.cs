@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
+using NexusERP.Domain.Constants;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using System.Security.Claims;
@@ -55,10 +56,9 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("upsert")]
+        [Authorize(Policy = "RequireProductUpsert")]
         public IActionResult SaveProduct([FromBody] ProductUpsertDto dto)
         {
-            if (User.GetCurrentUserRole() == "Cashier") return Forbid();
-
             var product = new Product
             {
                 ProductId = dto.ProductId,
@@ -75,11 +75,17 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("transaction")]
+        [Authorize]
         public IActionResult MakeTransaction([FromBody] TransactionRequestDto dto)
         {
-            if (User.GetCurrentUserRole() == "Cashier" && dto.TransactionType != "Sale")
+            if (dto.TransactionType != "Sale" && !User.HasPermission(Permissions.PerformSales))
             {
-                return Forbid("Security Violation: Cashier are restricted to outbound sales only.");
+                return Forbid("Missing Perform Sales permission.");
+            }
+
+            if (dto.TransactionType != "Sale" && !User.HasPermission(Permissions.PerformInboundTransactions))
+            {
+                return Forbid("Missing Inbound Inventory permission.");
             }
 
             decimal unitPrice = dto.TransactionType == "Sale" ? dto.ProductPrice : dto.CostPrice;
@@ -103,13 +109,9 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = "RequireProductDelete")]
         public IActionResult DeleteProduct(int id)
         {
-            if (User.GetCurrentUserRole() == "Cashier")
-            {
-                return Forbid("Security Violation: Cashier cannot delete products.");
-            }
-
             _repository.Delete(id, User.GetCurrentUserId());
             return Ok(new { message = "Product deleted successfully." });
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces;
@@ -23,6 +24,8 @@ namespace NexusERP.Infrastructure.Database
         public DbSet<Category> Categories { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<SystemAuditLog> SystemAuditLogs { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -31,6 +34,7 @@ namespace NexusERP.Infrastructure.Database
             modelBuilder.Entity<Product>().HasQueryFilter(p => p.IsActive);
             modelBuilder.Entity<Supplier>().HasQueryFilter(s => s.IsActive);
             modelBuilder.Entity<User>().HasQueryFilter(u => u.IsActive);
+
 
             // 1. Map Product
             modelBuilder.Entity<Product>(entity =>
@@ -59,17 +63,24 @@ namespace NexusERP.Infrastructure.Database
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.UserId);
+                entity.HasOne(e => e.Role)
+                        .WithMany()
+                        .HasForeignKey(e => e.RoleId)
+                        .OnDelete(DeleteBehavior.Restrict);
+            });
 
-                 entity.Property(e => e.Role)
-                      .HasConversion(
-                          v => v.ToString(),
-                          v => (UserRole)Enum.Parse(typeof(UserRole), v));
+            modelBuilder.Entity<Role>(entity =>
+            {
+                entity.HasKey(e => e.RoleId);
+                entity.Property(e => e.Permissions)
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
+                        v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null) ?? new List<string>());
             });
 
             modelBuilder.Entity<Category>().HasKey(e => e.CategoryId);
             modelBuilder.Entity<Supplier>().HasKey(e => e.SupplierId);
             modelBuilder.Entity<SystemAuditLog>().HasKey(e => e.LogId);
-
         }
 
         public override int SaveChanges()

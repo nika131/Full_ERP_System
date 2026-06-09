@@ -8,7 +8,7 @@ namespace NexusERP.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Policy = "RequireViewDashboard")]
     public class DashboardController : Controller
     {
         private readonly IProductRepository _Productrepository;

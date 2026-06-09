@@ -12,7 +12,7 @@ namespace NexusERP.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "RequireManageUsers")]
     public class EmployeesController : Controller
     {
         private readonly IUserRepository _repository;
@@ -23,7 +23,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetEmployees([FromQuery] string? keyword, [FromBody] string roleFilter = "All")
+        public IActionResult GetEmployees([FromQuery] string? keyword, [FromQuery] string roleFilter = "All")
         {
             IEnumerable<User> users;
 
@@ -32,9 +32,9 @@ namespace NexusERP.Api.Controllers
             else
                 users = _repository.SearchUsers(keyword);
 
-            if (roleFilter != "All" && Enum.TryParse(roleFilter,out UserRole role))
+            if (roleFilter != "All")
             {
-                users = users.Where(u => u.Role == role);
+                users = users.Where(u => u.Role != null && u.Role.Name.Equals(roleFilter, StringComparison.OrdinalIgnoreCase));
             }
 
             var responseData = users.Select(u => new EmployeeResponseDto
@@ -42,7 +42,8 @@ namespace NexusERP.Api.Controllers
                 UserId = u.UserId,
                 FullName = u.FullName,
                 Username = u.Username,
-                Role = u.Role.ToString(),
+                RoleId = u.RoleId,
+                RoleName = u.Role?.Name ?? "Unassigned",
                 CreatedAt = u.CreatedAt
             }).ToList();
 
@@ -52,24 +53,14 @@ namespace NexusERP.Api.Controllers
         [HttpPut("{id}")]
         public IActionResult UpdateEmployee(int id, [FromBody] EmployeeResponseDto dto)
         {
-            if (!Enum.TryParse<UserRole>(dto.Role, true, out var parsedRole))
-            {
-                return BadRequest(new { message = "Invalid role specified." });
-            }
-
-            int currentUserId = User.GetCurrentUserId();
-
-            if (id == currentUserId && parsedRole != UserRole.Admin)
-            {
-                return BadRequest(new { message = "Security Lock: You cannot remove your own Admin priviladges." });
-            }
+            if (id == User.GetCurrentUserId()) return BadRequest(new { message = "Security Lock: You cannot remove your own Admin priviladges." });
 
             var userToUpdate = new User
             {
                 UserId = id,
                 FullName = dto.FullName,
                 Username = dto.Username,
-                Role = parsedRole
+                RoleId = dto.RoleId,
             };
 
             _repository.UpdateUser(userToUpdate);
@@ -84,7 +75,7 @@ namespace NexusERP.Api.Controllers
 
             if (id == currentUserId)
             {
-                return BadRequest(new { message = "Security Lock: YOu cannot delete your own active account." });
+                return BadRequest(new { message = "Security Lock: You cannot delete your own active account." });
             }
 
             _repository.DeleteUser(id);

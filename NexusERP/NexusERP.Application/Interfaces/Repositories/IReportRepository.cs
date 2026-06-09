@@ -11,7 +11,7 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IReportRepository
     {
-        PagedResult<InventoryTransaction> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, string currentUserRole, string typeFilter);
+        PagedResult<InventoryTransaction> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, bool canViewAll, string typeFilter);
         InventoryTransaction? GetById(int transactionId);
         List<RevenueChartData> GetWeeklyRevenueChart();
         List<TopProductChartData> GetTopPerformingProducts();

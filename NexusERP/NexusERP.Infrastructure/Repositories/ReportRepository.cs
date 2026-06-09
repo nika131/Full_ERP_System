@@ -25,7 +25,7 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public PagedResult<InventoryTransaction> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, string currentUserRole, string typeFilter)
+        public PagedResult<InventoryTransaction> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, bool canViewAll, string typeFilter)
         {
             var baseQuery = _context.InventoryTransactions
                             .Include(t => t.Product)
@@ -33,23 +33,9 @@ namespace NexusERP.Infrastructure.Repositories
                             .Include(t => t.User)
                             .AsNoTracking();
 
-            if (currentUserRole == "Manager")
+            if (!canViewAll)
             {
-                baseQuery = baseQuery.Where(t =>
-                    t.UserId == currentUserId ||
-                    (t.User != null && t.User.Role == UserRole.Cashier)
-                );
-            }
-            else if (currentUserRole == "Cashier")
-            {
-                baseQuery = baseQuery.Where(t =>
-                    t.TransactionType == TransactionAction.Sale &&
-                    t.UserId == currentUserId
-                );
-            }
-            else if (currentUserRole != "Admin")
-            {
-                baseQuery = baseQuery.Where(t => false); 
+                baseQuery = baseQuery.Where(t => t.UserId == currentUserId);
             }
 
 

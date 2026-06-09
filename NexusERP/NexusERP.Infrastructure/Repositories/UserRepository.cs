@@ -40,6 +40,53 @@ namespace NexusERP.Infrastructure.Repositories
             _context.SaveChanges();
         }
 
+        public void UpdateUser(User user)
+        {
+            var existingUser = _context.Users.Find(user.UserId);
+            if (existingUser != null)
+            {
+                existingUser.FullName = user.FullName;
+                existingUser.Username = user.Username;
+                existingUser.RoleId = user.RoleId;
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = user.UserId,
+                    EntityType = "User",
+                    EntityId = user.UserId,
+                    Action = "Update",
+                    ChangesMade = $"Updated User '{user.Username}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
+                _context.SaveChanges();
+            }
+        }
+        public IEnumerable<User> SearchUsers(string keyword)
+        {
+            return _context.Users.AsNoTracking()
+                                .Include(u => u.Role)
+                                .Where(u =>
+                                    (u.Username.Contains(keyword) ||
+                                    u.FullName.Contains(keyword) ||
+                                    u.UserId.ToString().Contains(keyword)))
+                                .ToList();
+        }
+
+        public User? GetUserByUsername(string username)
+        {
+            return _context.Users.AsNoTracking()
+                                .Include(u => u.Role)
+                                .FirstOrDefault(u => u.Username == username);
+        }
+
+        public IEnumerable<User> GetAllUsers()
+        {
+            return _context.Users.AsNoTracking()
+                                .Include(u => u.Role)
+                                .ToList();
+        }
+
         public void DeleteUser(int id)
         {
             var user = _context.Users.Find(id);
@@ -60,51 +107,6 @@ namespace NexusERP.Infrastructure.Repositories
                 _context.SystemAuditLogs.Add(audit);
                 _context.SaveChanges();
             }
-        }
-
-        public void UpdateUser(User user)
-        {
-            var existingUser = _context.Users.Find(user.UserId);
-            if (existingUser != null)
-            {
-                existingUser.FullName = user.FullName;
-                existingUser.Username = user.Username;
-                existingUser.Role = user.Role;
-
-                var audit = new SystemAuditLog
-                {
-                    UserId = user.UserId,
-                    EntityType = "User",
-                    EntityId = user.UserId,
-                    Action = "Update",
-                    ChangesMade = $"Updated User '{user.Username}'"
-                };
-
-                _context.SystemAuditLogs.Add(audit);
-                _context.SaveChanges();
-            }
-        }
-
-        public User? GetUserByUsername(string username)
-        {
-            return _context.Users.AsNoTracking()
-                                .FirstOrDefault(u => u.Username == username);
-        }
-
-        public IEnumerable<User> GetAllUsers()
-        {
-            return _context.Users.AsNoTracking()
-                                .ToList();
-        }
-
-        public IEnumerable<User> SearchUsers(string keyword)
-        {
-            return _context.Users.AsNoTracking()
-                                .Where(u =>
-                                    (u.Username.Contains(keyword) ||
-                                    u.FullName.Contains(keyword) ||
-                                    u.UserId.ToString().Contains(keyword)))
-                                .ToList();
         }
     }
 }

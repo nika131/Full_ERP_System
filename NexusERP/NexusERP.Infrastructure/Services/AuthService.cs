@@ -29,7 +29,7 @@ namespace NexusERP.Infrastructure.Services
             _jwtSecret = config["Jwt:Key"] ?? throw new AppException("JWT Secret missing!");
         }
 
-        public void Register(string fullname, string username, string plaintextPassword, UserRole role)
+        public void Register(string fullname, string username, string plaintextPassword, int roleId)
         {
             if (_userRepository.GetUserByUsername(username) != null)
                 throw new AppException("Username already exists.");
@@ -41,7 +41,7 @@ namespace NexusERP.Infrastructure.Services
                 FullName = fullname,
                 Username = username,
                 PasswordHash = hashedPassword,
-                Role = role
+                RoleId = roleId
             };
 
             _userRepository.CreateUser(newUser);
@@ -65,15 +65,25 @@ namespace NexusERP.Infrastructure.Services
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_jwtSecret);
 
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.GivenName, user.FullName),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role?.Name ?? "Unassigned")
+            };
+
+            if (user.Role != null && user.Role.Permissions.Any())
+            {
+                foreach (var permission in user.Role.Permissions)
+                {
+                    claims.Add(new Claim("Permission", permission));
+                }
+            }
+
             var tokenDescription = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.GivenName, user.FullName),
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Role, user.Role.ToString())
-                }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(10),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),

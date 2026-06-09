@@ -14,5 +14,10 @@ namespace NexusERP.Api.Extensions
         {
             return user.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
         }
+
+        public static bool HasPermission(this ClaimsPrincipal user, string permission)
+        {
+            return user.HasClaim(c => c.Type == "Permission" && c.Value == permission);
+        }
     }
 }

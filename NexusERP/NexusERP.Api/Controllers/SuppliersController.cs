@@ -10,7 +10,7 @@ namespace NexusERP.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Policy = "RequireManageSuppliers")]
     public class SuppliersController : Controller
     {
         private readonly ISupplierRepository _repository;
@@ -36,7 +36,6 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("upsert")]
-        [Authorize(Roles = "Admin,Manager")]
         public IActionResult SaveSuppliers([FromBody] SupplierUpsertDto dto)
         {
             var supplier = new Supplier
@@ -53,7 +52,6 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Manager")]
         public IActionResult DeleteSupplier(int id)
         {
             _repository.Delete(id, User.GetCurrentUserId());

@@ -11,6 +11,7 @@ namespace NexusERP.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
+    [Authorize(Policy = "RequireManageCategories")]
     public class CategoriesController : Controller
     {
         private readonly ICategoryRepository _repository;
@@ -34,7 +35,6 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("upsert")]
-        [Authorize(Roles = "Admin,Manager")]
         public IActionResult SaveCategory([FromBody] CategoryUpsertDto dto)
         {
             var category = new Category { CategoryId = dto.CategoryId, CategoryName = dto.CategoryName };
@@ -43,7 +43,6 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Manager")]
         public IActionResult DeleteCategory(int id)
         {
             _repository.Delete(id, User.GetCurrentUserId());

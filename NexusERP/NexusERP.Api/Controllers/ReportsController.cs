@@ -5,6 +5,7 @@ using NexusERP.Api.DTOs;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
+using NexusERP.Domain.Constants;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using System.Security.Claims;
@@ -39,7 +40,9 @@ namespace NexusERP.Api.Controllers
         {
             if (pageSize > 100) pageSize = 100;
 
-            var secureData = _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, User.GetCurrentUserId(), User.GetCurrentUserRole(), typeFilter);
+            bool canViewAll = User.HasPermission(Permissions.ViewAllTransactions);
+
+            var secureData = _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, User.GetCurrentUserId(), canViewAll, typeFilter);
             
             var responseItems = secureData.Items.Select( t => new TransactionResponseDto
             {
@@ -64,9 +67,10 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("export/excel")]
+        [Authorize(Policy = "RequireExportExcel")]
         public IActionResult ExportExcel([FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? keyword, [FromQuery] string typeFilter = "All")
         {
-            var data = _repository.GetPagedTransactions(pageNumber, pageSize, keyword, User.GetCurrentUserId(), User.GetCurrentUserRole(), typeFilter).Items;
+            var data = _repository.GetPagedTransactions(pageNumber, pageSize, keyword, User.GetCurrentUserId(), true, typeFilter).Items;
             
             byte[] fileContents = _excelService.ExcelTransactions(data, "Transactions");
             return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InventoryReport.xlsx");
@@ -76,34 +80,13 @@ namespace NexusERP.Api.Controllers
         public IActionResult ExportPdf(int transactionId)
         {
             var transaction = _repository.GetById(transactionId);
-
             if (transaction == null) return NotFound("Transaction not found.");
 
-            if (User.GetCurrentUserRole() == "Admin")
+            bool canViewAll = User.HasPermission(Permissions.ViewAllTransactions);
+
+            if (!canViewAll && transaction.UserId != User.GetCurrentUserId())
             {
-                
-            }
-            else if (User.GetCurrentUserRole() == "Manager")
-            {
-                 if (transaction.UserId != User.GetCurrentUserId())
-                {
-                    var targetUser = _userRepository.GetAllUsers().FirstOrDefault(u => u.UserId == transaction.UserId);
-                    if (targetUser == null || targetUser.Role != UserRole.Cashier)
-                    {
-                        return Forbid();
-                    }
-                }
-            }
-            else if (User.GetCurrentUserRole() == "Cashier")
-            {
-                if (transaction.UserId != User.GetCurrentUserId() || transaction.TransactionType != TransactionAction.Sale)
-                {
-                    return Forbid();
-                }
-            }
-            else
-            {
-                return Forbid();
+                return Forbid("You do not have Permission to view others' invoices.");
             }
 
             byte[] fileContents = _pdfService.GenerateInvoice(transaction);

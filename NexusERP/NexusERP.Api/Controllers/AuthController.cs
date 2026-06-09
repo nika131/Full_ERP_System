@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
+using NexusERP.Domain.Constants;
 using NexusERP.Domain.Enums;
 
 namespace NexusERP.Api.Controllers
@@ -28,15 +29,10 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("register")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "RequireManageUsers")]
         public IActionResult Register([FromBody] RegisterRequestDto request)
         {
-            if (!Enum.TryParse<UserRole>(request.Role, true, out var parseRole))
-            {
-                return BadRequest(new { message = "Invalid role specified." });
-            }
-
-            _authService.Register(request.FullName, request.Username, request.Password, parseRole);
+            _authService.Register(request.FullName, request.Username, request.Password, request.RoleId);
 
             return Ok(new { message = "User registered successfully." });
         }
