@@ -20,25 +20,25 @@ namespace NexusERP.Api.Controllers
             _ReportRepository = reportRepository;
         }
 
-        
+
         [HttpGet("statistics")]
-        public IActionResult GetDashboardStatistics()
+        public async Task<IActionResult> GetDashboardStatistics()
         {
-            var stats = _Productrepository.GetDashboardAggregates();
+            var stats = await _Productrepository.GetDashboardAggregates();
             return Ok(stats);
         }
 
         [HttpGet("revenueChart")]
-        public IActionResult GetChartData()
+        public async Task<IActionResult> GetChartData()
         {
-            var chartData = _ReportRepository.GetWeeklyRevenueChart();
+            var chartData = await _ReportRepository.GetWeeklyRevenueChart();
             return Ok(chartData);
         }
 
         [HttpGet("top-Products")]
-        public IActionResult GetTopProducts()
+        public async Task<IActionResult> GetTopProducts()
         {
-            var data = _ReportRepository.GetTopPerformingProducts();
+            var data = await _ReportRepository.GetTopPerformingProducts();
             return Ok(data);
         }
     }

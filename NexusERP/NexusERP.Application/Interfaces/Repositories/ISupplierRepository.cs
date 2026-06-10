@@ -11,10 +11,10 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface ISupplierRepository
     {
-        PagedResult<Supplier> GetPaged(int pageNumber, int pageSize, string? searchTerm);
-        IEnumerable<Supplier> GetAllActive();
-        void Upsert(Supplier supplier, int userId);
-        void Delete(int id, int userId);
+        Task<PagedResult<Supplier>> GetPaged(int pageNumber, int pageSize, string? searchTerm);
+        Task<IEnumerable<Supplier>> GetAllActive();
+        Task Upsert(Supplier supplier, int userId);
+        Task Delete(int id, int userId);
 
     }
 }

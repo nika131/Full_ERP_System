@@ -1,4 +1,5 @@
 ﻿using NexusERP.Domain.Entities;
+using NexusERP.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +10,9 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IUserRepository
     {
-        void CreateUser(User user);
-        User? GetUserByUsername(string username);
-        IEnumerable<User> GetAllUsers();
-        IEnumerable<User> SearchUsers(string keyword);
-        void DeleteUser(int id);
-        void UpdateUser(User user);
+        Task CreateUser(User user, int actorUserId);
+        Task<PagedResult<User>> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm, string roleFilter);
+        Task DeleteUser(int id, int actorUserId);
+        Task UpdateUser(User user, int actorUserId);
     }
 }

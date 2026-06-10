@@ -23,21 +23,18 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetEmployees([FromQuery] string? keyword, [FromQuery] string roleFilter = "All")
+        public async Task<IActionResult> GetEmployees(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] string roleFilter = "All"
+        )
         {
-            IEnumerable<User> users;
+            if (pageSize > 100) pageSize = 100;
 
-            if (string.IsNullOrWhiteSpace(keyword))
-                users = _repository.GetAllUsers();
-            else
-                users = _repository.SearchUsers(keyword);
+            var result = await _repository.GetPagedAsync(page, pageSize, searchTerm, roleFilter);
 
-            if (roleFilter != "All")
-            {
-                users = users.Where(u => u.Role != null && u.Role.Name.Equals(roleFilter, StringComparison.OrdinalIgnoreCase));
-            }
-
-            var responseData = users.Select(u => new EmployeeResponseDto
+            var responseData = result.Items.Select(u => new EmployeeResponseDto
             {
                 UserId = u.UserId,
                 FullName = u.FullName,
@@ -47,13 +44,24 @@ namespace NexusERP.Api.Controllers
                 CreatedAt = u.CreatedAt
             }).ToList();
 
-            return Ok(responseData);
+            return Ok(new
+            {
+                items = responseData,
+                totalCount = result.TotalCount,
+                pageNumber = result.PageNumber,
+                pageSize = result.PageSize
+            });
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateEmployee(int id, [FromBody] EmployeeResponseDto dto)
+        public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeResponseDto dto)
         {
-            if (id == User.GetCurrentUserId()) return BadRequest(new { message = "Security Lock: You cannot remove your own Admin priviladges." });
+            int currentUserId = User.GetCurrentUserId();
+
+            if (id == currentUserId)
+            {
+                return BadRequest(new { message = "Security Lock: You cannot remove your own Admin priviladges." });
+            }
 
             var userToUpdate = new User
             {
@@ -63,13 +71,13 @@ namespace NexusERP.Api.Controllers
                 RoleId = dto.RoleId,
             };
 
-            _repository.UpdateUser(userToUpdate);
+            await _repository.UpdateUser(userToUpdate, currentUserId);
 
             return Ok(new { message = "Employee updated successfully." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteEmployee(int id)
+        public async Task<IActionResult> DeleteEmployee(int id)
         {
             int currentUserId = User.GetCurrentUserId();
 
@@ -78,7 +86,7 @@ namespace NexusERP.Api.Controllers
                 return BadRequest(new { message = "Security Lock: You cannot delete your own active account." });
             }
 
-            _repository.DeleteUser(id);
+            await _repository.DeleteUser(id, currentUserId);
 
             return Ok(new { message = "Employee access revoked successfully." });
         }

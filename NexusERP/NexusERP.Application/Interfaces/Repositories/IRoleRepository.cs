@@ -10,9 +10,9 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IRoleRepository
     {
-        PagedResult<Role> GetPaged(int pageNumber, int pageSize, string? searchTerm);
-        IEnumerable<Role> GetAllActive();
-        void Upsert(Role role, int userId);
-        void Delete(int id, int userId);
+        Task<PagedResult<Role>> GetPaged(int pageNumber, int pageSize, string? searchTerm);
+        Task<IEnumerable<Role>> GetAllActive();
+        Task Upsert(Role role, int userId);
+        Task Delete(int id, int userId);
     }
 }

@@ -29,9 +29,10 @@ namespace NexusERP.Infrastructure.Services
             _jwtSecret = config["Jwt:Key"] ?? throw new AppException("JWT Secret missing!");
         }
 
-        public void Register(string fullname, string username, string plaintextPassword, int roleId)
+        public async Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId)
         {
-            if (_userRepository.GetUserByUsername(username) != null)
+            var existingUser = await _userRepository.GetUserByUsername(username);
+            if (existingUser != null)
                 throw new AppException("Username already exists.");
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(plaintextPassword);
@@ -44,20 +45,20 @@ namespace NexusERP.Infrastructure.Services
                 RoleId = roleId
             };
 
-            _userRepository.CreateUser(newUser);
+            await _userRepository.CreateUser(newUser, actorUserId);
         }
 
-        public string Login(string username, string plaintextpassword)
+        public async Task<string> Login(string username, string plaintextpassword)
         {
-            var user = _userRepository.GetUserByUsername(username);
-            if (user == null) 
+            var user = await _userRepository.GetUserByUsername(username);
+            if (user == null)
                 throw new AppException("Invalid username or Password");
 
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(plaintextpassword, user.PasswordHash);
             if (!isPasswordValid)
-                throw new AppException("Inavlid username or password");
+                throw new AppException("Invalid username or password");
 
-            return GenerateJwtToken(user); 
+            return GenerateJwtToken(user);
         }
 
         public string GenerateJwtToken(User user)

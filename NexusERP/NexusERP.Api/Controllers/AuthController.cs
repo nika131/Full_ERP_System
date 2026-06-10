@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
+using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Constants;
@@ -20,19 +21,20 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequestDto request)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
-            var token = _authService.Login(request.Username, request.Password);
+            var token = await _authService.Login(request.Username, request.Password);
 
             return Ok(new { token = token });
-          
         }
 
         [HttpPost("register")]
         [Authorize(Policy = "RequireManageUsers")]
-        public IActionResult Register([FromBody] RegisterRequestDto request)
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
-            _authService.Register(request.FullName, request.Username, request.Password, request.RoleId);
+            int currentUserId = User.GetCurrentUserId();
+
+            await _authService.Register(request.FullName, request.Username, request.Password, request.RoleId, currentUserId);
 
             return Ok(new { message = "User registered successfully." });
         }

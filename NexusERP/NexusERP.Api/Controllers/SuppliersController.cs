@@ -21,22 +21,23 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetPagedSuppliers([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
+        public async Task<IActionResult> GetPagedSuppliers([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
         {
             if (pageSize > 100) pageSize = 100;
-            var suppliers = _repository.GetPaged(page, pageSize, search);
+
+            var suppliers = await _repository.GetPaged(page, pageSize, search);
             return Ok(suppliers);
         }
 
         [HttpGet("lookup")]
-        public IActionResult GetLookupList()
+        public async Task<IActionResult> GetLookupList()
         {
-            var suppliers = _repository.GetAllActive();
+            var suppliers = await _repository.GetAllActive();
             return Ok(suppliers);
         }
 
         [HttpPost("upsert")]
-        public IActionResult SaveSuppliers([FromBody] SupplierUpsertDto dto)
+        public async Task<IActionResult> SaveSuppliers([FromBody] SupplierUpsertDto dto)
         {
             var supplier = new Supplier
             {
@@ -47,14 +48,13 @@ namespace NexusERP.Api.Controllers
                 Email = dto.Email
             };
 
-            _repository.Upsert(supplier, User.GetCurrentUserId());
+            await _repository.Upsert(supplier, User.GetCurrentUserId());
             return Ok(new { message = "Supplier saved successfully." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteSupplier(int id)
-        {
-            _repository.Delete(id, User.GetCurrentUserId());
+        public async Task<IActionResult> DeleteSupplier(int id) { 
+            await _repository.Delete(id, User.GetCurrentUserId());
             return Ok(new { message = "Supplier deleted successfully." });
         }
     }

@@ -11,10 +11,10 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IProductRepository
     {
-        PagedResult<Product> GetPaged(int pageNumber, int pageSize, string? searchTerm);
-        void Upsert(Product product, int userId);
-        void LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType);
-        void Delete(int id, int userId);
-        DashboardResponse GetDashboardAggregates();
+        Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm);
+        Task Upsert(Product product, int userId);
+        Task LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType);
+        Task Delete(int id, int userId);
+        Task<DashboardResponse> GetDashboardAggregates();
     }
 }

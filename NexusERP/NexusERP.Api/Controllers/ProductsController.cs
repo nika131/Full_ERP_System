@@ -24,15 +24,15 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetProducts(
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? searchTerm = null)
+        public async Task<IActionResult> GetProducts(
+                    [FromQuery] int page = 1,
+                    [FromQuery] int pageSize = 10,
+                    [FromQuery] string? searchTerm = null)
         {
             if (pageSize > 100) pageSize = 100;
 
-            var result = _repository.GetPaged(page, pageSize, searchTerm);
-            
+            var result = await _repository.GetPaged(page, pageSize, searchTerm);
+
             var responseItems = result.Items.Select(p => new ProductResponseDto
             {
                 ProductId = p.ProductId,
@@ -57,7 +57,7 @@ namespace NexusERP.Api.Controllers
 
         [HttpPost("upsert")]
         [Authorize(Policy = "RequireProductUpsert")]
-        public IActionResult SaveProduct([FromBody] ProductUpsertDto dto)
+        public async Task<IActionResult> SaveProduct([FromBody] ProductUpsertDto dto)
         {
             var product = new Product
             {
@@ -69,14 +69,14 @@ namespace NexusERP.Api.Controllers
                 SupplierId = dto.SupplierId
             };
 
-            _repository.Upsert(product, User.GetCurrentUserId());
+            await _repository.Upsert(product, User.GetCurrentUserId());
 
             return Ok(new { message = "Product saved successfully." });
         }
 
         [HttpPost("transaction")]
         [Authorize]
-        public IActionResult MakeTransaction([FromBody] TransactionRequestDto dto)
+        public async Task<IActionResult> MakeTransaction([FromBody] TransactionRequestDto dto)
         {
             if (dto.TransactionType != "Sale" && !User.HasPermission(Permissions.PerformSales))
             {
@@ -103,16 +103,16 @@ namespace NexusERP.Api.Controllers
                 Profit = profit
             };
 
-            _repository.LogInventoryTransaction(transactionEntity, User.GetCurrentUserId(), dto.TransactionType);
+            await _repository.LogInventoryTransaction(transactionEntity, User.GetCurrentUserId(), dto.TransactionType);
 
             return Ok(new { message = $"Transaction ({dto.TransactionType}) logged successfully." });
         }
 
         [HttpDelete("{id}")]
         [Authorize(Policy = "RequireProductDelete")]
-        public IActionResult DeleteProduct(int id)
+        public async Task<IActionResult> DeleteProduct(int id)
         {
-            _repository.Delete(id, User.GetCurrentUserId());
+            await _repository.Delete(id, User.GetCurrentUserId());
             return Ok(new { message = "Product deleted successfully." });
         }
     }

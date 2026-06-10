@@ -30,21 +30,20 @@ namespace NexusERP.Api.Controllers
             _pdfService = pdfService;
         }
 
-
         [HttpGet]
-        public IActionResult GetTransactions(
-            [FromQuery] string? searchTerm = null, 
-            [FromQuery] int pageNumber = 1, 
-            [FromQuery] int pageSize = 10, 
-            [FromQuery] string typeFilter = "All")
+        public async Task<IActionResult> GetTransactions(
+                    [FromQuery] string? searchTerm = null,
+                    [FromQuery] int pageNumber = 1,
+                    [FromQuery] int pageSize = 10,
+                    [FromQuery] string typeFilter = "All")
         {
             if (pageSize > 100) pageSize = 100;
 
             bool canViewAll = User.HasPermission(Permissions.ViewAllTransactions);
 
-            var secureData = _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, User.GetCurrentUserId(), canViewAll, typeFilter);
-            
-            var responseItems = secureData.Items.Select( t => new TransactionResponseDto
+            var secureData = await _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, User.GetCurrentUserId(), canViewAll, typeFilter);
+
+            var responseItems = secureData.Items.Select(t => new TransactionResponseDto
             {
                 TransactionId = t.TransactionId,
                 ProductId = t.ProductId,
@@ -56,7 +55,7 @@ namespace NexusERP.Api.Controllers
                 Profit = t.Profit,
                 CreatedAt = t.CreatedAt,
             }).ToList();
-            
+
             return Ok(new
             {
                 items = responseItems,
@@ -68,18 +67,19 @@ namespace NexusERP.Api.Controllers
 
         [HttpGet("export/excel")]
         [Authorize(Policy = "RequireExportExcel")]
-        public IActionResult ExportExcel([FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? keyword, [FromQuery] string typeFilter = "All")
+        public async Task<IActionResult> ExportExcel([FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? keyword, [FromQuery] string typeFilter = "All")
         {
-            var data = _repository.GetPagedTransactions(pageNumber, pageSize, keyword, User.GetCurrentUserId(), true, typeFilter).Items;
-            
+            var pagedResult = await _repository.GetPagedTransactions(pageNumber, pageSize, keyword, User.GetCurrentUserId(), true, typeFilter);
+            var data = pagedResult.Items;
+
             byte[] fileContents = _excelService.ExcelTransactions(data, "Transactions");
             return File(fileContents, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "InventoryReport.xlsx");
         }
 
         [HttpGet("export/pdf/{transactionId}")]
-        public IActionResult ExportPdf(int transactionId)
+        public async Task<IActionResult> ExportPdf(int transactionId)
         {
-            var transaction = _repository.GetById(transactionId);
+            var transaction = await _repository.GetById(transactionId);
             if (transaction == null) return NotFound("Transaction not found.");
 
             bool canViewAll = User.HasPermission(Permissions.ViewAllTransactions);

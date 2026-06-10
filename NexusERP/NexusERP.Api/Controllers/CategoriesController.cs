@@ -22,31 +22,36 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetPaged([FromQuery] int Page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
+        public async Task<IActionResult> GetPaged([FromQuery] int Page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
         {
             if (pageSize > 100) pageSize = 100;
-            return Ok(_repository.GetPagedCategories(Page, pageSize, search));
+
+            var result = await _repository.GetPagedCategories(Page, pageSize, search);
+            return Ok(result);
         }
 
         [HttpGet("lookup")]
-        public IActionResult GetLookupList()
+        public async Task<IActionResult> GetLookupList()
         {
-            return Ok(_repository.GetAllActive());
+            var categories = await _repository.GetAllActive();
+            return Ok(categories);
         }
 
         [HttpPost("upsert")]
-        public IActionResult SaveCategory([FromBody] CategoryUpsertDto dto)
+        public async Task<IActionResult> SaveCategory([FromBody] CategoryUpsertDto dto)
         {
             var category = new Category { CategoryId = dto.CategoryId, CategoryName = dto.CategoryName };
-            _repository.Upsert(category, User.GetCurrentUserId());
+
+            await _repository.Upsert(category, User.GetCurrentUserId());
             return Ok(new { message = "Category saved." });
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteCategory(int id)
+        public async Task<IActionResult> DeleteCategory(int id)
         {
-            _repository.Delete(id, User.GetCurrentUserId());
+            await _repository.Delete(id, User.GetCurrentUserId());
             return Ok(new { message = "Category deleted successfully." });
         }
     }
+}
 }

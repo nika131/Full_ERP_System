@@ -76,15 +76,23 @@ namespace NexusERP.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<PagedResult<User>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
+        public async Task<PagedResult<User>> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm, string roleFilter)
         {
-            var baseQuery = _context.Users.AsNoTracking().Include(u => u.Role).AsQueryable();
+            var baseQuery = _context.Users
+                .Include(u => u.Role)
+                .AsNoTracking()
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 baseQuery = baseQuery.Where(u => u.Username.Contains(searchTerm) ||
                                                 u.FullName.Contains(searchTerm) ||
                                                 u.UserId.ToString().Contains(searchTerm));
+            }
+
+            if (!string.IsNullOrWhiteSpace(roleFilter) && !roleFilter.Equals("All", StringComparison.OrdinalIgnoreCase))
+            {
+                baseQuery = baseQuery.Where(u => u.Role != null && u.Role.Name == roleFilter);
             }
 
             var totalCount = await baseQuery.CountAsync();
@@ -124,6 +132,14 @@ namespace NexusERP.Infrastructure.Repositories
 
             _context.SystemAuditLogs.Add(audit);
             await _context.SaveChangesAsync();  
+        }
+
+        public async Task<User?> GetUserByUsername(string username)
+        {
+            return await _context.Users
+                .Include(u => u.Role) 
+                .AsNoTracking()    
+                .FirstOrDefaultAsync(u => u.Username == username);
         }
     }
 }

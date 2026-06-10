@@ -10,9 +10,9 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface ICategoryRepository
     {
-        PagedResult<Category> GetPagedCategories(int pageNumber, int pageSize, string? searchTerm);
-        IEnumerable<Category> GetAllActive();
-        void Upsert(Category category, int userId);
-        public void Delete(int id, int userId);
+        Task<PagedResult<Category>> GetPagedCategories(int pageNumber, int pageSize, string? searchTerm);
+        Task<IEnumerable<Category>> GetAllActive();
+        Task Upsert(Category category, int userId);
+        Task Delete(int id, int userId);
     }
 }
