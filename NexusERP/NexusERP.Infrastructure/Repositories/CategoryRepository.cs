@@ -20,7 +20,7 @@ namespace NexusERP.Infrastructure.Repositories
         {
             _context = context;
         }
-        public PagedResult<Category> GetPagedCategories(int pageNumber, int pageSize, string? searchTerm)
+        public async Task<PagedResult<Category>> GetPagedCategories(int pageNumber, int pageSize, string? searchTerm)
         {
             var query = _context.Categories.AsNoTracking().AsQueryable();
 
@@ -29,11 +29,11 @@ namespace NexusERP.Infrastructure.Repositories
                 query = query.Where(c => c.CategoryName.Contains(searchTerm));
             }
 
-            var totalCount = query.Count();
-            var items = query.OrderBy(c => c.CategoryName)
+            var totalCount = await query.CountAsync();
+            var items = await query.OrderBy(c => c.CategoryName)
                             .Skip((pageNumber - 1) * pageSize)
                             .Take(pageSize)
-                            .ToList();
+                            .ToListAsync();
 
             return new PagedResult<Category>
             {
@@ -44,67 +44,77 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public IEnumerable<Category> GetAllActive()
+        public async Task<IEnumerable<Category>> GetAllActive()
         {
-            return _context.Categories.AsNoTracking()
+            return await _context.Categories.AsNoTracking()
                 .Select(c => new Category {  CategoryId = c.CategoryId, CategoryName = c.CategoryName })
-                .OrderBy(c => c.CategoryName).ToList();
+                .OrderBy(c => c.CategoryName).ToListAsync();
         }
 
-        public void Upsert(Category category, int UserId)
+        public async Task Upsert(Category category, int UserId)
         {
-            if (category.CategoryId == 0)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                _context.Categories.Add(category);
-
-                var audit = new SystemAuditLog
+                if (category.CategoryId == 0)
                 {
-                    UserId = UserId,
-                    EntityType = "Category",
-                    EntityId = category.CategoryId,
-                    Action = "Create",
-                    ChangesMade = $"Created Category '{category.CategoryName}'"
-                };
+                    await _context.Categories.AddAsync(category);
+                    await _context.SaveChangesAsync();
 
-                _context.SystemAuditLogs.Add(audit);
+                    var audit = new SystemAuditLog
+                    {
+                        UserId = UserId,
+                        EntityType = "Category",
+                        EntityId = category.CategoryId,
+                        Action = "Create",
+                        ChangesMade = $"Created Category '{category.CategoryName}'"
+                    };
+
+                    await _context.SystemAuditLogs.AddAsync(audit);
+                }
+                else
+                {
+                    _context.Categories.Update(category);
+
+                    var audit = new SystemAuditLog
+                    {
+                        UserId = UserId,
+                        EntityType = "Category",
+                        EntityId = category.CategoryId,
+                        Action = "Update",
+                        ChangesMade = $"Updated Category '{category.CategoryName}'"
+                    };
+
+                    await _context.SystemAuditLogs.AddAsync(audit);
+                }
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
-            else
+            catch
             {
-                _context.Categories.Update(category);
-
-                var audit = new SystemAuditLog
-                {
-                    UserId = UserId,
-                    EntityType = "Category",
-                    EntityId = category.CategoryId,
-                    Action = "Update",
-                    ChangesMade = $"Updated Category '{category.CategoryName}'"
-                };
-
-                _context.SystemAuditLogs.Add(audit);
+                await transaction.RollbackAsync();
+                throw;
             }
-            _context.SaveChanges();
         }
 
-        public void Delete(int id, int UserId)
+        public async Task Delete(int id, int UserId)
         {
-            var category = _context.Categories.Find(id);
-            if (category != null)
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null) return;
+
+            category.IsActive = false;
+
+            var audit = new SystemAuditLog
             {
-                category.IsActive = false;
+                UserId = UserId,
+                EntityType = "Category",
+                EntityId = category.CategoryId,
+                Action = "Delete",
+                ChangesMade = $"Delete Category '{category.CategoryName}'"
+            };
 
-                var audit = new SystemAuditLog
-                {
-                    UserId = UserId,
-                    EntityType = "Category",
-                    EntityId = category.CategoryId,
-                    Action = "Delete",
-                    ChangesMade = $"Delete Category '{category.CategoryName}'"
-                };
-
-                _context.SystemAuditLogs.Add(audit);
-                _context.SaveChanges();
-            }
+            await _context.SystemAuditLogs.AddAsync(audit);
+            await _context.SaveChangesAsync();
         }
     }
 }

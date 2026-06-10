@@ -21,7 +21,7 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public PagedResult<SystemAuditLog> GetPagedLogs(int pageNumber, int pageSize, string? searchTerm)
+        public async Task<PagedResult<SystemAuditLog>> GetPagedLogs(int pageNumber, int pageSize, string? searchTerm)
         {
             var baseQuery = _context.SystemAuditLogs
                 .Include(log => log.User)
@@ -36,13 +36,13 @@ namespace NexusERP.Infrastructure.Repositories
                     (log.User != null && log.User.FullName.Contains(searchTerm)));
             }
 
-            var totalCount = baseQuery.Count();
+            var totalCount = await baseQuery.CountAsync();
 
-            var items = baseQuery
+            var items = await baseQuery
                 .OrderByDescending(log => log.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             return new PagedResult<SystemAuditLog>
             {

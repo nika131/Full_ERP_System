@@ -23,7 +23,7 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public PagedResult<Product> GetPaged(int pageNumber, int pageSize, string? searchTerm)
+        public async Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
             var baseQuery = _context.Products
                 .Include(p => p.Category)
@@ -35,13 +35,13 @@ namespace NexusERP.Infrastructure.Repositories
                 baseQuery = baseQuery.Where(p => p.Name.Contains(searchTerm) || p.ProductId.ToString() == searchTerm);
             }
 
-            var totalCount = baseQuery.Count();
+            var totalCount = await baseQuery.CountAsync();
 
-            var items = baseQuery
+            var items = await baseQuery
                 .OrderByDescending(p => p.ProductId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             return new PagedResult<Product>
             {
@@ -52,7 +52,7 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public void Upsert(Product product, int userId)
+        public async Task Upsert(Product product, int userId)
         {
             bool isNew = product.ProductId == 0;
             string action = isNew ? "Create" : "Edit";
@@ -64,7 +64,7 @@ namespace NexusERP.Infrastructure.Repositories
             } 
             else
             {
-                var existing = _context.Products.Find(product.ProductId);
+                var existing = await _context.Products.FindAsync(product.ProductId);
                 if (existing == null) throw new AppException("Product not Found");
 
                 existing.Name = product.Name;
@@ -84,46 +84,54 @@ namespace NexusERP.Infrastructure.Repositories
             };
 
             _context.SystemAuditLogs.Add(audit);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public void LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType)
+        public async Task LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType)
         {
-            transaction.Quantity = Math.Abs(transaction.Quantity);
-            transaction.UserId = userId;
-
-            var product = _context.Products.Find(transaction.ProductId);
-            if (product == null) throw new AppException("Product not found.");
-   
-            if(transactionType == "Sale")
-            {
-                if (product.Quantity < transaction.Quantity)
-                {
-                    throw new AppException($"Insufficient stock. Only {product.Quantity} unitts available.");
-                }
-
-                product.Quantity -= transaction.Quantity;
-            }
-            else if (transactionType == "Restock" || transactionType == "Adjust")
-            {
-                product.Quantity += transaction.Quantity;
-            }
-
-            _context.InventoryTransactions.Add(transaction);
-
+            using var tran = await _context.Database.BeginTransactionAsync();
             try
             {
-                _context.SaveChanges();
+                transaction.Quantity = Math.Abs(transaction.Quantity);
+                transaction.UserId = userId;
+
+                var product = await _context.Products.FindAsync(transaction.ProductId);
+                if (product == null) throw new AppException("Product not found.");
+
+                if (transactionType == "Sale")
+                {
+                    if (product.Quantity < transaction.Quantity)
+                    {
+                        throw new AppException($"Insufficient stock. Only {product.Quantity} unitts available.");
+                    }
+
+                    product.Quantity -= transaction.Quantity;
+                }
+                else if (transactionType == "Restock" || transactionType == "Adjust")
+                {
+                    product.Quantity += transaction.Quantity;
+                }
+
+                await _context.InventoryTransactions.AddAsync(transaction);
+                await _context.SaveChangesAsync();
+                await tran.CommitAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
+                await tran.RollbackAsync();
                 throw new AppException("Inventory was modified by another user. Please refresh and try again.");
             }
+            catch
+            {
+                await tran.RollbackAsync();
+                throw; 
+            }
+
         }
 
-        public void Delete(int productId, int userId)
+        public async Task Delete(int productId, int userId)
         {
-            var product = _context.Products.Find(productId);
+            var product = await _context.Products.FindAsync(productId);
 
             if(product != null)
             {
@@ -138,22 +146,22 @@ namespace NexusERP.Infrastructure.Repositories
                     ChangesMade = $"Deleted product '{product.Name}'"
                 };
 
-                _context.SystemAuditLogs.Add(audit);
-                _context.SaveChanges();
+                await _context.SystemAuditLogs.AddAsync(audit);
+                await _context.SaveChangesAsync();
             }
         }
 
-        public DashboardResponse GetDashboardAggregates()
+        public async Task<DashboardResponse> GetDashboardAggregates()
         {
-            var stats = _context.Products
+            var stats = await _context.Products
                 .GroupBy(p => 1)
                 .Select(g => new DashboardResponse
                 {
                     TotalValue = g.Sum(p => p.Price * p.Quantity),
                     TotalCost = g.Sum(p => p.CostPrice * p.Quantity),
-                }).FirstOrDefault() ?? new DashboardResponse();
+                }).FirstOrDefaultAsync() ?? new DashboardResponse();
 
-            stats.LowStockCount = _context.Products.Count(p => p.Quantity < 5);
+            stats.LowStockCount = await _context.Products.CountAsync(p => p.Quantity < 5);
 
             stats.TotalProfit = stats.TotalValue - stats.TotalCost;
             stats.MarginPrecentage = stats.TotalValue > 0 ? (stats.TotalProfit / stats.TotalValue) * 100 : 0;

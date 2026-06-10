@@ -25,7 +25,7 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public PagedResult<InventoryTransaction> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, bool canViewAll, string typeFilter)
+        public async Task<PagedResult<InventoryTransaction>> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, bool canViewAll, string typeFilter)
         {
             var baseQuery = _context.InventoryTransactions
                             .Include(t => t.Product)
@@ -53,13 +53,13 @@ namespace NexusERP.Infrastructure.Repositories
                 );
             }
 
-            var totalCount = baseQuery.Count();
+            var totalCount = await baseQuery.CountAsync();
 
-            var items = baseQuery
+            var items = await baseQuery
                     .OrderByDescending(t => t.CreatedAt)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
-                    .ToList();
+                    .ToListAsync();
 
             return new PagedResult<InventoryTransaction>
             {
@@ -70,17 +70,17 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public InventoryTransaction? GetById(int transactionId)
+        public async Task<InventoryTransaction?> GetById(int transactionId)
         {
-            return _context.InventoryTransactions.AsNoTracking()
-                .FirstOrDefault(t => t.TransactionId == transactionId);
+            return await _context.InventoryTransactions.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
         }
 
-        public List<RevenueChartData> GetWeeklyRevenueChart()
+        public async Task<List<RevenueChartData>> GetWeeklyRevenueChart()
         {
             var startDate = DateTime.Now.Date.AddDays(-6);
 
-            var rawData = _context.InventoryTransactions
+            var rawData = await _context.InventoryTransactions
                 .Where(t => t.TransactionType == TransactionAction.Sale && t.CreatedAt >= startDate)
                 .GroupBy(t => t.CreatedAt.Date)
                 .Select(g => new
@@ -88,7 +88,7 @@ namespace NexusERP.Infrastructure.Repositories
                     Date = g.Key,
                     Revenue = g.Sum(t => t.TotalAmount),
                     Profit = g.Sum(t => t.Profit)
-                }).ToList();
+                }).ToListAsync();
 
             var chartData = new List<RevenueChartData>();
             for(int i = 0; i <= 6; i++)
@@ -107,9 +107,9 @@ namespace NexusERP.Infrastructure.Repositories
             return chartData;
         }
 
-        public List<TopProductChartData> GetTopPerformingProducts()
+        public async Task<List<TopProductChartData>> GetTopPerformingProducts()
         {
-            return _context.InventoryTransactions
+            return await _context.InventoryTransactions
                 .Include(t => t.Product)
                 .Where(t => t.TransactionType == TransactionAction.Sale)
                 .GroupBy(t => t.Product.Name)
@@ -120,7 +120,7 @@ namespace NexusERP.Infrastructure.Repositories
                 })
                 .OrderByDescending(x => x.Revenue)
                 .Take(5)
-                .ToList();
+                .ToListAsync();
         }
     }
 }

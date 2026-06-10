@@ -24,7 +24,7 @@ namespace NexusERP.Infrastructure.Repositories
         {
             _context = context;
         }
-        public PagedResult<Supplier> GetPaged(int pageNumber, int pageSize, string? searchTerm)
+        public async Task<PagedResult<Supplier>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
             var baseQuery = _context.Suppliers.AsNoTracking().AsQueryable();
 
@@ -36,13 +36,13 @@ namespace NexusERP.Infrastructure.Repositories
                     (s.Email != null && s.Email.Contains(searchTerm)));
             }
 
-            var totalCount = baseQuery.Count();
+            var totalCount = await baseQuery.CountAsync();
 
-            var items = baseQuery
+            var items = await baseQuery
                 .OrderBy(s => s.CompanyName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             return new PagedResult<Supplier>
             {
@@ -53,9 +53,9 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public IEnumerable<Supplier> GetAllActive()
+        public async Task<IEnumerable<Supplier>> GetAllActive()
         {
-            return _context.Suppliers
+            return await _context.Suppliers
                 .AsNoTracking()
                 .Select(s => new Supplier
                 {
@@ -63,53 +63,60 @@ namespace NexusERP.Infrastructure.Repositories
                     CompanyName = s.CompanyName
                 })
                 .OrderBy(s => s.CompanyName)
-                .ToList();
+                .ToListAsync();
         }
 
-        public void Upsert(Supplier supplier, int userId)
+        public async Task Upsert(Supplier supplier, int userId)
         {
-            if (supplier.SupplierId == 0)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                _context.Suppliers.Add(supplier);
-
-                var audit = new SystemAuditLog
+                if (supplier.SupplierId == 0)
                 {
-                    UserId = userId,
-                    EntityType = "Supplier",
-                    EntityId = supplier.SupplierId,
-                    Action = "Create",
-                    ChangesMade = $"Created product '{supplier.CompanyName}'"
-                };
+                    _context.Suppliers.Add(supplier);
+                    await _context.SaveChangesAsync(); 
 
-                _context.SystemAuditLogs.Add(audit);
+                    var audit = new SystemAuditLog
+                    {
+                        UserId = userId,
+                        EntityType = "Supplier",
+                        EntityId = supplier.SupplierId,
+                        Action = "Create",
+                        ChangesMade = $"Created Supplier '{supplier.CompanyName}'"
+                    };
+                    _context.SystemAuditLogs.Add(audit);
+                }
+                else
+                {
+                    var existing = await _context.Suppliers.FindAsync(supplier.SupplierId);
+                    if (existing == null) throw new AppException("Supplier not found");
+
+                    _context.Entry(existing).CurrentValues.SetValues(supplier);
+
+                    var audit = new SystemAuditLog
+                    {
+                        UserId = userId,
+                        EntityType = "Supplier",
+                        EntityId = supplier.SupplierId,
+                        Action = "Update",
+                        ChangesMade = $"Updated Supplier '{supplier.CompanyName}'"
+                    };
+                    _context.SystemAuditLogs.Add(audit);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
-            else
+            catch
             {
-                var existing = _context.Suppliers.AsNoTracking()
-                               .FirstOrDefault(s => s.SupplierId == supplier.SupplierId);
-
-                if (existing == null) throw new AppException("Supplier not Found");
-
-                _context.Suppliers.Update(supplier);
-
-                var audit = new SystemAuditLog
-                {
-                    UserId = userId,
-                    EntityType = "Supplier",
-                    EntityId = supplier.SupplierId,
-                    Action = "Update",
-                    ChangesMade = $"Updated product '{supplier.CompanyName}'"
-                };
-
-                _context.SystemAuditLogs.Add(audit);
+                await transaction.RollbackAsync();
+                throw;
             }
-
-            _context.SaveChanges();
         }
 
-        public void Delete(int id, int UserId)
+        public async Task Delete(int id, int UserId)
         {
-            var supplier = _context.Suppliers.Find(id);
+            var supplier = await _context.Suppliers.FindAsync(id);
 
             if (supplier != null)
             {
@@ -125,7 +132,7 @@ namespace NexusERP.Infrastructure.Repositories
                 };
 
                 _context.SystemAuditLogs.Add(audit);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
         }
     }

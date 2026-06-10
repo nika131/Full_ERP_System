@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
+using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.Data.SqlClient.Internal.SqlClientEventSource;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -22,91 +24,106 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public void CreateUser(User user)
+        public async Task CreateUser(User user, int actorUserId)
         {
-            user.IsActive = true;
-            _context.Users.Add(user);
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                user.IsActive = true;
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = actorUserId,
+                    EntityType = "User",
+                    EntityId = user.UserId,
+                    Action = "Create",
+                    ChangesMade = $"Created User '{user.Username}'"
+                };
+
+                _context.SystemAuditLogs.Add(audit);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task UpdateUser(User user, int actorUserId)
+        {
+            var existingUser = await _context.Users.FindAsync(user.UserId);
+            if (existingUser == null) return;
+
+            existingUser.FullName = user.FullName;
+            existingUser.Username = user.Username;
+            existingUser.RoleId = user.RoleId;
 
             var audit = new SystemAuditLog
             {
-                UserId = user.UserId,
+                UserId = actorUserId,
                 EntityType = "User",
                 EntityId = user.UserId,
-                Action = "Create",
-                ChangesMade = $"Created User '{user.Username}'"
+                Action = "Update",
+                ChangesMade = $"Updated User '{user.Username}'"
             };
 
             _context.SystemAuditLogs.Add(audit);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public void UpdateUser(User user)
+        public async Task<PagedResult<User>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
-            var existingUser = _context.Users.Find(user.UserId);
-            if (existingUser != null)
+            var baseQuery = _context.Users.AsNoTracking().Include(u => u.Role).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                existingUser.FullName = user.FullName;
-                existingUser.Username = user.Username;
-                existingUser.RoleId = user.RoleId;
-
-                var audit = new SystemAuditLog
-                {
-                    UserId = user.UserId,
-                    EntityType = "User",
-                    EntityId = user.UserId,
-                    Action = "Update",
-                    ChangesMade = $"Updated User '{user.Username}'"
-                };
-
-                _context.SystemAuditLogs.Add(audit);
-                _context.SaveChanges();
+                baseQuery = baseQuery.Where(u => u.Username.Contains(searchTerm) ||
+                                                u.FullName.Contains(searchTerm) ||
+                                                u.UserId.ToString().Contains(searchTerm));
             }
-        }
-        public IEnumerable<User> SearchUsers(string keyword)
-        {
-            return _context.Users.AsNoTracking()
-                                .Include(u => u.Role)
-                                .Where(u =>
-                                    (u.Username.Contains(keyword) ||
-                                    u.FullName.Contains(keyword) ||
-                                    u.UserId.ToString().Contains(keyword)))
-                                .ToList();
-        }
 
-        public User? GetUserByUsername(string username)
-        {
-            return _context.Users.AsNoTracking()
-                                .Include(u => u.Role)
-                                .FirstOrDefault(u => u.Username == username);
-        }
+            var totalCount = await baseQuery.CountAsync();
 
-        public IEnumerable<User> GetAllUsers()
-        {
-            return _context.Users.AsNoTracking()
-                                .Include(u => u.Role)
-                                .ToList();
-        }
+            var items = await baseQuery
+                .OrderBy(s => s.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
-        public void DeleteUser(int id)
-        {
-            var user = _context.Users.Find(id);
-            if (user != null)
+            return new PagedResult<User>
             {
-                user.IsActive = false;
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+        }
 
-                _context.Users.Add(user);
+        public async Task DeleteUser(int targetUserId, int actorUserId)
+        {
+            var user = await _context.Users.FindAsync(targetUserId);
 
-                var audit = new SystemAuditLog
-                {
-                    UserId = user.UserId,
-                    EntityType = "User",
-                    EntityId = user.UserId,
-                    Action = "Delete",
-                    ChangesMade = $"Deleted User '{user.Username}'"
-                };
-                _context.SystemAuditLogs.Add(audit);
-                _context.SaveChanges();
-            }
+            if (user == null) return;
+
+            user.IsActive = false;
+
+
+            var audit = new SystemAuditLog
+            {
+                UserId = actorUserId,
+                EntityType = "User",
+                EntityId = user.UserId,
+                Action = "Delete",
+                ChangesMade = $"Deleted User '{user.Username}'"
+            };
+
+            _context.SystemAuditLogs.Add(audit);
+            await _context.SaveChangesAsync();  
         }
     }
 }

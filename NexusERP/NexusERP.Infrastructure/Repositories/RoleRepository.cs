@@ -20,7 +20,7 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public PagedResult<Role> GetPaged(int pageNumber, int pageSize, string? searchTerm)
+        public async Task<PagedResult<Role>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
             var baseQuery = _context.Roles.AsNoTracking();
 
@@ -29,13 +29,13 @@ namespace NexusERP.Infrastructure.Repositories
                 baseQuery = baseQuery.Where(r => r.Name.Contains(searchTerm));
             }
 
-            var totalCount = baseQuery.Count();
+            var totalCount = await baseQuery.CountAsync();
 
-            var items = baseQuery
+            var items = await baseQuery
                 .OrderBy(r => r.Name)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             return new PagedResult<Role>
             {
@@ -46,49 +46,64 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public IEnumerable<Role> GetAllActive()
+        public async Task<IEnumerable<Role>> GetAllActive()
         {
-            return _context.Roles
+            return await _context.Roles
                 .AsNoTracking()
                 .OrderBy(r => r.Name)
-                .ToList();
+                .ToListAsync();
         }
 
-        public void Upsert(Role role, int userId)
+        public async Task Upsert(Role role, int userId)
         {
-            bool isNew = role.RoleId == 0;
-            string action = isNew ? "Create" : "Edit";
-            string changes = isNew ? $"Created role '{role.Name}'" : $"Updated role '{role.Name}' with {role.Permissions.Count} permissions";
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-            if (isNew)
+            try
             {
-                _context.Roles.Add(role);
+                bool isNew = role.RoleId == 0;
+                string action = isNew ? "Create" : "Edit";
+                string changes = isNew ? $"Created role '{role.Name}'" : $"Updated role '{role.Name}' with {role.Permissions.Count} permissions";
+
+                if (isNew)
+                {
+                    _context.Roles.Add(role);
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    var existing = await _context.Roles.FindAsync(role.RoleId);
+                    if (existing == null) throw new Exception("Role not found");
+
+                    existing.Name = role.Name;
+                    existing.Permissions = role.Permissions;
+                    await _context.SaveChangesAsync();
+                }
+
+                var audit = new SystemAuditLog
+                {
+                    UserId = userId,
+                    EntityType = "Role",
+                    EntityId = role.RoleId,
+                    Action = action,
+                    ChangesMade = changes
+                };
+
+
+
+                _context.SystemAuditLogs.Add(audit);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
-            else
+            catch
             {
-                var existing = _context.Roles.Find(role.RoleId);
-                if (existing == null) throw new Exception("Role not found");
-
-                existing.Name = role.Name;
-                existing.Permissions = role.Permissions;
+                await transaction.RollbackAsync();
+                throw;
             }
-
-            var audit = new SystemAuditLog
-            {
-                UserId = userId,
-                EntityType = "Role",
-                EntityId = role.RoleId,
-                Action = action,
-                ChangesMade = changes
-            };
-
-            _context.SystemAuditLogs.Add(audit);
-            _context.SaveChanges();
         }
 
-        public void Delete(int id, int userId)
+        public async Task Delete(int id, int userId)
         {
-            var role = _context.Roles.Find(id);
+            var role = await _context.Roles.FindAsync(id);
             if (role != null)
             {
                 role.IsActive = false;
@@ -103,7 +118,7 @@ namespace NexusERP.Infrastructure.Repositories
                 };
 
                 _context.SystemAuditLogs.Add(audit);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
         }
     }
