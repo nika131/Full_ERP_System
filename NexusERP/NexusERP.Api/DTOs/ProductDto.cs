@@ -27,7 +27,7 @@ namespace NexusERP.Api.DTOs
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public int? SupplierId { get; set; }
-        public string SupplierName { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }

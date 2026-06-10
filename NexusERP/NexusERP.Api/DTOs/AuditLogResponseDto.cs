@@ -9,7 +9,7 @@ namespace NexusERP.Api.DTOs
         public string PerformedBy { get; set; } = string.Empty;
         public string Action { get; set; } = string.Empty;
         public string EntityType { get; set; } = string.Empty;
-        public string ChangeMade { get; set; } = string.Empty;
+        public string ChangesMade { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
 }

@@ -14,5 +14,6 @@ namespace NexusERP.Application.Interfaces.Repositories
         Task<PagedResult<User>> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm, string roleFilter);
         Task DeleteUser(int id, int actorUserId);
         Task UpdateUser(User user, int actorUserId);
+        Task<User?> GetUserByUsername(string username);
     }
 }

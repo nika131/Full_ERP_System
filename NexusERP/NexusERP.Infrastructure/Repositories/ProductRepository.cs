@@ -81,6 +81,7 @@ namespace NexusERP.Infrastructure.Repositories
                 EntityId = product.ProductId,
                 Action = action,
                 ChangesMade = changes,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.SystemAuditLogs.Add(audit);
@@ -94,6 +95,7 @@ namespace NexusERP.Infrastructure.Repositories
             {
                 transaction.Quantity = Math.Abs(transaction.Quantity);
                 transaction.UserId = userId;
+                transaction.CreatedAt = DateTime.UtcNow;
 
                 var product = await _context.Products.FindAsync(transaction.ProductId);
                 if (product == null) throw new AppException("Product not found.");
@@ -143,7 +145,8 @@ namespace NexusERP.Infrastructure.Repositories
                     EntityType = "Product",
                     EntityId = product.ProductId,
                     Action = "Delete",
-                    ChangesMade = $"Deleted product '{product.Name}'"
+                    ChangesMade = $"Deleted product '{product.Name}'",
+                    CreatedAt = DateTime.UtcNow
                 };
 
                 await _context.SystemAuditLogs.AddAsync(audit);

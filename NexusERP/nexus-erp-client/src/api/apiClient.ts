@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -26,16 +27,34 @@ apiClient.interceptors.response.use(
     },
     (error) => {
         if (error.response ) {
-            if (error.response.status === 401) {
-                localStorage.removeItem('jwt_token');
-                window.location.href = '/login';
-            }
+            const status = error.response.status;
+            const message = error.response.data?.message || 'An unexpected error occurred.';
 
-            if (error.response.status === 403) {
-                console.error('Security Violation: Access denied');
-                window.location.href = '/dashboard';
+            switch (status) {
+                case 400:
+                    toast.error(message);
+                    break;
+                case 401:
+                    toast.error('Session expired. Please log in again');
+                    localStorage.removeItem('token');
+                    window.location.href = '/login';
+                    break;
+                case 403:
+                    toast.error('Access Denied: You do not have permission for this action.');
+                    break;
+                case 409:
+                    toast.error(`Data Conflict: ${message}`);
+                    break;
+                case 500:
+                    toast.error('A critical server error occurred.')
+                    break;
+                default:
+                    toast.error(message);
             }
+        } else if (error.request) {
+            toast.error('Cannot connect to the server. Check your connection.');
         }
+        
         return Promise.reject(error);
     }
 );

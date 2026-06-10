@@ -31,7 +31,7 @@ namespace NexusERP.Api.Controllers
                 PerformedBy = log.User?.FullName ?? "System/Unknown",
                 Action = log.Action,
                 EntityType = log.EntityType,
-                ChangeMade = log.EntityType,
+                ChangesMade = log.ChangesMade,
                 CreatedAt = log.CreatedAt,
             }).ToList();
 

@@ -33,7 +33,7 @@ namespace NexusERP.Infrastructure.Repositories
                     log.Action.Contains(searchTerm) ||
                     log.EntityType.Contains(searchTerm) ||
                     log.ChangesMade.Contains(searchTerm) ||
-                    (log.User != null && log.User.FullName.Contains(searchTerm)));
+                    (log.User != null && log.User.UserId.ToString().Contains(searchTerm)));
             }
 
             var totalCount = await baseQuery.CountAsync();

@@ -1,20 +1,21 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 interface ProtectedRouteProps {
-    allowedRoles?: string[];
+    requiredPermission?: string;
 }
 
-export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-    const { user, isAuthenticated } = useAuth();
+export const ProtectedRoute = ({ requiredPermission }: ProtectedRouteProps) => {
+    const { isAuthenticated, hasPermission } = useAuth();
     
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-        console.warn(`Access Denied: Requires ${allowedRoles.join(' or ')}`);
-        return <Navigate to="/dashboard" replace />;
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+        toast.error(`Access Denied: Requires '${requiredPermission}'`);
+        return <Navigate to="/profile" replace />;
     }
 
     return <Outlet />;

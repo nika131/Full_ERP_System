@@ -83,13 +83,15 @@ namespace NexusERP.Infrastructure.Database
             modelBuilder.Entity<SystemAuditLog>().HasKey(e => e.LogId);
         }
 
-        public override int SaveChanges()
+
+        private void UpdateAuditFields()
         {
             var entries = ChangeTracker.Entries();
 
             foreach (var entry in entries)
             {
-                if (entry.Entity is ICreationTracked createdEntity && entry.State == EntityState.Added)
+                if (entry.Entity is ICreationTracked createdEntity &&
+                    entry.State == EntityState.Added)
                 {
                     createdEntity.CreatedAt = DateTime.UtcNow;
                 }
@@ -103,13 +105,26 @@ namespace NexusERP.Infrastructure.Database
 
                     if (entry.State == EntityState.Modified)
                     {
-                        entry.Property(nameof(ICreationTracked.CreatedAt)).IsModified = false; 
+                        entry.Property(nameof(ICreationTracked.CreatedAt))
+                             .IsModified = false;
+
                         auditableEntity.UpdatedAt = DateTime.UtcNow;
                     }
                 }
             }
+        }
 
+        public override int SaveChanges()
+        {
+            UpdateAuditFields();
             return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            UpdateAuditFields();
+            return base.SaveChangesAsync(cancellationToken);
         }
     }
 }

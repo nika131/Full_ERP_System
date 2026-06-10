@@ -5,6 +5,7 @@ import { authService } from '../api/authService';
 interface User {
     username: string;
     role: string;
+    permissions: string[];
 }
 
 interface AuthContextType {
@@ -12,6 +13,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     login: (token: string) => void;
     logout: () => void;
+    hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -32,7 +34,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role;
             const username = decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || decoded.unique_name;
             
-            setUser({ username, role });
+            const rawPermissions = decoded.Permissions || decoded.permissions || [];
+            let permissions: string[] = [];
+
+            if (Array.isArray(rawPermissions)) {
+                permissions = rawPermissions;
+            } else if (typeof rawPermissions === 'string') {
+                try {
+                    permissions = JSON.parse(rawPermissions);
+                } catch {
+                    permissions = [rawPermissions];
+                }
+            }
+
+            setUser({ username, role, permissions });
         }
         catch (error) {
             console.error("Invalid token format");
@@ -50,8 +65,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         authService.logout();
     };
 
+    const hasPermission = (requiredPermission: string): boolean => {
+        return user?.permissions.includes(requiredPermission) || false;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, hasPermission }}>
             {children}
         </AuthContext.Provider>
     );

@@ -40,7 +40,7 @@ namespace NexusERP.Api.Controllers
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.CategoryName ?? "Uncategorized",
                 SupplierId = p.SupplierId,
-                SupplierName = p.Supplier?.ContactName ?? "No Supplier",
+                CompanyName = p.Supplier?.CompanyName ?? "No Supplier",
                 Quantity = p.Quantity,
                 Price = p.Price,
                 CostPrice = p.CostPrice
