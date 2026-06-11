@@ -16,7 +16,7 @@ export const absenceService = {
     },
 
     getPendingRequests: async (signal?: AbortSignal): Promise<LeaveResponse[]> => {
-        const response = await apiClient.get('/absences/pending', { signal });
+        const response = await apiClient.get('/Absences/pending', { signal });
         return response.data;
     },
 

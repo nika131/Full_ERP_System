@@ -28,6 +28,7 @@ export const EmployeeManagerForm = ({ employee, onSuccess, onCancel }: EmployeeM
         effectiveDate: new Date().toISOString().split('T')[0], 
         notes: ''
     });
+    
 
     useEffect(() => {
         apiClient.get('/roles/lookup').then(res => setRoles(res.data)).catch(console.error);

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supplierService } from '../api/supplierService';
-import { type Supplier } from '../types/supplier';
+import { type SupplierResponse } from '../types/supplier';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable'
 import { SlideOver } from '../components/Ui/SlideOver';
 import { SupplierForm } from '../components/forms/SupplierForm';
@@ -8,7 +8,7 @@ import { ConfirmDialog } from '../components/Ui/ConfirmDialog';
 import type { SupplierFormData } from '../schemas/supplierSchema';
 
 export default function SupplierList() {
-    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -18,7 +18,7 @@ export default function SupplierList() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
-    const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+    const [selectedSupplier, setSelectedSupplier] = useState<SupplierResponse | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -81,7 +81,7 @@ export default function SupplierList() {
         }
     };
 
-    const columns = useMemo<ColumnDef<Supplier>[]>(() => [
+    const columns = useMemo<ColumnDef<SupplierResponse>[]>(() => [
         { header: 'ID', accessor: 'supplierId', className: 'w-16' },
         { header: 'Company Name', accessor: 'companyName', className: 'font-bold text-slate-800' },
         { header: 'Contact', accessor: 'contactName' },

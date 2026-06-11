@@ -11,7 +11,6 @@ namespace NexusERP.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Policy = "RequireManageUsers")]
     public class RolesController : Controller
     {
         private readonly IRoleRepository _repository;
@@ -22,6 +21,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "RequireManageUsers")]
         public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
         {
             if (pageSize > 100) pageSize = 100;
@@ -59,6 +59,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("permissions")]
+        [Authorize(Policy = "RequireManageUsers")]
         public IActionResult GetAvailablePermissions()
         {
             var permissions = typeof(Permissions)
@@ -71,6 +72,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("upsert")]
+        [Authorize(Policy = "RequireManageUsers")]
         public async Task<IActionResult> SaveRole([FromBody] RoleUpsertDto dto)
         {
             var role = new Role
@@ -85,6 +87,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = "RequireManageUsers")]
         public async Task<IActionResult> DeleteRole(int id)
         {
             await _repository.Delete(id, User.GetCurrentUserId());

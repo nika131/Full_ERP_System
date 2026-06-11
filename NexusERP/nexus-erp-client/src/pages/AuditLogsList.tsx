@@ -39,7 +39,7 @@ export default function AuditLogsList() {
     { header: 'User', accessor: 'userId' },
     { header: 'Entity', accessor: 'entityType' },
     { header: 'Action', accessor: 'action', render: (l) => (
-        <span className={`px-2 py-1 rounded text-xs font-semibold ${l.action === 'Delete' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+        <span className={`px-2 py-1 rounded text-xs font-semibold ${l.action === 'Delete' ? 'bg-red-100 text-red-700' : l.action === 'Create' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
             {l.action}
         </span>
     )},
