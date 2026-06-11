@@ -54,7 +54,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeResponseDto dto)
+        public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeUpdateDto dto)
         {
             int currentUserId = User.GetCurrentUserId();
 
@@ -72,7 +72,6 @@ namespace NexusERP.Api.Controllers
             };
 
             await _repository.UpdateUser(userToUpdate, currentUserId);
-
             return Ok(new { message = "Employee updated successfully." });
         }
 

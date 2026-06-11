@@ -49,7 +49,12 @@ namespace NexusERP.Api.Controllers
         {
             var activeRoles = await _repository.GetAllActive();
 
-            var roles = activeRoles.Select(r => new { r.RoleId, r.Name });
+            var roles = activeRoles.Select(r => new RoleLookupDto
+            {
+                RoleId = r.RoleId,
+                Name = r.Name
+            }).ToList();
+
             return Ok(roles);
         }
 

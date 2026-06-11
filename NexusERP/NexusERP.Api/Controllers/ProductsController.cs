@@ -88,19 +88,12 @@ namespace NexusERP.Api.Controllers
                 return Forbid("Missing Inbound Inventory permission.");
             }
 
-            decimal unitPrice = dto.TransactionType == "Sale" ? dto.ProductPrice : dto.CostPrice;
-            decimal totalAmount = unitPrice * dto.Quantity;
-            decimal profit = dto.TransactionType == "Sale" ? totalAmount - (dto.CostPrice * dto.Quantity) : 0;
-
             var transactionEntity = new InventoryTransaction
             {
                 ProductId = dto.ProductId,
                 SupplierId = dto.SupplierId > 0 ? dto.SupplierId : null,
                 TransactionType = Enum.Parse<TransactionAction>(dto.TransactionType),
-                Quantity = dto.Quantity,
-                UnitPrice = unitPrice,
-                TotalAmount = totalAmount,
-                Profit = profit
+                Quantity = dto.Quantity
             };
 
             await _repository.LogInventoryTransaction(transactionEntity, User.GetCurrentUserId(), dto.TransactionType);

@@ -18,4 +18,10 @@ namespace NexusERP.Api.DTOs
 
         public List<string> Permissions { get; set; } = new();
     }
+
+    public class RoleLookupDto
+    {
+        public int RoleId { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
 }

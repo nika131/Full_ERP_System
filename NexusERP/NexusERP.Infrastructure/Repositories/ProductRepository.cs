@@ -185,8 +185,5 @@ namespace NexusERP.Infrastructure.Repositories
 
             return stats;
         }
-
-
-
     }
 }

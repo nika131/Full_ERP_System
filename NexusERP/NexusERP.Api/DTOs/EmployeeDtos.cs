@@ -14,13 +14,13 @@ namespace NexusERP.Api.DTOs
 
     public class EmployeeUpdateDto
     {
-        [Required]
+        [Required(ErrorMessage = "Full Name is required.")]
         public string FullName { get; set; } = String.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Username is required.")]
         public string Username { get; set; } = string.Empty;
 
-        [Required]
-        public string Role { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Role is required.")]
+        public int RoleId { get; set; }
     }
 }

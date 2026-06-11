@@ -25,15 +25,38 @@ namespace NexusERP.Api.Controllers
         {
             if (pageSize > 100) pageSize = 100;
 
-            var suppliers = await _repository.GetPaged(page, pageSize, search);
-            return Ok(suppliers);
+            var result = await _repository.GetPaged(page, pageSize, search);
+            
+            var responseItems = result.Items.Select(s => new SupplierResponseDto
+            {
+                SupplierId = s.SupplierId,
+                CompanyName = s.CompanyName,
+                ContactName = s.ContactName,
+                Phone = s.Phone,
+                Email = s.Email
+            }).ToList();
+
+            return Ok(new
+            {
+                items = responseItems,
+                totalCount = result.TotalCount,
+                pageNumber = result.PageNumber,
+                pageSize = result.PageSize
+            });
         }
 
         [HttpGet("lookup")]
         public async Task<IActionResult> GetLookupList()
         {
             var suppliers = await _repository.GetAllActive();
-            return Ok(suppliers);
+            
+            var lookupData = suppliers.Select(s => new SupplierLookupDto
+            {
+                SupplierId = s.SupplierId,
+                CompanyName = s.CompanyName
+            }).ToList();
+
+            return Ok(lookupData);
         }
 
         [HttpPost("upsert")]

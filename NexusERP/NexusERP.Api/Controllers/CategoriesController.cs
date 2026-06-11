@@ -27,20 +27,43 @@ namespace NexusERP.Api.Controllers
             if (pageSize > 100) pageSize = 100;
 
             var result = await _repository.GetPagedCategories(Page, pageSize, search);
-            return Ok(result);
+            var responseItems = result.Items.Select(c => new CategoryResponseDto
+            {
+                CategoryId = c.CategoryId,
+                Name = c.CategoryName, 
+                CreatedAt = c.CreatedAt
+            }).ToList();
+
+            return Ok(new
+            {
+                items = responseItems,
+                totalCount = result.TotalCount,
+                pageNumber = result.PageNumber,
+                pageSize = result.PageSize
+            });
         }
 
         [HttpGet("lookup")]
         public async Task<IActionResult> GetLookupList()
         {
             var categories = await _repository.GetAllActive();
-            return Ok(categories);
+
+            var lookupData = categories.Select(c => new CategoryLookupDto
+            {
+                CategoryId = c.CategoryId,
+                Name = c.CategoryName
+            }).ToList();
+
+            return Ok(lookupData);
         }
 
         [HttpPost("upsert")]
         public async Task<IActionResult> SaveCategory([FromBody] CategoryUpsertDto dto)
         {
-            var category = new Category { CategoryId = dto.CategoryId, CategoryName = dto.CategoryName };
+            var category = new Category { 
+                CategoryId = dto.CategoryId, 
+                CategoryName = dto.Name,
+            };
 
             await _repository.Upsert(category, User.GetCurrentUserId());
             return Ok(new { message = "Category saved." });
