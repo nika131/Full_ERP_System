@@ -89,15 +89,15 @@ namespace NexusERP.Api.Controllers
             }
 
             decimal unitPrice = dto.TransactionType == "Sale" ? dto.ProductPrice : dto.CostPrice;
-            decimal totalAmount = unitPrice * dto.SoldQty;
-            decimal profit = dto.TransactionType == "Sale" ? totalAmount - (dto.CostPrice * dto.SoldQty) : 0;
+            decimal totalAmount = unitPrice * dto.Quantity;
+            decimal profit = dto.TransactionType == "Sale" ? totalAmount - (dto.CostPrice * dto.Quantity) : 0;
 
             var transactionEntity = new InventoryTransaction
             {
                 ProductId = dto.ProductId,
                 SupplierId = dto.SupplierId > 0 ? dto.SupplierId : null,
                 TransactionType = Enum.Parse<TransactionAction>(dto.TransactionType),
-                Quantity = dto.SoldQty,
+                Quantity = dto.Quantity,
                 UnitPrice = unitPrice,
                 TotalAmount = totalAmount,
                 Profit = profit

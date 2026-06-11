@@ -6,11 +6,11 @@ import type { SupplierLookup } from "../types/supplier";
 
 export interface TransactionPayLoad {
     productId: number;
-    supplierId: number | null;
+    supplierId?: number | null; 
     transactionType: string;
-    soldQty: number;
-    productPrice: number;
-    costPrice: number;
+    quantity: number;          
+    productPrice?: number;      
+    costPrice?: number;         
 }
 
 export const productService = {

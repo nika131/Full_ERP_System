@@ -170,10 +170,10 @@ export default function Dashboard() {
       {/* MIDDLE ZONE: CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
-        {/* Left Side: 7-Day Revenue Trend (Takes up 2 columns) */}
+        {/* Left Side: 7-Day Revenue Trend */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-800 mb-6">7-Day Revenue & Profit Trend</h3>
-          <div className="h-72 w-full">
+          <div className="h-72 min-h-75 w-full">
             {isLoadingStats ? (
               <div className="w-full h-full flex items-center justify-center text-slate-400">Loading chart data...</div>
             ) : (
@@ -207,10 +207,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Right Side: Top 5 Products Bar Chart (Takes up 1 column) */}
+        {/* Right Side: Top 5 Products Bar Chart */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-800 mb-6">Top Products by Revenue</h3>
-          <div className="h-72 w-full">
+          <div className="h-72 min-h-75 w-full">
             {isLoadingStats ? (
               <div className="w-full h-full flex items-center justify-center text-slate-400">Loading top products...</div>
             ) : (

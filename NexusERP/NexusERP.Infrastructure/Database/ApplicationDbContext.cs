@@ -25,7 +25,8 @@ namespace NexusERP.Infrastructure.Database
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<SystemAuditLog> SystemAuditLogs { get; set; }
         public DbSet<Role> Roles { get; set; }
-        
+        public DbSet<UserAbsence> UserAbsences { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -76,6 +77,36 @@ namespace NexusERP.Infrastructure.Database
                     .HasConversion(
                         v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
                         v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null) ?? new List<string>());
+            });
+
+            modelBuilder.Entity<UserAbsence>(entity =>
+            {
+                entity.HasKey(e => e.AbsenceId);
+
+                entity.Property(e => e.Type)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (AbsenceType)Enum.Parse(typeof(AbsenceType), v));
+
+                entity.Property(e => e.Status)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (AbsenceStatus)Enum.Parse(typeof(AbsenceStatus), v));
+
+                entity.Property(e => e.Status)
+                    .HasConversion(
+                        v => v.ToString(),
+                        v => (AbsenceStatus)Enum.Parse(typeof(AbsenceStatus), v));
+
+                entity.HasOne(e => e.User)
+                    .WithMany(u => u.Absences)
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReviewedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Category>().HasKey(e => e.CategoryId);

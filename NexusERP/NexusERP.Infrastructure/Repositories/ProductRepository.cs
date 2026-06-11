@@ -93,25 +93,33 @@ namespace NexusERP.Infrastructure.Repositories
             using var tran = await _context.Database.BeginTransactionAsync();
             try
             {
-                transaction.Quantity = Math.Abs(transaction.Quantity);
+                var qty = Math.Abs(transaction.Quantity);
+                transaction.Quantity = qty;
                 transaction.UserId = userId;
-                transaction.CreatedAt = DateTime.UtcNow;
 
                 var product = await _context.Products.FindAsync(transaction.ProductId);
                 if (product == null) throw new AppException("Product not found.");
 
-                if (transactionType == "Sale")
+                switch (transactionType)
                 {
-                    if (product.Quantity < transaction.Quantity)
-                    {
-                        throw new AppException($"Insufficient stock. Only {product.Quantity} unitts available.");
-                    }
+                    case "Sale":
+                        if (product.Quantity < qty) throw new AppException($"Insufficient stock. Only {product.Quantity} available.");
+                        product.Quantity -= qty;
+                        break;
 
-                    product.Quantity -= transaction.Quantity;
-                }
-                else if (transactionType == "Restock" || transactionType == "Adjust")
-                {
-                    product.Quantity += transaction.Quantity;
+                    case "Loss": 
+                    case "Damage":
+                        if (product.Quantity < qty) throw new AppException($"Cannot deduct {qty}. Only {product.Quantity} available.");
+                        product.Quantity -= qty;
+                        transaction.Profit = -(product.CostPrice * qty);
+                        break;
+
+                    case "Restock":
+                        product.Quantity += qty;
+                        break;
+
+                    default:
+                        throw new AppException("Invalid transaction type.");
                 }
 
                 await _context.InventoryTransactions.AddAsync(transaction);
@@ -145,8 +153,7 @@ namespace NexusERP.Infrastructure.Repositories
                     EntityType = "Product",
                     EntityId = product.ProductId,
                     Action = "Delete",
-                    ChangesMade = $"Deleted product '{product.Name}'",
-                    CreatedAt = DateTime.UtcNow
+                    ChangesMade = $"Deleted product '{product.Name}'"
                 };
 
                 await _context.SystemAuditLogs.AddAsync(audit);
@@ -178,6 +185,8 @@ namespace NexusERP.Infrastructure.Repositories
 
             return stats;
         }
+
+
 
     }
 }

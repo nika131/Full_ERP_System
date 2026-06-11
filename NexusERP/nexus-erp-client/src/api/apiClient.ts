@@ -36,7 +36,7 @@ apiClient.interceptors.response.use(
                     break;
                 case 401:
                     toast.error('Session expired. Please log in again');
-                    localStorage.removeItem('token');
+                    localStorage.removeItem('jwt_token');
                     window.location.href = '/login';
                     break;
                 case 403:
@@ -54,7 +54,7 @@ apiClient.interceptors.response.use(
         } else if (error.request) {
             toast.error('Cannot connect to the server. Check your connection.');
         }
-        
+
         return Promise.reject(error);
     }
 );

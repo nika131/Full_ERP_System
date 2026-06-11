@@ -18,6 +18,8 @@ namespace NexusERP.Domain.Entities
         public int RoleId { get; set; }
         public Role Role { get; set; }
 
+        public ICollection<UserAbsence> Absences { get; set; } = new List<UserAbsence>();
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; } 

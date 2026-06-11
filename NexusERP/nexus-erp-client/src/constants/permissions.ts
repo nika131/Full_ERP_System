@@ -1,0 +1,15 @@
+export const Permissions = {
+  ViewProducts:     "Products.View",
+  UpsertProducts:   "Products.Upsert",
+  DeleteProducts:   "Products.Delete",
+  ManageCategories: "Categories.Manage",
+  ManageSuppliers:  "Suppliers.Manage",
+  PerformSales:     "Transactions.PerformSale",
+  PerformInbound:   "Transactions.PerformInbound",
+  ViewOwnTransactions:  "Reports.ViewOwn",
+  ViewAllTransactions:  "Reports.ViewAll",
+  ExportExcel:          "Reports.ExportExcel",
+  ManageUsers:      "Users.Manage",
+  ViewAuditLogs:    "AuditLogs.View",
+  ViewDashboard:    "Dashboard.View",
+} as const;

@@ -30,5 +30,7 @@ namespace NexusERP.Domain.Constants
         public const string ManageUsers = "Users.Manage";
         public const string ViewAuditLogs = "AuditLogs.View";
         public const string ViewDashboard = "Dashboard.View";
+
+        public const string ManageAbsences = "Absences.Manage";
     }
 }

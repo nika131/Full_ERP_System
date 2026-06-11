@@ -141,5 +141,13 @@ namespace NexusERP.Infrastructure.Repositories
                 .AsNoTracking()    
                 .FirstOrDefaultAsync(u => u.Username == username);
         }
+
+        public async Task UpdateStatus(string status, int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return;   
+
+            user.IsActive = true;
+        }
     }
 }

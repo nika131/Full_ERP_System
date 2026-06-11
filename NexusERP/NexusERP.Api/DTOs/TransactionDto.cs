@@ -25,7 +25,7 @@ namespace NexusERP.Api.DTOs
         public int ProductId { get; set; }
 
         public int SupplierId { get; set; }
-        public int SoldQty { get; set; }
+        public int Quantity { get; set; }
 
         public decimal ProductPrice { get; set; }
         public decimal CostPrice { get; set; }

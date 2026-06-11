@@ -6,6 +6,8 @@ import type { ProductFormData } from '../schemas/productSchema';
 import { SlideOver } from '../components/Ui/SlideOver';
 import { ProductForm } from '../components/forms/ProductForm';
 import { ConfirmDialog } from '../components/Ui/ConfirmDialog';
+import type { StockFormData } from '../schemas/stockSchema';
+import { StockManagementForm } from '../components/forms/StockManagementForm';
 
 export default function InventoryList() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -27,6 +29,9 @@ export default function InventoryList() {
     const [isSellModalOpen, setIsSellModalOpen] = useState(false);
     const [sellQuantity, setSellQuantity] = useState<number>(1);
     const [isSelling, setIsSelling] = useState(false);
+
+    const [isStockSlideOverOpen, setIsStockSlideOverOpen] = useState(false);
+    const [selectedStockProduct, setSelectedStockProduct] = useState<Product | null>(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -132,7 +137,7 @@ export default function InventoryList() {
                 productId: selectedProduct.productId,
                 supplierId: selectedProduct.supplierId || null,
                 transactionType: "Sale",
-                soldQty: sellQuantity,
+                quantity: sellQuantity,
                 productPrice: selectedProduct.price,
                 costPrice: selectedProduct.costPrice 
             };
@@ -150,6 +155,28 @@ export default function InventoryList() {
             setIsSelling(false);
         }
     }
+
+
+const handleStockSubmit = async (formData: StockFormData) => {
+    if (!selectedStockProduct) return;
+    
+    try {
+        await productService.makeTransaction({
+            productId: selectedStockProduct.productId,
+            supplierId: selectedStockProduct.supplierId || null, 
+            productPrice: selectedStockProduct.price,
+            costPrice: selectedStockProduct.costPrice,
+            transactionType: formData.transactionType,
+            quantity: formData.quantity 
+        });
+        
+        setIsStockSlideOverOpen(false);
+        loadProducts(new AbortController().signal);
+        
+    } catch (err) {
+        console.error("Transaction failed", err);
+    }
+};
 
     const columns = useMemo<ColumnDef<Product>[]>(() => [
         { header: 'ID', accessor: 'productId', className: 'w-16' },
@@ -189,26 +216,19 @@ export default function InventoryList() {
         render: (item) => `$${item.price.toFixed(2)}`
         },
         {
-        header: 'Actions',
-        accessor: 'actions',
-        className: 'text-center',
+        header: 'Actions', 
+        accessor: 'actions', 
+        className: 'text-right w-48',
         render: (item) => (
-            <div>
-                <button
-                    onClick={() => handleSellClick(item)}
-                    className="text-blue-600 hover:text-blue-800 font-medium mr-3 transition-colors">
-                    Sell
-                </button>
+            <div className="flex justify-end space-x-3">
                 <button 
-                    onClick={() => handleEditClick(item)}
-                    className="text-emerald-600 hover:text-emerald-800 font-medium mr-3 transition-colors">
-                        Edit
+                    onClick={() => { setSelectedStockProduct(item); setIsStockSlideOverOpen(true); }} 
+                    className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                    Manage Stock
                 </button>
-                <button 
-                    onClick={() => handleDeleteClick(item)}
-                    className="text-red-600 hover:text-red-800 font-medium transition-colors">
-                        Delete
-                </button>
+                <button onClick={() => handleSellClick(item)} className="text-blue-600 hover:text-blue-800 font-medium mr-3 transition-colors">Sell</button>
+                <button onClick={() => handleEditClick(item)} className="text-emerald-600 hover:text-emerald-800 font-medium text-sm">Edit</button>
+                <button onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-800 font-medium text-sm">Delete</button>
             </div>
         )
         }
@@ -264,6 +284,20 @@ export default function InventoryList() {
                     onSubmit={handleFormSubmit}
                     onCancel={() => setIsSlideOverOpen(false)}
                 />
+            </SlideOver>
+
+            <SlideOver 
+                isOpen={isStockSlideOverOpen} 
+                onClose={() => setIsStockSlideOverOpen(false)} 
+                title="Inventory Adjustment"
+            >
+                {selectedStockProduct && (
+                    <StockManagementForm 
+                        product={selectedStockProduct} 
+                        onSubmit={handleStockSubmit} 
+                        onCancel={() => setIsStockSlideOverOpen(false)} 
+                    />
+                )}
             </SlideOver>
 
         
