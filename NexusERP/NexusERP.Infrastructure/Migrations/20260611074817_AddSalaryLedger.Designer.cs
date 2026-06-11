@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NexusERP.Infrastructure.Database;
 
@@ -11,9 +12,11 @@ using NexusERP.Infrastructure.Database;
 namespace NexusERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260611074817_AddSalaryLedger")]
+    partial class AddSalaryLedger
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -169,39 +172,6 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasKey("RoleId");
 
                     b.ToTable("Roles");
-                });
-
-            modelBuilder.Entity("NexusERP.Domain.Entities.SalaryRecord", b =>
-                {
-                    b.Property<int>("SalaryRecordId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SalaryRecordId"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("EffectiveDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SalaryRecordId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("SalaryRecords");
                 });
 
             modelBuilder.Entity("NexusERP.Domain.Entities.Supplier", b =>
@@ -411,17 +381,6 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("NexusERP.Domain.Entities.SalaryRecord", b =>
-                {
-                    b.HasOne("NexusERP.Domain.Entities.User", "User")
-                        .WithMany("SalaryRecords")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("NexusERP.Domain.Entities.SystemAuditLog", b =>
                 {
                     b.HasOne("NexusERP.Domain.Entities.User", "User")
@@ -463,8 +422,6 @@ namespace NexusERP.Infrastructure.Migrations
             modelBuilder.Entity("NexusERP.Domain.Entities.User", b =>
                 {
                     b.Navigation("Absences");
-
-                    b.Navigation("SalaryRecords");
                 });
 #pragma warning restore 612, 618
         }

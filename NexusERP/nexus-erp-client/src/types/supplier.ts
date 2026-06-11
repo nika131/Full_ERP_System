@@ -1,4 +1,4 @@
-export interface Supplier {
+export interface SupplierResponse {
   supplierId: number;
   companyName: string;
   contactName?: string | null;
@@ -7,6 +7,6 @@ export interface Supplier {
 }
 
 export interface SupplierLookup {
-    supplierId: number;
-    companyName: string;
+  supplierId: number;
+  companyName: string;
 }

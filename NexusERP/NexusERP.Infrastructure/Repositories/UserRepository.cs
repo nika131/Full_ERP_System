@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
+using NexusERP.Domain.Exceptions;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
 using System;
@@ -142,12 +143,22 @@ namespace NexusERP.Infrastructure.Repositories
                 .FirstOrDefaultAsync(u => u.Username == username);
         }
 
-        public async Task UpdateStatus(string status, int userId)
+        public async Task AddSalaryRecordAsync(int userId, SalaryRecord record)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null) return;   
+            var userExists = await _context.Users.AnyAsync(u => u.UserId == userId);
+            if (!userExists) throw new AppException("User not found.");
 
-            user.IsActive = true;
+            record.UserId = userId;
+            await _context.SalaryRecords.AddAsync(record);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<SalaryRecord>> GetSalaryHistoryAsync(int userId)
+        {
+            return await _context.SalaryRecords
+                .Where(s => s.UserId == userId)
+                .OrderByDescending(s => s.EffectiveDate) 
+                .ToListAsync();
         }
     }
 }

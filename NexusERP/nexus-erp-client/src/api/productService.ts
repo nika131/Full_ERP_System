@@ -1,7 +1,7 @@
 import apiClient from "./apiClient";
 import { type Product } from "../types/product";
 import { type PagedResult } from "../types/pagination";
-import type { Category } from "../types/category";
+import type { CategoryLookup } from "../types/category";
 import type { SupplierLookup } from "../types/supplier";
 
 export interface TransactionPayLoad {
@@ -35,7 +35,7 @@ export const productService = {
         await apiClient.post('/products/upsert', productData);
     },
 
-    getCategories: async (): Promise<Category[]> => {
+    getCategories: async (): Promise<CategoryLookup[]> => {
         const response = await apiClient.get('/categories/lookup');
         return response.data;
     },

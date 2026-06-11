@@ -1,9 +1,9 @@
-import type { Category } from "../types/category";
+import type { CategoryResponse } from "../types/category";
 import type { PagedResult } from "../types/pagination";
 import apiClient from "./apiClient";
 
 export const categoryService = {
-    getCategories: async (page: number = 1, pageSize: number = 10, search?: string, signal?: AbortSignal): Promise<PagedResult<Category>> => {
+    getCategories: async (page: number = 1, pageSize: number = 10, search?: string, signal?: AbortSignal): Promise<PagedResult<CategoryResponse>> => {
         const params = new URLSearchParams({ page: page.toString(), pageSize: pageSize.toString() });
         if (search) params.append('search', search);
         const response = await apiClient.get(`/categories?${params.toString()}`, { signal });

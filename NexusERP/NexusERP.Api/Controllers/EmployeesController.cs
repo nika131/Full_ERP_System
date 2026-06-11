@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using DocumentFormat.OpenXml.Bibliography;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NexusERP.Api.DTOs;
+using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using System.Security.Claims;
-using NexusERP.Api.DTOs;
-using DocumentFormat.OpenXml.Bibliography;
-using NexusERP.Api.Extensions;
+using static NexusERP.Api.DTOs.SalaryDtos;
 
 namespace NexusERP.Api.Controllers
 {
@@ -90,5 +91,35 @@ namespace NexusERP.Api.Controllers
             return Ok(new { message = "Employee access revoked successfully." });
         }
 
+        [HttpGet("{id}/salary")]
+        public async Task<IActionResult> GetSalaryHistory(int id)
+        {
+            var history = await _repository.GetSalaryHistoryAsync(id);
+
+            var safeData = history.Select(s => new SalaryRecordResponseDto
+            {
+                SalaryRecordId = s.SalaryRecordId,
+                Amount = s.Amount,
+                EffectiveDate = s.EffectiveDate,
+                Notes = s.Notes,
+                CreatedAt = s.CreatedAt
+            }).ToList();
+
+            return Ok(safeData);
+        }
+
+        [HttpPost("{id}/salary")]
+        public async Task<IActionResult> AddSalaryRecord(int id, [FromBody] SalaryRecordCreateDto dto)
+        {
+            var record = new SalaryRecord
+            {
+                Amount = dto.Amount,
+                EffectiveDate = dto.EffectiveDate,
+                Notes = dto.Notes
+            };
+
+            await _repository.AddSalaryRecordAsync(id, record);
+            return Ok(new { message = "Salary record added successfully." });
+        }
     }
 }

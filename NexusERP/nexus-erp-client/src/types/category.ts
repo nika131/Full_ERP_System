@@ -1,4 +1,10 @@
-export interface Category {
+export interface CategoryResponse {
     categoryId: number;
-    categoryName: string; 
+    name: string; 
+    createdAt: string;
+}
+
+export interface CategoryLookup {
+    categoryId: number;
+    name: string;
 }

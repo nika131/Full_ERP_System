@@ -26,6 +26,7 @@ namespace NexusERP.Infrastructure.Database
         public DbSet<SystemAuditLog> SystemAuditLogs { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserAbsence> UserAbsences { get; set; }
+        public DbSet<SalaryRecord> SalaryRecords { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -107,6 +108,19 @@ namespace NexusERP.Infrastructure.Database
                     .WithMany()
                     .HasForeignKey(e => e.ReviewedByUserId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+
+            modelBuilder.Entity<SalaryRecord>(entity =>
+            {
+                entity.HasKey(e => e.SalaryRecordId);
+
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+
+                entity.HasOne(e => e.User)
+                      .WithMany(u => u.SalaryRecords)
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Category>().HasKey(e => e.CategoryId);

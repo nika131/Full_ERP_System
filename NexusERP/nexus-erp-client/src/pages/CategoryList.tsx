@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Category } from "../types/category";
+import type { CategoryResponse } from "../types/category";
 import { categoryService } from "../api/categoryService";
 import type { CategoryFormData } from "../schemas/categorySchema";
 import { DataTable, type ColumnDef } from "../components/Ui/DataTable";
@@ -9,7 +9,7 @@ import { CategoryForm } from "../components/forms/CategoryForm";
 
 
 export default function CategoryList() {
-    const [categroies, setCategories] = useState<Category[]>([]);
+    const [categroies, setCategories] = useState<CategoryResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true); 
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -17,7 +17,7 @@ export default function CategoryList() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<CategoryResponse | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -66,7 +66,7 @@ export default function CategoryList() {
         }
     };
 
-    const columns = useMemo<ColumnDef<Category>[]>(() => [
+    const columns = useMemo<ColumnDef<CategoryResponse>[]>(() => [
         { header: 'ID', accessor: 'categoryId', className: 'w-16' },
         { header: 'Category Name', accessor: 'categoryName', className: 'font-bold text-slate-800' },
         {
@@ -97,7 +97,7 @@ export default function CategoryList() {
                 <CategoryForm initialData={selectedCategory} onSubmit={handleFormSubmit} onCancel={() => setIsSlideOverOpen(false)} />
             </SlideOver>
 
-            <ConfirmDialog isOpen={isDeleteDialogOpen} title="Delete Category" message={`Delete "${selectedCategory?.categoryName}"?`} onConfirm={handleConfirmDelete} onCancel={() => { setIsDeleteDialogOpen(false); setSelectedCategory(null); }} isProcessing={isDeleting} />
+            <ConfirmDialog isOpen={isDeleteDialogOpen} title="Delete Category" message={`Delete "${selectedCategory?.name}"?`} onConfirm={handleConfirmDelete} onCancel={() => { setIsDeleteDialogOpen(false); setSelectedCategory(null); }} isProcessing={isDeleting} />
         </div>
     );
 }

@@ -1,5 +1,5 @@
 import type { PagedResult } from "../types/pagination";
-import type { Supplier } from "../types/supplier";
+import type { SupplierResponse } from "../types/supplier";
 import apiClient from "./apiClient";
 
 
@@ -9,7 +9,7 @@ export const supplierService = {
         pageSize: number = 10,
         search?: string,
         signal?: AbortSignal
-    ): Promise<PagedResult<Supplier>> => {
+    ): Promise<PagedResult<SupplierResponse>> => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('pageSize', pageSize.toString());

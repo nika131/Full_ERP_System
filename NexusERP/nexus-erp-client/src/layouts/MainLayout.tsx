@@ -28,6 +28,14 @@ export default function MainLayout() {
                 >
                     Dashboard
                 </Link>
+                
+                <Link 
+                    to="/profile" 
+                    className={`block px-4 py-2 rounded transition-colors ${isActive('/profile') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
+                >
+                    My Profile
+                </Link>
+
                 <Link 
                     to="/inventory" 
                     className={`block px-4 py-2 rounded transition-colors ${isActive('/inventory') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
@@ -46,15 +54,20 @@ export default function MainLayout() {
                 >
                     Categories
                 </Link>
+                
+                <Link 
+                    to="/employees" 
+                    className={`block px-4 py-2 rounded transition-colors ${isActive('/employees') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
+                >
+                    Employees
+                </Link>
             
-                {user?.role === 'Admin' && (
-                    <Link 
-                    to="/logs" 
-                    className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/logs') ? 'bg-emerald-600' : 'hover:bg-gray-800 text-gray-400'}`}
-                    >
-                    System Logs
-                    </Link>
-                )}
+                <Link 
+                to="/logs" 
+                className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/logs') ? 'bg-emerald-600' : 'hover:bg-gray-800 text-gray-400'}`}
+                >
+                System Logs
+                </Link>
             </nav>
         </aside>
 

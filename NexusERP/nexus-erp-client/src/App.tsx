@@ -10,6 +10,8 @@ import Dashboard from './pages/Dashboard';
 import CategoryList from './pages/CategoryList';
 import { Toaster } from 'react-hot-toast';
 import { Permissions } from './constants/permissions';
+import Profile from './pages/Profile';
+import EmployeeList from './pages/EmployeeList';
 
 
 function App() {
@@ -26,6 +28,12 @@ return (
               
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
+
+              <Route path="/profile" element={<Profile />} />
+
+              <Route element={<ProtectedRoute requiredPermission={Permissions.ManageUsers} />}>
+                <Route path="/employees" element={<EmployeeList />} />
+              </Route>
 
               <Route element={<ProtectedRoute requiredPermission={Permissions.ViewProducts} />}>
                 <Route path="/inventory" element={<InventoryList />} />

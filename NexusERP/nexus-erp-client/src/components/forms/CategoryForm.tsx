@@ -1,12 +1,12 @@
 import { useForm } from "react-hook-form";
 import { categorySchema, type CategoryFormData } from "../../schemas/categorySchema";
-import type { Category } from "../../types/category";
+import type { CategoryResponse } from "../../types/category";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 
 
 interface Props {
-    initialData?: Category | null;
+    initialData?: CategoryResponse | null;
     onSubmit: (data: CategoryFormData) => Promise<void>;
     onCancel: () => void; 
 }
@@ -18,7 +18,7 @@ export function CategoryForm({ initialData, onSubmit, onCancel }: Props) {
     });
 
     useEffect(() => {
-        if (initialData) reset({ CategoryName: initialData.categoryName});
+        if (initialData) reset({ CategoryName: initialData.name});
         else reset();
     }, [initialData, reset]);
 

@@ -3,8 +3,8 @@ import { productSchema, type ProductFormData } from "../../schemas/productSchema
 import type { Product } from "../../types/product";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import type { Category } from "../../types/category";
-import type { Supplier } from "../../types/supplier";
+import type { CategoryLookup } from "../../types/category";
+import type { SupplierLookup } from "../../types/supplier";
 import { productService } from "../../api/productService";
 
 
@@ -15,8 +15,8 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProps) {
-    const [categories, setCatgeories] = useState<Category[]>([]);
-    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [categories, setCatgeories] = useState<CategoryLookup[]>([]);
+    const [suppliers, setSuppliers] = useState<SupplierLookup[]>([]);
     const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(true);
     
     const {
@@ -98,7 +98,7 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                     <option value={0} disabled>Select a category...</option>
                     {categories.map((cat) => (
                         <option key={cat.categoryId} value={cat.categoryId}>
-                        {cat.categoryName}
+                        {cat.name}
                         </option>
                     ))}
                     </select>

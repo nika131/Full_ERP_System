@@ -1,12 +1,12 @@
 import { useForm } from "react-hook-form";
 import { supplierSchema, type SupplierFormData } from "../../schemas/supplierSchema";
-import type { Supplier } from "../../types/supplier";
+import type { SupplierResponse } from "../../types/supplier";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 
 
 interface SupplierFormProps {
-    initialData?: Supplier | null;
+    initialData?: SupplierResponse | null;
     onSubmit: (data: SupplierFormData) => Promise<void>;
     onCancel: () => void;
 }

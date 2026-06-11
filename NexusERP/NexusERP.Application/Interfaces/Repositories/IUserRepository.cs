@@ -15,5 +15,8 @@ namespace NexusERP.Application.Interfaces.Repositories
         Task DeleteUser(int id, int actorUserId);
         Task UpdateUser(User user, int actorUserId);
         Task<User?> GetUserByUsername(string username);
+
+        Task AddSalaryRecordAsync(int userId, SalaryRecord record);
+        Task<IEnumerable<SalaryRecord>> GetSalaryHistoryAsync(int userId);
     }
 }
