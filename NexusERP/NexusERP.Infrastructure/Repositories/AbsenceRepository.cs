@@ -53,7 +53,7 @@ namespace NexusERP.Infrastructure.Repositories
         {
             return await _context.UserAbsences
                 .Include(a => a.User)
-                .Where(a => a.Status == AbsenceStatus.Pending && a.User!.IsActive)
+                .Where(a => a.Status == AbsenceStatus.Pending)
                 .AsNoTracking()
                 .OrderBy(a => a.CreatedAt)
                 .ToListAsync();
@@ -64,7 +64,7 @@ namespace NexusERP.Infrastructure.Repositories
             return await _context.UserAbsences
                 .AnyAsync(a =>
                     a.UserId == userId &&
-                    a.Status != AbsenceStatus.Rejected && // Ignore rejected requests
+                    a.Status != AbsenceStatus.Rejected && 
                     a.StartDate <= end &&
                     a.EndDate >= start);
         }

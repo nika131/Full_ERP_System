@@ -1,5 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Permissions } from '../constants/permissions';
 
 export default function MainLayout() {
   const { user, logout } = useAuth();
@@ -11,6 +12,8 @@ export default function MainLayout() {
     navigate('/login');
   };
 
+  const canAccess = (permission: string) => user?.permissions?.includes(permission);
+
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
@@ -18,56 +21,50 @@ export default function MainLayout() {
     
         <aside className="w-64 bg-gray-900 text-white flex flex-col">
             <div className="p-4 bg-gray-950 border-b border-gray-800">
-            <h2 className="text-xxl font-bold tracking-wider text-emerald-400! hover:text-emerald-600!">NEXUS ERP</h2>
+                <h2 className="text-xl font-bold tracking-wider text-emerald-400">NEXUS ERP</h2>
             </div>
             
             <nav className="flex-1 p-4 space-y-2">
-                <Link 
-                    to="/dashboard" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/dashboard') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
-                >
-                    Dashboard
-                </Link>
-                
-                <Link 
-                    to="/profile" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/profile') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
-                >
+                <Link to="/profile" className={`block px-4 py-2 rounded transition-colors ${isActive('/profile') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
                     My Profile
                 </Link>
 
-                <Link 
-                    to="/inventory" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/inventory') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
-                >
-                    Inventory
-                </Link>
-                <Link 
-                    to="/suppliers" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/suppliers') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
-                >
-                    Suppliers
-                </Link>
-                <Link 
-                    to="/categories" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/categories') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
-                >
-                    Categories
-                </Link>
+                {canAccess(Permissions.ViewDashboard) && (
+                    <Link to="/dashboard" className={`block px-4 py-2 rounded transition-colors ${isActive('/dashboard') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Dashboard
+                    </Link>
+                )}
+
+                {/* Conditional Navigation Links */}
+                {canAccess(Permissions.ViewProducts) && (
+                    <Link to="/inventory" className={`block px-4 py-2 rounded transition-colors ${isActive('/inventory') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Inventory
+                    </Link>
+                )}
+
+                {canAccess(Permissions.ManageSuppliers) && (
+                    <Link to="/suppliers" className={`block px-4 py-2 rounded transition-colors ${isActive('/suppliers') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Suppliers
+                    </Link>
+                )}
+
+                {canAccess(Permissions.ManageCategories) && (
+                    <Link to="/categories" className={`block px-4 py-2 rounded transition-colors ${isActive('/categories') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Categories
+                    </Link>
+                )}
                 
-                <Link 
-                    to="/employees" 
-                    className={`block px-4 py-2 rounded transition-colors ${isActive('/employees') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
-                >
-                    Employees
-                </Link>
+                {canAccess(Permissions.ManageUsers) && (
+                    <Link to="/employees" className={`block px-4 py-2 rounded transition-colors ${isActive('/employees') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Employees
+                    </Link>
+                )}
             
-                <Link 
-                to="/logs" 
-                className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/logs') ? 'bg-emerald-600' : 'hover:bg-gray-800 text-gray-400'}`}
-                >
-                System Logs
-                </Link>
+                {canAccess(Permissions.ViewAuditLogs) && (
+                    <Link to="/logs" className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/logs') ? 'bg-emerald-600' : 'hover:bg-gray-800 text-gray-400'}`}>
+                        System Logs
+                    </Link>
+                )}
             </nav>
         </aside>
 

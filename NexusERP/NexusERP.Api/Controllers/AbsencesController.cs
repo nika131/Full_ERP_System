@@ -57,7 +57,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPut("{id}/review")]
-        [Authorize(Policy = "Absences.Manage")] 
+        [Authorize(Policy = "RequireAbsenceManage")] 
         public async Task<IActionResult> ReviewLeave(int id, [FromBody] LeaveReviewDto dto)
         {
             await _service.ReviewRequestAsync(id, User.GetCurrentUserId(), dto.Status, dto.ReviewerComments);

@@ -23,4 +23,5 @@ namespace NexusERP.Api.DTOs
         [Required(ErrorMessage = "Role is required.")]
         public int RoleId { get; set; }
     }
+
 }

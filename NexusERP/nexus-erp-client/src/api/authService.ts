@@ -16,5 +16,15 @@ export const authService = {
 
     isAuthenticated: () => {
         return !!localStorage.getItem('jwt_token');
+    },
+
+    register: async (data: { 
+        fullName: string; 
+        username: string; 
+        password: string; 
+        roleId: number 
+    }) => {
+        const response = await apiClient.post('/auth/register', data);
+        return response.data;
     }
 };

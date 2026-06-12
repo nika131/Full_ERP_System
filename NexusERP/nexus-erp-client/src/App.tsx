@@ -12,6 +12,7 @@ import { Toaster } from 'react-hot-toast';
 import { Permissions } from './constants/permissions';
 import Profile from './pages/Profile';
 import EmployeeList from './pages/EmployeeList';
+import PendingLeaves from './pages/PendingLeaves';
 
 
 function App() {
@@ -26,10 +27,13 @@ return (
 
             <Route element={<MainLayout />}>
               
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/" element={<Navigate to="/profile" replace />} />
 
               <Route path="/profile" element={<Profile />} />
+
+              <Route element={<ProtectedRoute requiredPermission={Permissions.ViewDashboard} />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+              </Route>
 
               <Route element={<ProtectedRoute requiredPermission={Permissions.ManageUsers} />}>
                 <Route path="/employees" element={<EmployeeList />} />
@@ -51,10 +55,14 @@ return (
                 <Route path="/logs" element={<AuditLogsList />} />
               </Route>
 
+              <Route element={<ProtectedRoute requiredPermission={Permissions.ManageUsers} />}>
+                <Route path="/pending-leaves" element={<PendingLeaves />} />
+              </Route>
+
             </Route>
           </Route>
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/profile" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

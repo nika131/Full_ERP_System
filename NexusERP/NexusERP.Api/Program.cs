@@ -41,6 +41,8 @@ builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IAbsenceRepository, AbsenceRepository>();
 
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IAbsenceService, AbsenceService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<IPdfExportService, PdfExportService>();
@@ -80,6 +82,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireViewDashboard", policy => policy.RequireClaim("Permission", Permissions.ViewDashboard));
 
     options.AddPolicy("RequireExportExcel", policy => policy.RequireClaim("Permission", Permissions.ExportExcelTransactions));
+
+    options.AddPolicy("RequireAbsenceManage", policy => policy.RequireClaim("Permission", Permissions.ManageAbsences));
 });
 
 

@@ -7,6 +7,8 @@ import { absenceService } from "../api/absenceService";
 import type { EmployeeResponse } from "../types/employee";
 import { EmployeeManagerForm } from "../components/hr/EmployeeManagerForm";
 import { RolesManager } from "../components/hr/RolesManager";
+import { useNavigate } from "react-router-dom";
+import { InviteEmployeeModal } from "../components/hr/InviteEmployeeModal";
 
 export default function EmployeeList() {
     const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
@@ -26,6 +28,10 @@ export default function EmployeeList() {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const [activeView, setActiveView] = useState<'Directory' | 'Roles'>('Directory');
+
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const controller = new AbortController();
@@ -111,7 +117,23 @@ export default function EmployeeList() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800">Employee Directory</h2>
-            
+                <div className="flex justify-between items-center border-b border-slate-200 pb-4">
+                    <button 
+                        onClick={() => setIsInviteModalOpen(true)}
+                        className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700"
+                    >
+                        + Invite Employee
+                    </button>
+
+                    {/* ... tabs ... */}
+
+                    {isInviteModalOpen && (
+                        <InviteEmployeeModal 
+                            onClose={() => setIsInviteModalOpen(false)} 
+                            onSuccess={() => { setIsInviteModalOpen(false); }} 
+                        />
+                    )}
+                </div>
                 <div className="flex bg-slate-100 p-1 rounded-lg">
                     <button 
                         onClick={() => setActiveView('Directory')}
@@ -152,7 +174,9 @@ export default function EmployeeList() {
                         </div>
                         <div className="bg-emerald-700 p-4 rounded-lg shadow-sm border border-emerald-600 text-white">
                             <p className="text-sm font-medium text-slate-300">Quick Actions</p>
-                            <button className="mt-2 text-sm font-medium text-white-300 hover:text-emerald-200">
+                            <button 
+                                onClick={() => navigate('/pending-leaves')}
+                            className="mt-2 text-sm font-medium text-white-300 hover:text-emerald-200">
                                 View Pending Leaves →
                             </button>
                         </div>
