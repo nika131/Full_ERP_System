@@ -26,7 +26,9 @@ namespace NexusERP.Infrastructure.Repositories
         }
         public async Task<PagedResult<Supplier>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
-            var baseQuery = _context.Suppliers.AsNoTracking().AsQueryable();
+            var baseQuery = _context.Suppliers
+                .Where(s => s.IsActive)
+                .AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -98,8 +100,8 @@ namespace NexusERP.Infrastructure.Repositories
                         UserId = userId,
                         EntityType = "Supplier",
                         EntityId = supplier.SupplierId,
-                        Action = "Update",
-                        ChangesMade = $"Updated Supplier '{supplier.CompanyName}'"
+                        Action = "Delete",
+                        ChangesMade = $"Delete Supplier '{supplier.CompanyName}'"
                     };
                     _context.SystemAuditLogs.Add(audit);
                 }
@@ -118,22 +120,21 @@ namespace NexusERP.Infrastructure.Repositories
         {
             var supplier = await _context.Suppliers.FindAsync(id);
 
-            if (supplier != null)
+            if (supplier == null || !supplier.IsActive) throw new AppException("Supplier not Found.");
+     
+            supplier.IsActive = false;
+
+            var audit = new SystemAuditLog
             {
-                supplier.IsActive = false;
+                UserId = UserId,
+                EntityType = "Supplier",
+                EntityId = supplier.SupplierId,
+                Action = "Delete",
+                ChangesMade = $"Deleted product '{supplier.CompanyName}'"
+            };
 
-                var audit = new SystemAuditLog
-                {
-                    UserId = UserId,
-                    EntityType = "Supplier",
-                    EntityId = supplier.SupplierId,
-                    Action = "Delete",
-                    ChangesMade = $"Deleted product '{supplier.CompanyName}'"
-                };
-
-                _context.SystemAuditLogs.Add(audit);
-                await _context.SaveChangesAsync();
-            }
+            _context.SystemAuditLogs.Add(audit);
+            await _context.SaveChangesAsync();
         }
     }
 }

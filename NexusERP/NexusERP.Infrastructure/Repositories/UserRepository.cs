@@ -32,6 +32,7 @@ namespace NexusERP.Infrastructure.Repositories
             {
                 user.IsActive = true;
                 _context.Users.Add(user);
+
                 await _context.SaveChangesAsync();
 
                 var audit = new SystemAuditLog
@@ -45,7 +46,6 @@ namespace NexusERP.Infrastructure.Repositories
 
                 _context.SystemAuditLogs.Add(audit);
                 await _context.SaveChangesAsync();
-
                 await transaction.CommitAsync();
             }
             catch
@@ -77,18 +77,50 @@ namespace NexusERP.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task DeleteUser(int targetUserId, int actorUserId)
+        {
+            var user = await _context.Users.FindAsync(targetUserId);
+            if (user == null || !user.IsActive) return;
+
+            user.IsActive = false;
+
+
+            var audit = new SystemAuditLog
+            {
+                UserId = actorUserId,
+                EntityType = "User",
+                EntityId = user.UserId,
+                Action = "Delete",
+                ChangesMade = $"Deleted User '{user.Username}'"
+            };
+
+            _context.SystemAuditLogs.Add(audit);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<User?> GetUserByUsername(string username)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .AsNoTracking()
+                .Where(u => u.IsActive)
+                .FirstOrDefaultAsync(u => u.Username == username);
+        }
+
         public async Task<PagedResult<User>> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm, string roleFilter)
         {
             var baseQuery = _context.Users
                 .Include(u => u.Role)
-                .AsNoTracking()
-                .AsQueryable();
+                .Where(u => u.IsActive)
+                .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
+                bool isNumberic = int.TryParse(searchTerm, out int searchId);
                 baseQuery = baseQuery.Where(u => u.Username.Contains(searchTerm) ||
-                                                u.FullName.Contains(searchTerm) ||
-                                                u.UserId.ToString().Contains(searchTerm));
+                    u.FullName.Contains(searchTerm) ||
+                    (isNumberic && u.UserId == searchId)
+                );
             }
 
             if (!string.IsNullOrWhiteSpace(roleFilter) && !roleFilter.Equals("All", StringComparison.OrdinalIgnoreCase))
@@ -113,40 +145,10 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public async Task DeleteUser(int targetUserId, int actorUserId)
-        {
-            var user = await _context.Users.FindAsync(targetUserId);
-
-            if (user == null) return;
-
-            user.IsActive = false;
-
-
-            var audit = new SystemAuditLog
-            {
-                UserId = actorUserId,
-                EntityType = "User",
-                EntityId = user.UserId,
-                Action = "Delete",
-                ChangesMade = $"Deleted User '{user.Username}'"
-            };
-
-            _context.SystemAuditLogs.Add(audit);
-            await _context.SaveChangesAsync();  
-        }
-
-        public async Task<User?> GetUserByUsername(string username)
-        {
-            return await _context.Users
-                .Include(u => u.Role) 
-                .AsNoTracking()    
-                .FirstOrDefaultAsync(u => u.Username == username);
-        }
-
         public async Task AddSalaryRecordAsync(int userId, SalaryRecord record)
         {
-            var userExists = await _context.Users.AnyAsync(u => u.UserId == userId);
-            if (!userExists) throw new AppException("User not found.");
+            var userExists = await _context.Users.AnyAsync(u => u.UserId == userId && u.IsActive);
+            if(!userExists) throw new AppException("Active user not found for payroll assignment.");
 
             record.UserId = userId;
             await _context.SalaryRecords.AddAsync(record);
@@ -158,6 +160,7 @@ namespace NexusERP.Infrastructure.Repositories
             return await _context.SalaryRecords
                 .Where(s => s.UserId == userId)
                 .OrderByDescending(s => s.EffectiveDate) 
+                .AsNoTracking()
                 .ToListAsync();
         }
     }

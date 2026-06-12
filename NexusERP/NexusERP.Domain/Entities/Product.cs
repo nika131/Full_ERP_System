@@ -14,13 +14,13 @@ namespace NexusERP.Domain.Entities
         public int ProductId { get; set; }
         public string Name { get; set; } = string.Empty;
 
-        [ConcurrencyCheck]
         public int CategoryId { get; set; }
         public Category Category { get; set; }
 
         public int? SupplierId { get; set; }
         public Supplier? Supplier { get; set; }
 
+        [ConcurrencyCheck]
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }

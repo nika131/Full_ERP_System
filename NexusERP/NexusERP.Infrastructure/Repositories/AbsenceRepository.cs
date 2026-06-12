@@ -21,36 +21,21 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<UserAbsence> SubmitRequestAsync(int userId, UserAbsence absence)
+        public async Task<UserAbsence> SubmitRequestAsync(UserAbsence absence)
         {
-            if (absence.EndDate < absence.StartDate)
-                throw new AppException("End date cannot be before start date.");
-
-            absence.UserId = userId;
-            absence.Status = AbsenceStatus.Pending;
-
             await _context.UserAbsences.AddAsync(absence);
             await _context.SaveChangesAsync();
             return absence;
         }
 
-        public async Task ReviewRequestAsync(int absenceId, int reviewerId, string status, string? comments)
+        public async Task ReviewRequestAsync(UserAbsence absence)
         {
-            var absence = await _context.UserAbsences.FindAsync(absenceId);
-            if (absence == null) throw new AppException("Leave request not found.");
-
-            if (absence.Status != AbsenceStatus.Pending)
-                throw new AppException("This request has already been processed.");
-
-            if (!Enum.TryParse<AbsenceStatus>(status, true, out var parsedStatus) || parsedStatus == AbsenceStatus.Pending)
-                throw new AppException("Invalid review status. Must be 'Approved' or 'Rejected'.");
-
-            absence.Status = parsedStatus;
-            absence.ReviewedByUserId = reviewerId;
-            absence.ReviewerComments = comments;
-
-            _context.UserAbsences.Update(absence);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<UserAbsence?> GetByIdAsync(int absenceId)
+        {
+            return await _context.UserAbsences.FindAsync(absenceId);
         }
 
         public async Task<IEnumerable<UserAbsence>> GetMyAbsencesAsync(int userId)
@@ -59,6 +44,7 @@ namespace NexusERP.Infrastructure.Repositories
                 .Include(a => a.User)
                 .Include(a => a.ReviewedBy)
                 .Where(a => a.UserId == userId)
+                .AsNoTracking()
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
         }
@@ -67,9 +53,20 @@ namespace NexusERP.Infrastructure.Repositories
         {
             return await _context.UserAbsences
                 .Include(a => a.User)
-                .Where(a => a.Status == AbsenceStatus.Pending)
+                .Where(a => a.Status == AbsenceStatus.Pending && a.User!.IsActive)
+                .AsNoTracking()
                 .OrderBy(a => a.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<bool> HasOverlappingAbsenceAsync(int userId, DateTime start, DateTime end)
+        {
+            return await _context.UserAbsences
+                .AnyAsync(a =>
+                    a.UserId == userId &&
+                    a.Status != AbsenceStatus.Rejected && // Ignore rejected requests
+                    a.StartDate <= end &&
+                    a.EndDate >= start);
         }
     }
 }

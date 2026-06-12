@@ -46,10 +46,12 @@ namespace NexusERP.Infrastructure.Repositories
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
+                bool isNumeric = int.TryParse(searchTerm, out int searchId);
+
                 baseQuery = baseQuery.Where(t =>
                     (t.Supplier != null && t.Supplier.CompanyName.Contains(searchTerm)) ||
                     (t.Product != null && t.Product.Name.Contains(searchTerm)) ||
-                    t.TransactionId.ToString().Contains(searchTerm)
+                    (isNumeric && t.TransactionId == searchId)
                 );
             }
 
@@ -78,7 +80,7 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<List<RevenueChartData>> GetWeeklyRevenueChart()
         {
-            var startDate = DateTime.Now.Date.AddDays(-6);
+            var startDate = DateTime.UtcNow.Date.AddDays(-6);
 
             var rawData = await _context.InventoryTransactions
                 .Where(t => t.TransactionType == TransactionAction.Sale && t.CreatedAt >= startDate)
@@ -109,17 +111,20 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<List<TopProductChartData>> GetTopPerformingProducts()
         {
+            var cutoffDate = DateTime.UtcNow.AddDays(-14);
+
             return await _context.InventoryTransactions
                 .Include(t => t.Product)
-                .Where(t => t.TransactionType == TransactionAction.Sale)
-                .GroupBy(t => t.Product.Name)
+                .Where(t => t.TransactionType == TransactionAction.Sale && t.CreatedAt >= cutoffDate)
+                .GroupBy(t => new { t.ProductId, t.Product!.Name})
                 .Select(g => new TopProductChartData
                 {
-                    ProductName = g.Key ?? "Unknown",
+                    ProductName = g.Key.Name ?? "Unknown",
                     Revenue = g.Sum(t => t.TotalAmount)
                 })
                 .OrderByDescending(x => x.Revenue)
                 .Take(5)
+                .AsNoTracking()
                 .ToListAsync();
         }
     }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
+using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
@@ -15,10 +16,12 @@ namespace NexusERP.Api.Controllers
     public class AbsencesController : Controller
     {
         private readonly IAbsenceRepository _repository;
+        private readonly IAbsenceService _service;
 
-        public AbsencesController(IAbsenceRepository repository)
+        public AbsencesController(IAbsenceRepository repository, IAbsenceService service)
         {
             _repository = repository;
+            _service = service;
         }
 
         [HttpPost("request")]
@@ -35,7 +38,7 @@ namespace NexusERP.Api.Controllers
                 Notes = dto.Notes
             };
 
-            await _repository.SubmitRequestAsync(User.GetCurrentUserId(), absence);
+            await _service.SubmitRequestAsync(User.GetCurrentUserId(), absence);
             return Ok(new { message = "Leave request submitted successfully." });
         }
 
@@ -57,7 +60,7 @@ namespace NexusERP.Api.Controllers
         [Authorize(Policy = "Absences.Manage")] 
         public async Task<IActionResult> ReviewLeave(int id, [FromBody] LeaveReviewDto dto)
         {
-            await _repository.ReviewRequestAsync(id, User.GetCurrentUserId(), dto.Status, dto.ReviewerComments);
+            await _service.ReviewRequestAsync(id, User.GetCurrentUserId(), dto.Status, dto.ReviewerComments);
             return Ok(new { message = $"Leave request {dto.Status.ToLower()}." });
         }
 

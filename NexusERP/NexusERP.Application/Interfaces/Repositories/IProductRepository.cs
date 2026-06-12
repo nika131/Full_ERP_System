@@ -13,7 +13,8 @@ namespace NexusERP.Application.Interfaces.Repositories
     {
         Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm);
         Task Upsert(Product product, int userId);
-        Task LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType);
+        Task SaveTransaction(InventoryTransaction transaction, Product product);
+        Task<Product> GetByIdAsync(int id);
         Task Delete(int id, int userId);
         Task<DashboardResponse> GetDashboardAggregates();
     }

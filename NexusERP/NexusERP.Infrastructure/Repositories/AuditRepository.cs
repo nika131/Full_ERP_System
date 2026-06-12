@@ -27,13 +27,19 @@ namespace NexusERP.Infrastructure.Repositories
                 .Include(log => log.User)
                 .AsNoTracking();
 
+            var endDate = DateTime.UtcNow.AddDays(-30);
+
+            baseQuery = baseQuery.Where(log => log.CreatedAt >= endDate);
+
             if (!string.IsNullOrEmpty(searchTerm))
             {
+                bool isNumeric = int.TryParse(searchTerm, out int searchUserId);
                 baseQuery = baseQuery.Where(log =>
                     log.Action.Contains(searchTerm) ||
                     log.EntityType.Contains(searchTerm) ||
                     log.ChangesMade.Contains(searchTerm) ||
-                    (log.User != null && log.User.UserId.ToString().Contains(searchTerm)));
+                    (isNumeric && log.UserId == searchUserId)
+                );
             }
 
             var totalCount = await baseQuery.CountAsync();

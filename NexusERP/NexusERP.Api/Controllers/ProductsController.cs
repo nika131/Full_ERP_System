@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.DTOs;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
+using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Constants;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -17,10 +18,12 @@ namespace NexusERP.Api.Controllers
     public class ProductsController : Controller
     {
         private readonly IProductRepository _repository;
+        private readonly IInventoryService _inventoryService;
         
-        public ProductsController(IProductRepository repository)
+        public ProductsController(IProductRepository repository, IInventoryService inventoryService)
         {
             _repository = repository;
+            _inventoryService = inventoryService;
         }
 
         [HttpGet]
@@ -78,25 +81,32 @@ namespace NexusERP.Api.Controllers
         [Authorize]
         public async Task<IActionResult> MakeTransaction([FromBody] TransactionRequestDto dto)
         {
-            if (dto.TransactionType != "Sale" && !User.HasPermission(Permissions.PerformSales))
+            if (!Enum.TryParse<TransactionAction>(dto.TransactionType, true, out var parsedAction))
             {
-                return Forbid("Missing Perform Sales permission.");
+                return BadRequest(new { message = $"Invalid transaction type: '{dto.TransactionType}'." });
             }
 
-            if (dto.TransactionType != "Sale" && !User.HasPermission(Permissions.PerformInboundTransactions))
+            bool isSale = parsedAction == TransactionAction.Sale;
+
+            if (isSale && !User.HasPermission(Permissions.PerformSales))
             {
-                return Forbid("Missing Inbound Inventory permission.");
+                return StatusCode(403, "Missing Perform Sales permission.");
+            }
+
+            if (!isSale && !User.HasPermission(Permissions.PerformInboundTransactions))
+            {
+                return StatusCode(403, "Missing Inbound Inventory permission.");
             }
 
             var transactionEntity = new InventoryTransaction
             {
                 ProductId = dto.ProductId,
                 SupplierId = dto.SupplierId > 0 ? dto.SupplierId : null,
-                TransactionType = Enum.Parse<TransactionAction>(dto.TransactionType),
+                TransactionType = parsedAction,
                 Quantity = dto.Quantity
             };
 
-            await _repository.LogInventoryTransaction(transactionEntity, User.GetCurrentUserId(), dto.TransactionType);
+            await _inventoryService.ProcessTransaction(transactionEntity, User.GetCurrentUserId(), dto.TransactionType);
 
             return Ok(new { message = $"Transaction ({dto.TransactionType}) logged successfully." });
         }

@@ -4,6 +4,7 @@ using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
+using NexusERP.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,7 +23,9 @@ namespace NexusERP.Infrastructure.Repositories
         }
         public async Task<PagedResult<Category>> GetPagedCategories(int pageNumber, int pageSize, string? searchTerm)
         {
-            var query = _context.Categories.AsNoTracking().AsQueryable();
+            var query = _context.Categories
+                .Where(c => c.IsActive)
+                .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -46,9 +49,12 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<IEnumerable<Category>> GetAllActive()
         {
-            return await _context.Categories.AsNoTracking()
+            return await _context.Categories
+                .AsNoTracking()
+                .Where(c => c.IsActive)
                 .Select(c => new Category {  CategoryId = c.CategoryId, CategoryName = c.CategoryName })
-                .OrderBy(c => c.CategoryName).ToListAsync();
+                .OrderBy(c => c.CategoryName)
+                .ToListAsync();
         }
 
         public async Task Upsert(Category category, int UserId)
@@ -58,6 +64,7 @@ namespace NexusERP.Infrastructure.Repositories
             {
                 if (category.CategoryId == 0)
                 {
+                    category.IsActive = true;
                     await _context.Categories.AddAsync(category);
                     await _context.SaveChangesAsync();
 
@@ -74,8 +81,12 @@ namespace NexusERP.Infrastructure.Repositories
                 }
                 else
                 {
-                    _context.Categories.Update(category);
+                    var existing = await _context.Categories.FindAsync(category.CategoryId);
+                    if (existing == null || !existing.IsActive)
+                        throw new AppException("Category not found or is inactive");
 
+                    existing.CategoryName = category.CategoryName; 
+                    
                     var audit = new SystemAuditLog
                     {
                         UserId = UserId,
@@ -87,6 +98,7 @@ namespace NexusERP.Infrastructure.Repositories
 
                     await _context.SystemAuditLogs.AddAsync(audit);
                 }
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -100,8 +112,13 @@ namespace NexusERP.Infrastructure.Repositories
         public async Task Delete(int id, int UserId)
         {
             var category = await _context.Categories.FindAsync(id);
-            if (category == null) return;
+            if (category == null || !category.IsActive)
+                throw new AppException("Category not found");
 
+            bool hasActiveProducts = await _context.Products.AnyAsync(p => p.CategoryId == id && p.IsActive);
+            if (hasActiveProducts)
+                throw new AppException("Cannot delete this category because it contains active products. Reassign the products first.");
+            
             category.IsActive = false;
 
             var audit = new SystemAuditLog

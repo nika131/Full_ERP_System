@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
@@ -28,15 +29,19 @@ namespace NexusERP.Infrastructure.Repositories
             var baseQuery = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
+                .Where(p => p.IsActive)
                 .AsNoTracking();
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                baseQuery = baseQuery.Where(p => p.Name.Contains(searchTerm) || p.ProductId.ToString() == searchTerm);
+                bool isNumeric = int.TryParse(searchTerm, out int searchId);
+                baseQuery = baseQuery.Where(p => 
+                    p.Name.Contains(searchTerm) || 
+                    (isNumeric && p.ProductId == searchId)
+                );
             }
 
             var totalCount = await baseQuery.CountAsync();
-
             var items = await baseQuery
                 .OrderByDescending(p => p.ProductId)
                 .Skip((pageNumber - 1) * pageSize)
@@ -88,55 +93,18 @@ namespace NexusERP.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task LogInventoryTransaction(InventoryTransaction transaction, int userId, string transactionType)
+        public async Task SaveTransaction(InventoryTransaction transaction, Product product)
         {
-            using var tran = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var qty = Math.Abs(transaction.Quantity);
-                transaction.Quantity = qty;
-                transaction.UserId = userId;
+            _context.InventoryTransactions.Add(transaction);
+            _context.Products.Update(product); 
+            await _context.SaveChangesAsync();
+        }
 
-                var product = await _context.Products.FindAsync(transaction.ProductId);
-                if (product == null) throw new AppException("Product not found.");
-
-                switch (transactionType)
-                {
-                    case "Sale":
-                        if (product.Quantity < qty) throw new AppException($"Insufficient stock. Only {product.Quantity} available.");
-                        product.Quantity -= qty;
-                        break;
-
-                    case "Loss": 
-                    case "Damage":
-                        if (product.Quantity < qty) throw new AppException($"Cannot deduct {qty}. Only {product.Quantity} available.");
-                        product.Quantity -= qty;
-                        transaction.Profit = -(product.CostPrice * qty);
-                        break;
-
-                    case "Restock":
-                        product.Quantity += qty;
-                        break;
-
-                    default:
-                        throw new AppException("Invalid transaction type.");
-                }
-
-                await _context.InventoryTransactions.AddAsync(transaction);
-                await _context.SaveChangesAsync();
-                await tran.CommitAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                await tran.RollbackAsync();
-                throw new AppException("Inventory was modified by another user. Please refresh and try again.");
-            }
-            catch
-            {
-                await tran.RollbackAsync();
-                throw; 
-            }
-
+        public async Task<Product> GetByIdAsync(int id)
+        {
+            return await _context.Products
+                .Where(p => p.IsActive)
+                .FirstAsync(p => id == p.ProductId);
         }
 
         public async Task Delete(int productId, int userId)
@@ -163,18 +131,30 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<DashboardResponse> GetDashboardAggregates()
         {
-            var stats = await _context.Products
+            var inventoryStats = await _context.Products
+                .Where(p => p.IsActive)
                 .GroupBy(p => 1)
-                .Select(g => new DashboardResponse
+                .Select(g => new 
                 {
                     TotalValue = g.Sum(p => p.Price * p.Quantity),
                     TotalCost = g.Sum(p => p.CostPrice * p.Quantity),
-                }).FirstOrDefaultAsync() ?? new DashboardResponse();
+                    lowStockCount = g.Count(p => p.Quantity < 5)
+                }).FirstOrDefaultAsync();
 
-            stats.LowStockCount = await _context.Products.CountAsync(p => p.Quantity < 5);
+            var realizedProfit = await _context.InventoryTransactions
+                .Where(t => t.TransactionType == TransactionAction.Sale)
+                .SumAsync(t => t.Profit);
 
-            stats.TotalProfit = stats.TotalValue - stats.TotalCost;
-            stats.MarginPrecentage = stats.TotalValue > 0 ? (stats.TotalProfit / stats.TotalValue) * 100 : 0;
+            var stats = new DashboardResponse
+            {
+                TotalValue = inventoryStats?.TotalValue ?? 0,
+                TotalCost = inventoryStats?.TotalCost ?? 0,
+                LowStockCount = inventoryStats?.lowStockCount ?? 0,
+                TotalProfit = realizedProfit,
+                MarginPrecentage = (inventoryStats?.TotalValue ?? 0) > 0
+                    ? (realizedProfit / inventoryStats!.TotalValue) * 100
+                    : 0
+            };
 
             if (stats.MarginPrecentage > 30 && stats.LowStockCount == 0)
                 stats.InventoryHealth = "EXCELLENT";

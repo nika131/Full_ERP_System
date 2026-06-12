@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Exceptions;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
 using System;
@@ -22,7 +23,9 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<PagedResult<Role>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
         {
-            var baseQuery = _context.Roles.AsNoTracking();
+            var baseQuery = _context.Roles
+                .Where(r => r.IsActive)
+                .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -50,6 +53,7 @@ namespace NexusERP.Infrastructure.Repositories
         {
             return await _context.Roles
                 .AsNoTracking()
+                .Where(r => r.IsActive)
                 .OrderBy(r => r.Name)
                 .ToListAsync();
         }
@@ -66,13 +70,16 @@ namespace NexusERP.Infrastructure.Repositories
 
                 if (isNew)
                 {
+                    role.IsActive = true;
                     _context.Roles.Add(role);
                     await _context.SaveChangesAsync();
                 }
                 else
                 {
                     var existing = await _context.Roles.FindAsync(role.RoleId);
-                    if (existing == null) throw new Exception("Role not found");
+
+                    if (existing == null || !existing.IsActive) 
+                        throw new Exception("Role not found");
 
                     existing.Name = role.Name;
                     existing.Permissions = role.Permissions;
@@ -104,22 +111,27 @@ namespace NexusERP.Infrastructure.Repositories
         public async Task Delete(int id, int userId)
         {
             var role = await _context.Roles.FindAsync(id);
-            if (role != null)
+
+            if (role == null || !role.IsActive)
+                throw new AppException("Role not Found");
+
+            bool isRoleInUse = await _context.Users.AnyAsync(u => u.RoleId == id && u.IsActive);
+            if (isRoleInUse)
+                throw new AppException("Cannot delete thie role. It is currently assigned to active users.");
+
+            role.IsActive = false;
+
+            var audit = new SystemAuditLog
             {
-                role.IsActive = false;
+                UserId = userId,
+                EntityType = "Role",
+                EntityId = role.RoleId,
+                Action = "Delete",
+                ChangesMade = $"Deleted role '{role.Name}'"
+            };
 
-                var audit = new SystemAuditLog
-                {
-                    UserId = userId,
-                    EntityType = "Role",
-                    EntityId = role.RoleId,
-                    Action = "Delete",
-                    ChangesMade = $"Deleted role '{role.Name}'"
-                };
-
-                _context.SystemAuditLogs.Add(audit);
-                await _context.SaveChangesAsync();
-            }
+            _context.SystemAuditLogs.Add(audit);
+            await _context.SaveChangesAsync();
         }
     }
 }

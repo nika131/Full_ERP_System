@@ -12,6 +12,7 @@ namespace NexusERP.Domain.Enums
         Edit,
         Restock,
         Sale,
-        Adjustment
+        Loss,
+        Damage
     }
 }
