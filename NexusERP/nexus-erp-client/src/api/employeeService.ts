@@ -39,6 +39,11 @@ export const employeeService = {
         return response.data;
     },
 
+    getMySalaryHistory: async (signal?: AbortSignal): Promise<SalaryRecordResponse[]> => {
+        const response = await apiClient.get(`/employees/mysalary`, { signal });
+        return response.data;
+    },
+
     addSalaryRecord: async (userId: number, payload: SalaryRecordCreatePayload): Promise<void> => {
         await apiClient.post(`/employees/${userId}/salary`, payload);
     }

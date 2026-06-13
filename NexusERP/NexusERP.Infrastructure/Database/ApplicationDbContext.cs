@@ -94,17 +94,12 @@ namespace NexusERP.Infrastructure.Database
                         v => v.ToString(),
                         v => (AbsenceStatus)Enum.Parse(typeof(AbsenceStatus), v));
 
-                entity.Property(e => e.Status)
-                    .HasConversion(
-                        v => v.ToString(),
-                        v => (AbsenceStatus)Enum.Parse(typeof(AbsenceStatus), v));
-
                 entity.HasOne(e => e.User)
                     .WithMany(u => u.Absences)
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasOne(e => e.User)
+                entity.HasOne(e => e.ReviewedBy)
                     .WithMany()
                     .HasForeignKey(e => e.ReviewedByUserId)
                     .OnDelete(DeleteBehavior.Restrict);

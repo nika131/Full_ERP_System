@@ -108,9 +108,34 @@ namespace NexusERP.Api.Controllers
             return Ok(safeData);
         }
 
+        [HttpGet("mysalary")]
+        public async Task<IActionResult> GetMySalaryHistory()
+        {
+            var currentUserId = User.GetCurrentUserId();
+            var history = await _repository.GetSalaryHistoryAsync(currentUserId);
+
+            var safeData = history.Select(s => new SalaryRecordResponseDto
+            {
+                SalaryRecordId = s.SalaryRecordId,
+                Amount = s.Amount,
+                EffectiveDate = s.EffectiveDate,
+                Notes = s.Notes,
+                CreatedAt = s.CreatedAt
+            }).ToList();
+
+            return Ok(safeData);
+        }
+
         [HttpPost("{id}/salary")]
         public async Task<IActionResult> AddSalaryRecord(int id, [FromBody] SalaryRecordCreateDto dto)
         {
+            int currentUserId = User.GetCurrentUserId();
+
+            if (id == currentUserId)
+            {
+                return BadRequest(new { message = "Security Lock: You cannot set your own Salary." });
+            }
+
             var record = new SalaryRecord
             {
                 Amount = dto.Amount,

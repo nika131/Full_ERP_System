@@ -50,6 +50,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("pending")]
+        [Authorize(Policy = "RequireAbsenceManage")]
         public async Task<IActionResult> GetPendingRequests()
         {
             var absences = await _repository.GetPendingRequestsAsync();

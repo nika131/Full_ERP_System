@@ -3,10 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { absenceService } from '../api/absenceService';
 import type { LeaveResponse } from '../types/absence';
 import { LeaveRequestForm } from '../components/hr/LeaveRequestForm';
+import type { SalaryRecordResponse } from '../types/employee';
+import { employeeService } from '../api/employeeService';
 
 export default function Profile() {
     const { user } = useAuth();
     const [history, setHistory] = useState<LeaveResponse[]>([]);
+    const [salaryHistory, setSalaryHistory] = useState<SalaryRecordResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isRequesting, setIsRequesting] = useState(false);
 
@@ -14,7 +17,9 @@ export default function Profile() {
         try {
             setIsLoading(true);
             const data = await absenceService.getMyHistory();
+            const salaryData = await employeeService.getMySalaryHistory()
             setHistory(data);
+            setSalaryHistory(salaryData);
         } catch (error) {
             console.error("Failed to load absence history", error);
         } finally {
@@ -26,7 +31,6 @@ export default function Profile() {
         loadHistory();
     }, []);
 
-    // Calculate Statistics
     const pendingRequests = history.filter(h => h.status === 'Pending').length;
     const approvedLeaves = history.filter(h => h.status === 'Approved').length;
 
@@ -121,6 +125,34 @@ export default function Profile() {
                                         No leave history found.
                                     </td>
                                 </tr>
+                            )}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+
+            <div>
+                <h4 className="text-sm font-bold text-slate-800 mb-2">Salary History</h4>
+                {isLoading ? <p className="text-sm text-slate-500">Loading...</p> : (
+                    <table className="w-full text-left text-sm border border-slate-200">
+                        <thead className="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th className="p-2">Amount</th>
+                                <th className="p-2">Effective</th>
+                                <th className="p-2">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                            {salaryHistory.map(record => (
+                                <tr key={record.salaryRecordId}>
+                                    <td className="p-2 font-medium text-emerald-600">${record.amount.toLocaleString()}</td>
+                                    <td className="p-2">{new Date(record.effectiveDate).toLocaleDateString()}</td>
+                                    <td className="p-2 text-slate-500">{record.notes || '-'}</td>
+                                </tr>
+                            ))}
+                            {salaryHistory.length === 0 && (
+                                <tr><td colSpan={3} className="p-4 text-center text-slate-500">No salary history found.</td></tr>
                             )}
                         </tbody>
                     </table>
