@@ -1,4 +1,4 @@
-import type { CategoryResponse } from "../types/category";
+import type { CategoryLookup, CategoryResponse } from "../types/category";
 import type { PagedResult } from "../types/pagination";
 import apiClient from "./apiClient";
 
@@ -15,4 +15,9 @@ export const categoryService = {
 
     deleteCategory: async (id: number): 
         Promise<void> => apiClient.delete(`/categories/${id}`),
+
+    getLookupCategories: async (): Promise<CategoryLookup[]> => {
+        const response = await apiClient.get('/categories/lookup');
+        return response.data;
+    },
 }

@@ -21,7 +21,7 @@ export default function Login() {
         try {
             const response = await authService.login({ username, password });
             login(response.data.token);
-            navigate('/dashboard');
+            navigate('/profile');
         } catch (err: any) {
             setError('Invalid username or password');
         } finally {

@@ -9,6 +9,8 @@ import { EmployeeManagerForm } from "../components/hr/EmployeeManagerForm";
 import { RolesManager } from "../components/hr/RolesManager";
 import { useNavigate } from "react-router-dom";
 import { InviteEmployeeModal } from "../components/hr/InviteEmployeeModal";
+import type { RoleLookup } from "../types/role";
+import { roleService } from "../api/roleService";
 
 export default function EmployeeList() {
     const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
@@ -19,6 +21,8 @@ export default function EmployeeList() {
     const [totalCount, setTotalCount] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('All');
+
+    const [roles, setRoles] = useState<RoleLookup[]>([]);
 
     const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
 
@@ -41,6 +45,19 @@ export default function EmployeeList() {
         }, 300);
         return () => { clearTimeout(timer); controller.abort(); }
     }, [page, searchTerm, roleFilter]);
+
+    useEffect(() => {
+        const loadRoles = async () => {
+            try {
+                const data = await roleService.getRoles();
+                setRoles(data);
+            } catch (err) {
+                console.error("Failed to load categories:", err);
+            }
+        };
+
+        loadRoles();
+    }, [])
 
     const loadEmployees = async (signal: AbortSignal) => {
         try {
@@ -187,11 +204,18 @@ export default function EmployeeList() {
                         <div className="flex-1 bg-white p-1 rounded-md shadow-sm border border-slate-200">
                             <input type="text" placeholder="Search employees..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} className="w-full px-3 py-2 outline-none text-sm bg-transparent" />
                         </div>
-                        <select className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}>
+                        <select 
+                            className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+                            value={roleFilter} 
+                            onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+                        >
                             <option value="All">All Roles</option>
-                            <option value="Admin">Admin</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Cashier">Cashier</option>
+
+                            {roles.map((role) => (
+                                <option key={role.roleId} value={role.name}>
+                                    {role.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

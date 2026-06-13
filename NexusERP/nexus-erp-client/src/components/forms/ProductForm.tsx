@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import type { CategoryLookup } from "../../types/category";
 import type { SupplierLookup } from "../../types/supplier";
-import { productService } from "../../api/productService";
+import { categoryService } from "../../api/categoryService";
+import { supplierService } from "../../api/supplierService";
 
 
 interface ProductFormProps {
@@ -40,8 +41,8 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
         const fetchDropdownData = async () => {
             try {
                 const [cats, sups] = await Promise.all([
-                    productService.getCategories(),
-                    productService.getSuppliers()
+                    categoryService.getLookupCategories(),
+                    supplierService.getLookupSuppliers()
                 ]);
                 setCatgeories(cats);
                 setSuppliers(sups);

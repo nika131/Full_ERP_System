@@ -1,8 +1,6 @@
 import apiClient from "./apiClient";
 import { type Product } from "../types/product";
 import { type PagedResult } from "../types/pagination";
-import type { CategoryLookup } from "../types/category";
-import type { SupplierLookup } from "../types/supplier";
 
 export interface TransactionPayLoad {
     productId: number;
@@ -35,16 +33,6 @@ export const productService = {
         await apiClient.post('/products/upsert', productData);
     },
 
-    getCategories: async (): Promise<CategoryLookup[]> => {
-        const response = await apiClient.get('/categories/lookup');
-        return response.data;
-    },
-
-    getSuppliers: async (): Promise<SupplierLookup[]> => {
-        const response = await apiClient.get('/suppliers/lookup');
-        return response.data;
-    },
-
     deleteProduct: async (productId: number): Promise<void> => {
         await apiClient.delete(`/products/${productId}`);
     },
@@ -52,6 +40,5 @@ export const productService = {
     makeTransaction: async (payload: TransactionPayLoad): Promise<void> => {
         await apiClient.post('/products/transaction', payload);
     },
-
 
 };

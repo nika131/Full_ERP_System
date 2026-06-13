@@ -1,5 +1,5 @@
 import type { PagedResult } from "../types/pagination";
-import type { SupplierResponse } from "../types/supplier";
+import type { SupplierLookup, SupplierResponse } from "../types/supplier";
 import apiClient from "./apiClient";
 
 
@@ -25,5 +25,10 @@ export const supplierService = {
 
     deleteSupplier: async (supplierId: number): Promise<void> => {
         await apiClient.delete(`/suppliers/${supplierId}`);
-    }
+    },
+
+    getLookupSuppliers: async (): Promise<SupplierLookup[]> => {
+        const response = await apiClient.get('/suppliers/lookup');
+        return response.data;
+    },
 };
