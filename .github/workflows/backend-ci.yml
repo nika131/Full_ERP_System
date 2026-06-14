@@ -1,0 +1,44 @@
+name: .NET Backedn CI
+
+on: 
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'NexusERP/**/*.cs'
+      - 'NexusERP/**/*.csproj'
+      - 'NexusERP/NexusERP.sln'
+      # blacklist the React frontend
+      - '!NexusERP/nexus-erp-client/**' 
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'NexusERP/**/*.cs'
+      - 'NexusERP/**/*.csproj'
+      - 'NexusERP/NexusERP.sln'
+      - '!NexusERP/nexus-erp-client/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./NexusERP
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore NexusERP.sln
+
+    - name: Build Solution
+      run: dotnet build NexusERP.sln --configuration Release --no-restore
+
+    - name: Execute Unit Tests
+      run: dotnet test NexusERP.sln --configuration Release --no-build --verbosity normal
