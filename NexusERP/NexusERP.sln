@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusERP.Infrastructure", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusERP.Api", "NexusERP.Api\NexusERP.Api.csproj", "{5419CAD8-78AA-4DF5-BF21-1AD13A22187E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexusERP.Tests", "NexusERP.Tests\NexusERP.Tests.csproj", "{2986D216-F382-4DEC-BD7A-F589C8BB71DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{5419CAD8-78AA-4DF5-BF21-1AD13A22187E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5419CAD8-78AA-4DF5-BF21-1AD13A22187E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5419CAD8-78AA-4DF5-BF21-1AD13A22187E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2986D216-F382-4DEC-BD7A-F589C8BB71DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2986D216-F382-4DEC-BD7A-F589C8BB71DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2986D216-F382-4DEC-BD7A-F589C8BB71DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2986D216-F382-4DEC-BD7A-F589C8BB71DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
