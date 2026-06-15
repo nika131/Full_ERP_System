@@ -67,14 +67,19 @@ namespace NexusERP.Infrastructure.Services
                     break;
 
                 case TransactionAction.Restock:
-                    product.Quantity += qty;
+                    var oldQuantity = product.Quantity;
+                    var oldTotalValue = oldQuantity * product.CostPrice;
+
                     transaction.UnitPrice = transaction.UnitPrice > 0 ? transaction.UnitPrice : product.CostPrice;
-                    transaction.TotalAmount = transaction.UnitPrice * qty;
+                    var incomingTotalValue = transaction.UnitPrice * qty;
+
+                    product.Quantity += qty;
+                    transaction.TotalAmount = incomingTotalValue;
                     transaction.Profit = 0;
 
-                    if (transaction.UnitPrice != product.CostPrice && transaction.UnitPrice > 0)
+                    if (product.Quantity > 0)
                     {
-                        product.CostPrice = transaction.UnitPrice;
+                        product.CostPrice = (oldTotalValue + incomingTotalValue) / product.Quantity;
                     }
                     break;
 
