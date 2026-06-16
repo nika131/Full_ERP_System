@@ -72,5 +72,65 @@ namespace NexusERP.Tests
             Assert.Equal(AbsenceStatus.Pending, absence.Status);
             mockRepo.Verify(r => r.SubmitRequestAsync(absence), Times.Once);
         }
+
+
+
+
+        [Fact]
+        public async Task ReviewRequest_AbsenceNotFound_ThrowsAppException()
+        {
+            var mockRepo = new Mock<IAbsenceRepository>();
+            var service = new AbsenceService(mockRepo.Object);
+
+            mockRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((UserAbsence?)null);
+
+            var ex = await Assert.ThrowsAsync<AppException>(() => service.ReviewRequestAsync(1, 99, "Approved", null));
+            Assert.Contains("Leave request not found", ex.Message);
+        }
+
+        [Fact]
+        public async Task ReviewRequest_AlreadyProcessed_ThrowsAppException()
+        {
+            var mockRepo = new Mock<IAbsenceRepository>();
+            var service = new AbsenceService(mockRepo.Object);
+
+            var processedAbsence = new UserAbsence { Status = AbsenceStatus.Approved };
+            mockRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(processedAbsence);
+
+            var ex = await Assert.ThrowsAsync<AppException>(() => service.ReviewRequestAsync(1, 99, "Rejected", null));
+            Assert.Contains("already been processed", ex.Message);
+        }
+
+        [Theory]
+        [InlineData("Pending")]
+        [InlineData("GarbageStatus")]
+        public async Task ReviewRequest_InvalidStatusString_ThrowsAppException(string invalidStatus)
+        {
+            var mockRepo = new Mock<IAbsenceRepository>();
+            var service = new AbsenceService(mockRepo.Object);
+
+            var pendingAbsence = new UserAbsence { Status = AbsenceStatus.Pending };
+            mockRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(pendingAbsence);
+
+            var ex = await Assert.ThrowsAsync<AppException>(() => service.ReviewRequestAsync(1, 99, invalidStatus, null));
+            Assert.Contains("Invalid review status", ex.Message);
+        }
+
+        [Fact]
+        public async Task ReviewRequest_ValidApproval_UpdatesAndSaves()
+        {
+            var mockRepo = new Mock<IAbsenceRepository>();
+            var service = new AbsenceService(mockRepo.Object);
+
+            var pendingAbsence = new UserAbsence { Status = AbsenceStatus.Pending };
+            mockRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(pendingAbsence);
+
+            await service.ReviewRequestAsync(1, 42, "Approved", "Enjoy your vacation");
+
+            Assert.Equal(AbsenceStatus.Approved, pendingAbsence.Status);
+            Assert.Equal(42, pendingAbsence.ReviewedByUserId);
+            Assert.Equal("Enjoy your vacation", pendingAbsence.ReviewerComments);
+            mockRepo.Verify(r => r.ReviewRequestAsync(pendingAbsence), Times.Once);
+        }
     }
 }
