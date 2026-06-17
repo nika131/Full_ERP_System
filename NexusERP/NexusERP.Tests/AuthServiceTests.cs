@@ -64,5 +64,65 @@ namespace NexusERP.Tests
 
             mockRepo.Verify(r => r.CreateUser(It.IsAny<User>(), 99), Times.Once);
         }
+
+
+
+        [Fact]
+        public async Task Login_UserNotFound_ThrowsAppException()
+        {
+            var mockRepo = new Mock<IUserRepository>();
+            var config = BuildFakeConfiguration();
+            var service = new AuthService(mockRepo.Object, config);
+
+            mockRepo.Setup(r => r.GetUserByUsername("ghostuser")).ReturnsAsync((User?)null);
+
+            var ex = await Assert.ThrowsAsync<AppException>(() =>
+                service.Login("ghostuser", "anypassword"));
+
+            Assert.Contains("Invalid username or", ex.Message);
+        }
+
+        [Fact]
+        public async Task Login_InvalidPassword_ThrowsAppException()
+        {
+            var mockRepo = new Mock<IUserRepository>();
+            var config = BuildFakeConfiguration();
+            var service = new AuthService(mockRepo.Object, config);
+
+            var realHash = BCrypt.Net.BCrypt.HashPassword("CorrectPassword123");
+            var dbUser = new User { Username = "validuser", PasswordHash = realHash };
+
+            mockRepo.Setup(r => r.GetUserByUsername("validuser")).ReturnsAsync(dbUser);
+
+            var ex = await Assert.ThrowsAsync<AppException>(() =>
+                service.Login("validuser", "WrongPassword!!"));
+
+            Assert.Contains("Invalid username or password", ex.Message);
+        }
+
+        [Fact]
+        public async Task Login_ValidCredentials_ReturnsJwtToken()
+        {
+            var mockRepo = new Mock<IUserRepository>();
+            var config = BuildFakeConfiguration();
+            var service = new AuthService(mockRepo.Object, config);
+
+            var realHash = BCrypt.Net.BCrypt.HashPassword("CorrectPassword123");
+            var dbUser = new User
+            {
+                UserId = 1,
+                FullName = "System Admin",
+                Username = "validuser",
+                PasswordHash = realHash,
+                Role = new Role { Name = "Admin", Permissions = new List<string> { "Users.Manage" } }
+            };
+
+            mockRepo.Setup(r => r.GetUserByUsername("validuser")).ReturnsAsync(dbUser);
+
+            var token = await service.Login("validuser", "CorrectPassword123");
+
+            Assert.False(string.IsNullOrWhiteSpace(token));
+            Assert.StartsWith("ey", token);
+        }
     }
 }
