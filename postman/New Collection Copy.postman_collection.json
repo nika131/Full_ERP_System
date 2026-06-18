@@ -14,7 +14,7 @@
           "bearer": [
             {
               "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiI2IiwiZ2l2ZW5fbmFtZSI6IlN5c3RlbSBBZG1pbiIsInVuaXF1ZV9uYW1lIjoiYWRtaW4iLCJyb2xlIjoiQWRtaW4iLCJQZXJtaXNzaW9uIjpbIlByb2R1Y3RzLlZpZXciLCJQcm9kdWN0cy5VcHNlcnQiLCJQcm9kdWN0cy5EZWxldGUiLCJDYXRlZ29yaWVzLk1hbmFnZSIsIlN1cHBsaWVycy5NYW5hZ2UiLCJUcmFuc2FjdGlvbnMuUGVyZm9ybVNhbGUiLCJUcmFuc2FjdGlvbnMuUGVyZm9ybUluYm91bmQiLCJSZXBvcnRzLlZpZXdPd24iLCJSZXBvcnRzLlZpZXdBbGwiLCJSZXBvcnRzLkV4cG9ydEV4Y2VsIiwiVXNlcnMuTWFuYWdlIiwiQXVkaXRMb2dzLlZpZXciLCJEYXNoYm9hcmQuVmlldyIsIkFic2VuY2VzLk1hbmFnZSJdLCJuYmYiOjE3ODE4MDgyNjUsImV4cCI6MTc4MTg0NDI2NSwiaWF0IjoxNzgxODA4MjY1fQ.t6R2bCkZJrNHeZVy7pA5UMsHu1DbwPNkd66TQBH_psk",
+              "value": "{{jwt_token}}",
               "type": "string"
             }
           ]
@@ -38,12 +38,32 @@
     },
     {
       "name": "Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "\r",
+              "if (pm.response.code === 200) {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    \r",
+              "    pm.environment.set(\"jwt_token\", jsonData.token);\r",
+              "    \r",
+              "    console.log(\"Token successfully captured and saved to environment.\");\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
       "request": {
         "method": "POST",
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"username\": \"admin\",\r\n  \"password\": \"Admin@123\"\r\n}",
+          "raw": "{\r\n  \"username\": \"{{admin_username}}\",\r\n  \"password\": \"{{admin_password}}\"\r\n}",
           "options": {
             "raw": {
               "language": "json"
