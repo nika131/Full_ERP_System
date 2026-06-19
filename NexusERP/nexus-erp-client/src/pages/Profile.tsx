@@ -16,9 +16,12 @@ export default function Profile() {
     const loadHistory = async () => {
         try {
             setIsLoading(true);
-            const data = await absenceService.getMyHistory();
-            const salaryData = await employeeService.getMySalaryHistory()
-            setHistory(data);
+            const [absenceData, salaryData] = await Promise.all([
+                absenceService.getMyHistory(),
+                employeeService.getMySalaryHistory()
+            ]);
+
+            setHistory(absenceData);
             setSalaryHistory(salaryData);
         } catch (error) {
             console.error("Failed to load absence history", error);

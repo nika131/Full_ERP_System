@@ -24,13 +24,16 @@ export default function AuditLogsList() {
         try {
             setIsLoading(true);
             const data = await auditService.getLogs(page, 10, searchTerm, signal);
-            setLogs(data.items);
-            setTotalPages(data.totalPages);
-            setTotalCount(data.totalCount);
+            
+            if (!signal.aborted) {
+                setLogs(data.items);
+                setTotalPages(data.totalPages);
+                setTotalCount(data.totalCount);
+            }
         } catch (err: any) {
-            if (err.name !== 'CanceledError') console.error(err);
+            if (!signal.aborted && err.name !== 'CanceledError') console.error(err);
         } finally {
-            setIsLoading(false);
+            if (!signal.aborted) setIsLoading(false);
         }
     }
 

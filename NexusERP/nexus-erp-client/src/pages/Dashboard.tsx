@@ -54,14 +54,19 @@ export default function Dashboard() {
         try {
             setIsloadingLedger(true);
             const data = await dashboaredService.getTransactions(page, 10, searchTerm, "All", signal);
+            
+            if (!signal.aborted) {
             setTransactions(data.items);
             setTotalPages(data.totalPages);
             setTotalCount(data.totalCount);
+            }
         } catch (err: any) {
-            if (err.name == "CanceledError" || err.message === "canceled") return;
+            if (!signal.aborted) return;
             console.error(err);
         } finally {
+          if(!signal.aborted){
             setIsloadingLedger(false);
+          }
         }
     };
 
