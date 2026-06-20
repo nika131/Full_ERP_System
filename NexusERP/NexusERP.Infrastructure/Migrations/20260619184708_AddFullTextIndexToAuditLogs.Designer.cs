@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NexusERP.Infrastructure.Database;
 
@@ -11,10 +12,13 @@ using NexusERP.Infrastructure.Database;
 namespace NexusERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260619184708_AddFullTextIndexToAuditLogs")]
+    partial class AddFullTextIndexToAuditLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
+#pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.28")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
@@ -464,6 +468,7 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.Navigation("SalaryRecords");
                 });
+#pragma warning restore 612, 618
         }
     }
 }

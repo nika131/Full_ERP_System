@@ -25,7 +25,16 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<PagedResult<InventoryTransaction>> GetPagedTransactions(int pageNumber, int pageSize, string? searchTerm, int currentUserId, bool canViewAll, string typeFilter)
+        public async Task<CursorPagedResult<InventoryTransaction>> GetPagedTransactionsOptimized(
+            int pageSize, 
+            DateTime? lastCreatedAt,
+            int? lastTransactionId,
+            int? productId,
+            int? supplierId,
+            int? searchTransactionId, 
+            int currentUserId, 
+            bool canViewAll, 
+            string typeFilter)
         {
             var baseQuery = _context.InventoryTransactions
                             .Include(t => t.Product)
@@ -44,30 +53,57 @@ namespace NexusERP.Infrastructure.Repositories
                 baseQuery = baseQuery.Where(t => t.TransactionType == action);
             }
 
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                bool isNumeric = int.TryParse(searchTerm, out int searchId);
 
-                baseQuery = baseQuery.Where(t =>
-                    (t.Supplier != null && t.Supplier.CompanyName.Contains(searchTerm)) ||
-                    (t.Product != null && t.Product.Name.Contains(searchTerm)) ||
-                    (isNumeric && t.TransactionId == searchId)
-                );
+            if (productId.HasValue)
+            {
+                baseQuery = baseQuery.Where(t => t.ProductId == productId.Value);
             }
 
-            var totalCount = await baseQuery.CountAsync();
+            if (supplierId.HasValue)
+            {
+                baseQuery = baseQuery.Where(t => t.SupplierId == supplierId.Value);
+            }
 
-            var items = await baseQuery
-                    .OrderByDescending(t => t.CreatedAt)
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
+            if (searchTransactionId.HasValue)
+            {
+                baseQuery = baseQuery.Where(t => t.TransactionId == searchTransactionId.Value);
+            }
 
-            return new PagedResult<InventoryTransaction>
+
+            if (lastCreatedAt.HasValue && lastTransactionId.HasValue)
+            {
+                baseQuery = baseQuery.Where(t =>
+                    t.CreatedAt < lastCreatedAt.Value ||
+                    (t.CreatedAt == lastCreatedAt.Value && t.TransactionId < lastTransactionId.Value));
+            }
+
+            int fetchCount = pageSize + 1;
+
+            var items = await baseQuery 
+                .OrderByDescending(t => t.CreatedAt)
+                .ThenByDescending(t => t.TransactionId)
+                .Take(fetchCount)
+                .ToListAsync();
+
+            bool hasMorePages = items.Count == fetchCount;
+
+            DateTime? nextCreatedAtCursor = null;
+            int? nextTransactionIdCursor = null;
+
+            if (hasMorePages)
+            {
+                var lastValidItem = items[pageSize - 1];
+                nextCreatedAtCursor = lastValidItem.CreatedAt;
+                nextTransactionIdCursor = lastValidItem.TransactionId;
+
+                items.RemoveAt(items.Count - 1);
+            }
+
+            return new CursorPagedResult<InventoryTransaction>
             {
                 Items = items,
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
+                NextCreatedAt = nextCreatedAtCursor,
+                NextId = nextTransactionIdCursor,
                 PageSize = pageSize
             };
         }

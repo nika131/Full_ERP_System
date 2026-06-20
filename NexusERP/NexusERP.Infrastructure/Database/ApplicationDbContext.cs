@@ -121,6 +121,15 @@ namespace NexusERP.Infrastructure.Database
             modelBuilder.Entity<Category>().HasKey(e => e.CategoryId);
             modelBuilder.Entity<Supplier>().HasKey(e => e.SupplierId);
             modelBuilder.Entity<SystemAuditLog>().HasKey(e => e.LogId);
+
+
+            modelBuilder.Entity<SystemAuditLog>()
+            .HasIndex(log => new { log.CreatedAt, log.LogId })
+            .IsDescending(true, true);
+            
+            modelBuilder.Entity<InventoryTransaction>()
+                .HasIndex(t => new { t.CreatedAt, t.TransactionId })
+                .IsDescending(true, true);
         }
 
 

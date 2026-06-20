@@ -10,6 +10,10 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IAuditRepository
     {
-        Task<PagedResult<SystemAuditLog>> GetPagedLogs(int pageNumber, int pageSize, string? searchTerm);
+        Task<CursorPagedResult<SystemAuditLog>> GetPagedLogsOptimized(
+            int pageSize,
+            DateTime? lastCreatedAt,
+            int? lastLogId,
+            string? searchTerm);
     }
 }

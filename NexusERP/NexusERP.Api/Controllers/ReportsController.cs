@@ -32,16 +32,20 @@ namespace NexusERP.Api.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetTransactions(
-                    [FromQuery] string? searchTerm = null,
-                    [FromQuery] int pageNumber = 1,
-                    [FromQuery] int pageSize = 10,
-                    [FromQuery] string typeFilter = "All")
+            [FromQuery] int pageSize = 50,
+            [FromQuery] DateTime? lastCreatedAt = null,
+            [FromQuery] int? lastTransactionId = null,
+            [FromQuery] int? productId = null,
+            [FromQuery] int? supplierId = null,
+            [FromQuery] int? searchTransactionId = null,
+            [FromQuery] string typeFilter = "All")
         {
             if (pageSize > 100) pageSize = 100;
 
             bool canViewAll = User.HasPermission(Permissions.ViewAllTransactions);
 
-            var secureData = await _repository.GetPagedTransactions(pageNumber, pageSize, searchTerm, User.GetCurrentUserId(), canViewAll, typeFilter);
+            var secureData = await _repository.GetPagedTransactionsOptimized(
+                pageSize, lastCreatedAt, lastTransactionId, productId, supplierId, searchTransactionId, User.GetCurrentUserId(), canViewAll, typeFilter);
 
             var responseItems = secureData.Items.Select(t => new TransactionResponseDto
             {
@@ -59,12 +63,14 @@ namespace NexusERP.Api.Controllers
             return Ok(new
             {
                 items = responseItems,
-                totalCount = secureData.TotalCount,
-                pageNumber = secureData.PageNumber,
+                nextCreatedAt = secureData.NextCreatedAt,
+                nextTransactionId = secureData.NextId,
                 pageSize = secureData.PageSize,
+                hasMorePages = secureData.HasMorePages
             });
         }
 
+        /*
         [HttpGet("export/excel")]
         [Authorize(Policy = "RequireExportExcel")]
         public async Task<IActionResult> ExportExcel([FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? keyword, [FromQuery] string typeFilter = "All")
@@ -92,5 +98,6 @@ namespace NexusERP.Api.Controllers
             byte[] fileContents = _pdfService.GenerateInvoice(transaction);
             return File(fileContents, "application/pdf", $"Invoice_{transactionId}.pdf");
         }
+        */
     }
 }

@@ -18,11 +18,15 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSystemLogs([FromQuery] int pageNumber, [FromQuery] int pageSize, [FromQuery] string? searchTerm)
+        public async Task<IActionResult> GetSystemLogs(
+            [FromQuery] int pageSize = 50,
+            [FromQuery] DateTime? lastCreatedAt = null,
+            [FromQuery] int? lastLogId = null,
+            [FromQuery] string? searchTerm = null)
         {
             if(pageSize > 100) pageSize = 100;
 
-            var logs = await _repository.GetPagedLogs(pageNumber, pageSize, searchTerm);
+            var logs = await _repository.GetPagedLogs(pageSize, lastCreatedAt, lastLogId, searchTerm);
 
             var responseItems = logs.Items.Select(log => new AuditLogResponseDto
             {
@@ -38,9 +42,10 @@ namespace NexusERP.Api.Controllers
             return Ok(new
             {
                 items = responseItems,
-                totalCount = logs.TotalCount,
-                pageNumber = logs.PageNumber,
+                nextCreatedAt = logs.NextCreatedAt,
+                nextLogId = logs.NextId,
                 pageSize = logs.PageSize,
+                hasMorePages = logs.HasMorePages,
             });
         }
     }
