@@ -26,7 +26,7 @@ namespace NexusERP.Api.Controllers
         {
             if(pageSize > 100) pageSize = 100;
 
-            var logs = await _repository.GetPagedLogs(pageSize, lastCreatedAt, lastLogId, searchTerm);
+            var logs = await _repository.GetPagedLogsOptimized(pageSize, lastCreatedAt, lastLogId, searchTerm);
 
             var responseItems = logs.Items.Select(log => new AuditLogResponseDto
             {

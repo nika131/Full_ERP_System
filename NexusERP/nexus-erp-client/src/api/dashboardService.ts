@@ -1,6 +1,6 @@
 import type { ChartData } from "recharts/types/state/chartDataSlice";
 import type { DashbaordStats, TopProduct } from "../types/dashboard";
-import type { PagedResult } from "../types/pagination";
+import type { CursorPagedResult } from "../types/pagination";
 import type { Transaction } from "../types/transaction";
 import apiClient from "./apiClient";
 
@@ -11,17 +11,26 @@ export const dashboaredService = {
     },
 
     getTransactions: async (
-        pageNumber: number = 1,
         pageSize: number = 10,
-        searchTerm?: string,
+        lastCreatedAt: string | null = null,
+        lastTransactionId: number | null = null,
+        productId: number | null = null,
+        supplierId: number | null = null,
+        searchTransactionId: number | null = null,
         typeFilter: string = "All",
         signal?: AbortSignal
-    ): Promise<PagedResult<Transaction>> => {
+    ): Promise<CursorPagedResult<Transaction>> => {
+        
         const params = new URLSearchParams();
-        params.append('pageNumber', pageNumber.toString());
         params.append('pageSize', pageSize.toString());
-        params.append('typeFillter', typeFilter);
-        if (searchTerm) params.append('searchTerm', searchTerm);
+        params.append('typeFilter', typeFilter);
+        
+        if (lastCreatedAt) params.append('lastCreatedAt', lastCreatedAt);
+        if (lastTransactionId !== null) params.append('lastTransactionId', lastTransactionId.toString());
+        
+        if (productId !== null) params.append('productId', productId.toString());
+        if (supplierId !== null) params.append('supplierId', supplierId.toString());
+        if (searchTransactionId !== null) params.append('searchTransactionId', searchTransactionId.toString());
 
         const response = await apiClient.get(`/reports`, { params, signal });
         return response.data;

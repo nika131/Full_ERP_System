@@ -23,7 +23,7 @@ namespace NexusERP.Domain.Models
         public DateTime? NextCreatedAt { get; set; }
         public int? NextId { get; set; }
         public int PageSize { get; set; }
-        public bool HasMorePages => NextCreatedAt.HasValue && NextLogId.HasValue;
+        public bool HasMorePages => NextCreatedAt.HasValue && NextId.HasValue;
 
     }
 }

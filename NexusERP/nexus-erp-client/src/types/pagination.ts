@@ -5,3 +5,12 @@ export interface PagedResult<T> {
     pageSize: number;
     totalPages: number;
 }
+
+export interface CursorPagedResult<T> {
+    items: T[];
+    nextCreatedAt: string | null;
+    nextLogId?: number | null;         
+    nextTransactionId?: number | null; 
+    pageSize: number;
+    hasMorePages: boolean;
+}
