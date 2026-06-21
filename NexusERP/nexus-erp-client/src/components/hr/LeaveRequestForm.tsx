@@ -1,8 +1,8 @@
 import toast from 'react-hot-toast';
-import { absenceService } from '../../api/absenceService';
 import { leaveRequestSchema, type LeaveRequestFormData } from '../../schemas/hrSchema';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useRequestLeaveMutation } from '../../hooks/queries/useProfileQueries';
 
 interface LeaveRequestFormProps {
     onSuccess: () => void;
@@ -10,10 +10,12 @@ interface LeaveRequestFormProps {
 }
 
 export const LeaveRequestForm = ({ onSuccess, onCancel }: LeaveRequestFormProps) => {
+    const requestMutation = useRequestLeaveMutation();
+
     const {
         register,
         handleSubmit,
-        formState: { errors, isSubmitting }
+        formState: { errors }
     } = useForm<LeaveRequestFormData>({
         resolver: zodResolver(leaveRequestSchema),
         defaultValues: {
@@ -26,11 +28,10 @@ export const LeaveRequestForm = ({ onSuccess, onCancel }: LeaveRequestFormProps)
 
     const onSubmit = async (data: LeaveRequestFormData) => {
         try {
-            const payload = {
+            await requestMutation.mutateAsync({
                 ...data,
                 notes: data.notes ?? null 
-            };
-            await absenceService.requestLeave(payload);
+            });
             toast.success("Leave request submitted successfully.");
             onSuccess();
         } catch (error: any) {
@@ -40,7 +41,6 @@ export const LeaveRequestForm = ({ onSuccess, onCancel }: LeaveRequestFormProps)
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            
             {/* Absence Type Select */}
             <div>
                 <label className="block text-sm font-medium text-slate-700">Absence Type</label>
@@ -109,10 +109,10 @@ export const LeaveRequestForm = ({ onSuccess, onCancel }: LeaveRequestFormProps)
                 </button>
                 <button 
                     type="submit" 
-                    disabled={isSubmitting}
+                    disabled={requestMutation.isPending}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
-                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                    {requestMutation.isPending ? 'Submitting...' : 'Submit Request'}
                 </button>
             </div>
         </form>

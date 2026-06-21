@@ -1,83 +1,48 @@
-import { useEffect, useState, useMemo } from 'react';
-import { supplierService } from '../api/supplierService';
+import { useMemo, useState } from 'react';
 import { type SupplierResponse } from '../types/supplier';
-import { DataTable, type ColumnDef } from '../components/Ui/DataTable'
+import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import { SlideOver } from '../components/Ui/SlideOver';
 import { SupplierForm } from '../components/forms/SupplierForm';
 import { ConfirmDialog } from '../components/Ui/ConfirmDialog';
 import type { SupplierFormData } from '../schemas/supplierSchema';
+import { useSuppliersQuery, useSaveSupplierMutation, useDeleteSupplierMutation } from '../hooks/queries/useSupplierQueries';
 
 export default function SupplierList() {
-    const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
 
     const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<SupplierResponse | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
 
-    useEffect(() => {
-        const controller = new AbortController();
-        const timer = setTimeout(() => {
-            loadSuppliers(controller.signal);
-        }, 300);
-        return () => {
-            clearTimeout(timer);
-            controller.abort();
-        };
-    }, [page, searchTerm]);
+    const { data, isLoading, isError } = useSuppliersQuery(page, 10, searchTerm);
+    const saveMutation = useSaveSupplierMutation();
+    const deleteMutation = useDeleteSupplierMutation();
 
-    const loadSuppliers = async (signal: AbortSignal) => {
-        try {
-            setError('');
-            setIsLoading(true);
-            const data = await supplierService.getSuppliers(page, 10, searchTerm, signal);
-            setSuppliers(data.items);
-            setTotalPages(data.totalPages);
-            setTotalCount(data.totalCount);
-        } catch (err: any) {
-            if (err.name === 'CanceledError' || err.message === 'canceled') return;
-            console.error(err);
-            setError('Failed to load Suppliers.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const suppliers = data?.items || [];
+    const totalPages = data?.totalPages || 1;
+    const totalCount = data?.totalCount || 0;
 
     const handleFormSubmit = async (formData: SupplierFormData) => {
         try {
-            const payload = {
+            await saveMutation.mutateAsync({
                 ...formData,
                 supplierId: selectedSupplier?.supplierId || 0
-            };
-            await supplierService.saveSupplier(payload);
+            });
             setIsSlideOverOpen(false);
-            const controller = new AbortController();
-            loadSuppliers(controller.signal);
         } catch (err) {
-            console.error("Failed to save", err);
+            console.error(err);
         }
     };
 
     const handleConfirmDelete = async () => {
         if (!selectedSupplier) return;
         try {
-            setIsDeleting(true);
-            await supplierService.deleteSupplier(selectedSupplier.supplierId);
+            await deleteMutation.mutateAsync(selectedSupplier.supplierId);
             setIsDeleteDialogOpen(false);
             setSelectedSupplier(null);
-            const controller = new AbortController();
-            loadSuppliers(controller.signal);
         } catch (err) {
-            console.error("Failed to delete", err);
-        } finally {
-            setIsDeleting(false);
+            console.error(err);
         }
     };
 
@@ -110,6 +75,7 @@ export default function SupplierList() {
 
     return (
         <div className="space-y-6">
+            {/* Header Area */}
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800">Suppliers</h2>
                 <button 
@@ -119,6 +85,7 @@ export default function SupplierList() {
                 </button>
             </div>
 
+            {/* Filter Area */}
             <div className="flex bg-white p-1 rounded-md shadow-sm border border-slate-200 max-w-md">
                 <input 
                     type="text" 
@@ -129,8 +96,14 @@ export default function SupplierList() {
                 />
             </div>
 
-            {error && <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded text-sm">{error}</div>}
+            {/* Error Display */}
+            {isError && (
+                <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded text-sm">
+                    Failed to load Suppliers.
+                </div>
+            )}
 
+            {/* Data Table */}
             <DataTable 
                 data={suppliers}
                 columns={columns}
@@ -141,6 +114,7 @@ export default function SupplierList() {
                 onPageChange={setPage}
             />
 
+            {/* Form Modal */}
             <SlideOver
                 isOpen={isSlideOverOpen}
                 onClose={() => setIsSlideOverOpen(false)}
@@ -153,13 +127,14 @@ export default function SupplierList() {
                 />
             </SlideOver>
 
+            {/* Delete Confirmation */}
             <ConfirmDialog
                 isOpen={isDeleteDialogOpen}
                 title="Delete Supplier"
                 message={`Are you sure you want to delete "${selectedSupplier?.companyName}"?`}
                 onConfirm={handleConfirmDelete}
                 onCancel={() => { setIsDeleteDialogOpen(false); setSelectedSupplier(null); }}
-                isProcessing={isDeleting}
+                isProcessing={deleteMutation.isPending}
             />
         </div>
     );

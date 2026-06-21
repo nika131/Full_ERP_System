@@ -1,99 +1,47 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { DataTable, type ColumnDef } from "../components/Ui/DataTable";
 import { SlideOver } from "../components/Ui/SlideOver";
 import { ConfirmDialog } from "../components/Ui/ConfirmDialog";
-import { employeeService } from "../api/employeeService";
-import { absenceService } from "../api/absenceService";
 import type { EmployeeResponse } from "../types/employee";
 import { EmployeeManagerForm } from "../components/hr/EmployeeManagerForm";
 import { RolesManager } from "../components/hr/RolesManager";
 import { useNavigate } from "react-router-dom";
 import { InviteEmployeeModal } from "../components/hr/InviteEmployeeModal";
-import type { RoleLookup } from "../types/role";
-import { roleService } from "../api/roleService";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEmployeesQuery, useRolesQuery, usePendingLeavQuery, useDeleteEmployeeMutation } from "../hooks/queries/useHrQueries";
 
 export default function EmployeeList() {
-    const [employees, setEmployees] = useState<EmployeeResponse[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('All');
-
-    const [roles, setRoles] = useState<RoleLookup[]>([]);
-
-    const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
-
+    const [activeView, setActiveView] = useState<'Directory' | 'Roles'>('Directory');
+    
     const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<EmployeeResponse | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    const [activeView, setActiveView] = useState<'Directory' | 'Roles'>('Directory');
-
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
-    const navigate = useNavigate();
+    const { data: employeesData, isLoading: isLoadingEmployees } = useEmployeesQuery(page, 10, searchTerm, roleFilter);
+    const { data: roles = [] } = useRolesQuery();
+    const { data: pendingLeaves = [] } = usePendingLeavQuery();
+    const deleteEmployeeMutation = useDeleteEmployeeMutation();
 
-    useEffect(() => {
-        const controller = new AbortController();
-        const timer = setTimeout(() => {
-            loadEmployees(controller.signal);
-            loadPendingLeaves(controller.signal);
-        }, 300);
-        return () => { clearTimeout(timer); controller.abort(); }
-    }, [page, searchTerm, roleFilter]);
-
-    useEffect(() => {
-        const loadRoles = async () => {
-            try {
-                const data = await roleService.getRoles();
-                setRoles(data);
-            } catch (err) {
-                console.error("Failed to load categories:", err);
-            }
-        };
-
-        loadRoles();
-    }, [])
-
-    const loadEmployees = async (signal: AbortSignal) => {
-        try {
-            setIsLoading(true);
-            const data = await employeeService.getEmployees(page, 10, searchTerm, roleFilter, signal);
-            setEmployees(data.items);
-            setTotalPages(data.totalPages);
-            setTotalCount(data.totalCount);
-        } catch (err: any) {
-            if (err.name !== 'CanceledError') console.error(err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const loadPendingLeaves = async (signal: AbortSignal) => {
-        try {
-            const pending = await absenceService.getPendingRequests(signal);
-            setPendingLeavesCount(pending.length);
-        } catch (err: any) {
-            if (err.name !== 'CanceledError') console.error(err);
-        }
-    };
+    const employees = employeesData?.items || [];
+    const totalPages = employeesData?.totalPages || 1;
+    const totalCount = employeesData?.totalCount || 0;
+    const pendingLeavesCount = pendingLeaves.length;
 
     const handleConfirmDelete = async () => {
         if (!selectedEmployee) return;
         try {
-            setIsDeleting(true);
-            await employeeService.deleteEmployee(selectedEmployee.userId);
+            await deleteEmployeeMutation.mutateAsync(selectedEmployee.userId);
             setIsDeleteDialogOpen(false);
             setSelectedEmployee(null);
-            loadEmployees(new AbortController().signal);
         } catch (err) {
-            console.error(err);
-        } finally {
-            setIsDeleting(false);
+            console.error("Deletion failed", err);
         }
     };
 
@@ -142,12 +90,13 @@ export default function EmployeeList() {
                         + Invite Employee
                     </button>
 
-                    {/* ... tabs ... */}
-
                     {isInviteModalOpen && (
                         <InviteEmployeeModal 
                             onClose={() => setIsInviteModalOpen(false)} 
-                            onSuccess={() => { setIsInviteModalOpen(false); }} 
+                            onSuccess={() => { 
+                                setIsInviteModalOpen(false); 
+                                queryClient.invalidateQueries({ queryKey: ['employees'] });
+                            }} 
                         />
                     )}
                 </div>
@@ -202,7 +151,13 @@ export default function EmployeeList() {
                     {/* Filters */}
                     <div className="flex gap-4 max-w-2xl">
                         <div className="flex-1 bg-white p-1 rounded-md shadow-sm border border-slate-200">
-                            <input type="text" placeholder="Search employees..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} className="w-full px-3 py-2 outline-none text-sm bg-transparent" />
+                            <input 
+                                type="text" 
+                                placeholder="Search employees..." 
+                                value={searchTerm} 
+                                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} 
+                                className="w-full px-3 py-2 outline-none text-sm bg-transparent" 
+                            />
                         </div>
                         <select 
                             className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
@@ -210,7 +165,6 @@ export default function EmployeeList() {
                             onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
                         >
                             <option value="All">All Roles</option>
-
                             {roles.map((role) => (
                                 <option key={role.roleId} value={role.name}>
                                     {role.name}
@@ -219,19 +173,37 @@ export default function EmployeeList() {
                         </select>
                     </div>
 
-                    <DataTable data={employees} columns={columns} isLoading={isLoading} page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} />
+                    <DataTable 
+                        data={employees} 
+                        columns={columns} 
+                        isLoading={isLoadingEmployees} 
+                        page={page} 
+                        totalPages={totalPages} 
+                        totalCount={totalCount} 
+                        onPageChange={setPage} 
+                    />
                     
                     <SlideOver isOpen={isSlideOverOpen} onClose={() => setIsSlideOverOpen(false)} title={`Manage ${selectedEmployee?.fullName || 'Employee'}`}>
                         {selectedEmployee && (
                             <EmployeeManagerForm 
                                 employee={selectedEmployee} 
-                                onSuccess={() => { setIsSlideOverOpen(false); loadEmployees(new AbortController().signal); }} 
+                                onSuccess={() => { 
+                                    setIsSlideOverOpen(false); 
+                                    queryClient.invalidateQueries({ queryKey: ['employees'] });
+                                }} 
                                 onCancel={() => setIsSlideOverOpen(false)} 
                             />
                         )}
                     </SlideOver>
 
-                    <ConfirmDialog isOpen={isDeleteDialogOpen} title="Revoke Access" message={`Are you sure you want to permanently revoke access for "${selectedEmployee?.fullName}"?`} onConfirm={handleConfirmDelete} onCancel={() => { setIsDeleteDialogOpen(false); setSelectedEmployee(null); }} isProcessing={isDeleting} />
+                    <ConfirmDialog 
+                        isOpen={isDeleteDialogOpen} 
+                        title="Revoke Access" 
+                        message={`Are you sure you want to permanently revoke access for "${selectedEmployee?.fullName}"?`} 
+                        onConfirm={handleConfirmDelete} 
+                        onCancel={() => { setIsDeleteDialogOpen(false); setSelectedEmployee(null); }} 
+                        isProcessing={deleteEmployeeMutation.isPending} 
+                    />
                 </>
             ) : (
                 <RolesManager />

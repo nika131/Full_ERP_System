@@ -1,5 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
-import { productService, type TransactionPayLoad } from '../api/productService';
+import { useMemo, useState } from 'react';
 import { type Product } from '../types/product';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import type { ProductFormData } from '../schemas/productSchema';
@@ -8,68 +7,31 @@ import { ProductForm } from '../components/forms/ProductForm';
 import { ConfirmDialog } from '../components/Ui/ConfirmDialog';
 import type { StockFormData } from '../schemas/stockSchema';
 import { StockManagementForm } from '../components/forms/StockManagementForm';
+import { useProductsQuery, useSaveProductMutation, useDeleteProductMutation, useTransactionMutation } from '../hooks/queries/useInventoryQueries';
 
 export default function InventoryList() {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
-
     const [searchTerm, setSearchTerm] = useState('');
 
     const [isSildeOverOpen, setIsSlideOverOpen] = useState(false);
     const [selectedProduct, setSelectedProduct]= useState<Product | null>(null);
 
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
 
     const [isSellModalOpen, setIsSellModalOpen] = useState(false);
     const [sellQuantity, setSellQuantity] = useState<number>(1);
-    const [isSelling, setIsSelling] = useState(false);
 
     const [isStockSlideOverOpen, setIsStockSlideOverOpen] = useState(false);
     const [selectedStockProduct, setSelectedStockProduct] = useState<Product | null>(null);
 
-    useEffect(() => {
-        const controller = new AbortController();
+    const { data: productsData, isLoading, isError } = useProductsQuery(page, 10, searchTerm);
+    const saveProductMutation = useSaveProductMutation();
+    const deleteProductMutation = useDeleteProductMutation();
+    const transactionMutation = useTransactionMutation();
 
-        const timer = setTimeout(() => {
-            loadProducts(controller.signal);
-        }, 300);
-
-        return () => {
-            clearTimeout(timer);
-            controller.abort();
-        };
-    }, [page, searchTerm]);
-
-    const loadProducts = async (signal: AbortSignal) => {
-        try {
-            setError('');
-            setIsLoading(true);
-
-            const data = await productService.getProducts(page, 10, searchTerm, signal);
-            
-            setProducts(data.items);
-            setTotalPages(data.totalPages);
-            setTotalCount(data.totalCount);
-
-            setIsLoading(false);
-        } catch (err: any) {
-
-            if (err.name === 'CanceledError' || err.name === 'canceled') {
-                return;
-            }
-
-            console.error(err);
-            setError('Failed to load Inventory Data. Please try again later.');
-        
-            setIsLoading(false);
-        } 
-    };
+    const products = productsData?.items || [];
+    const totalPages = productsData?.totalPages || 1;
+    const totalCount = productsData?.totalCount || 0;
 
     const handleAddClick = () => {
         setSelectedProduct(null);
@@ -87,12 +49,8 @@ export default function InventoryList() {
                 ...FormData,
                 productId: selectedProduct?.productId
             };
-
-            await productService.saveProduct(payload);
+            await saveProductMutation.mutateAsync(payload);
             setIsSlideOverOpen(false);
-
-            const controller = new AbortController();
-            loadProducts(controller.signal);
         } catch (err) {
             console.error("Failed to save", err);
         }
@@ -105,20 +63,12 @@ export default function InventoryList() {
 
     const handleConfirmDelete = async () => {
         if (!selectedProduct) return;
-
         try {
-            setIsDeleting(true);
-            await productService.deleteProduct(selectedProduct.productId);
-
+            await deleteProductMutation.mutateAsync(selectedProduct.productId);
             setIsDeleteDialogOpen(false);
             setSelectedProduct(null);
-
-            const controller = new AbortController();
-            loadProducts(controller.signal);
         } catch (err) {
             console.error("Failed to delete product", err);
-        } finally {
-            setIsDeleting(false);
         }
     }
 
@@ -130,53 +80,38 @@ export default function InventoryList() {
 
     const handleConfrimSell = async () => {
         if (!selectedProduct) return;
-
         try {
-            setIsSelling(true);
-            const payload: TransactionPayLoad = {
+            await transactionMutation.mutateAsync({
                 productId: selectedProduct.productId,
                 supplierId: selectedProduct.supplierId || null,
                 transactionType: "Sale",
                 quantity: sellQuantity,
                 productPrice: selectedProduct.price,
                 costPrice: selectedProduct.costPrice 
-            };
-
-            await productService.makeTransaction(payload);
-
+            });
             setIsSellModalOpen(false);
             setSelectedProduct(null);
-
-            const controller = new AbortController()
-            loadProducts(controller.signal);
         } catch (err) {
             console.error("Failed to process sale", err);
-        } finally {
-            setIsSelling(false);
         }
     }
 
-
-const handleStockSubmit = async (formData: StockFormData) => {
-    if (!selectedStockProduct) return;
-    
-    try {
-        await productService.makeTransaction({
-            productId: selectedStockProduct.productId,
-            supplierId: selectedStockProduct.supplierId || null, 
-            productPrice: selectedStockProduct.price,
-            costPrice: selectedStockProduct.costPrice,
-            transactionType: formData.transactionType,
-            quantity: formData.quantity 
-        });
-        
-        setIsStockSlideOverOpen(false);
-        loadProducts(new AbortController().signal);
-        
-    } catch (err) {
-        console.error("Transaction failed", err);
-    }
-};
+    const handleStockSubmit = async (formData: StockFormData) => {
+        if (!selectedStockProduct) return;
+        try {
+            await transactionMutation.mutateAsync({
+                productId: selectedStockProduct.productId,
+                supplierId: selectedStockProduct.supplierId || null, 
+                productPrice: selectedStockProduct.price,
+                costPrice: selectedStockProduct.costPrice,
+                transactionType: formData.transactionType,
+                quantity: formData.quantity 
+            });
+            setIsStockSlideOverOpen(false);
+        } catch (err) {
+            console.error("Transaction failed", err);
+        }
+    };
 
     const columns = useMemo<ColumnDef<Product>[]>(() => [
         { header: 'ID', accessor: 'productId', className: 'w-16' },
@@ -236,6 +171,7 @@ const handleStockSubmit = async (formData: StockFormData) => {
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800">Inventory</h2>
                 <button 
@@ -245,6 +181,7 @@ const handleStockSubmit = async (formData: StockFormData) => {
                 </button>
             </div>
 
+            {/* Filters */}
             <div className="flex bg-white p-1 rounded-md shadow-sm border border-slate-200 max-w-md">
                 <input 
                 type="text" 
@@ -258,12 +195,13 @@ const handleStockSubmit = async (formData: StockFormData) => {
                 />
             </div>
 
-            {error && (
+            {isError && (
                 <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded text-sm">
-                {error}
+                Failed to load Inventory Data. Please try again later.
                 </div>
             )}
 
+            {/* Data Table */}
             <DataTable 
                 data={products}
                 columns={columns}
@@ -274,6 +212,7 @@ const handleStockSubmit = async (formData: StockFormData) => {
                 onPageChange={(newPage) => setPage(newPage)}
             />
 
+            {/* Edit/Create Modal */}
             <SlideOver
                 isOpen={isSildeOverOpen}
                 onClose={() => setIsSlideOverOpen(false)}
@@ -286,6 +225,7 @@ const handleStockSubmit = async (formData: StockFormData) => {
                 />
             </SlideOver>
 
+            {/* Stock Adjustment Modal */}
             <SlideOver 
                 isOpen={isStockSlideOverOpen} 
                 onClose={() => setIsStockSlideOverOpen(false)} 
@@ -300,7 +240,7 @@ const handleStockSubmit = async (formData: StockFormData) => {
                 )}
             </SlideOver>
 
-        
+            {/* Delete Dialog */}
             <ConfirmDialog
                 isOpen={isDeleteDialogOpen}
                 title="Delete Product"
@@ -310,11 +250,10 @@ const handleStockSubmit = async (formData: StockFormData) => {
                 setIsDeleteDialogOpen(false);
                 setSelectedProduct(null);
                 }}
-                isProcessing={isDeleting}
+                isProcessing={deleteProductMutation.isPending}
             />
 
-
-            {/*Sell Modal Overlay */}
+            {/* Sell Modal Overlay */}
             {isSellModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
@@ -339,17 +278,17 @@ const handleStockSubmit = async (formData: StockFormData) => {
                         <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
                             <button
                                 onClick={() => { setIsSellModalOpen(false); setSelectedProduct(null); }}
-                                disabled={isSelling}
+                                disabled={transactionMutation.isPending}
                                 className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-100 transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleConfrimSell}
-                                disabled={isSelling || sellQuantity > (selectedProduct?.quantity || 0) || sellQuantity < 1}
+                                disabled={transactionMutation.isPending || sellQuantity > (selectedProduct?.quantity || 0) || sellQuantity < 1}
                                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
                             >
-                                {isSelling ? 'Processing...' : 'Confirm Sale'}
+                                {transactionMutation.isPending ? 'Processing...' : 'Confirm Sale'}
                             </button>
                         </div>
                     </div>

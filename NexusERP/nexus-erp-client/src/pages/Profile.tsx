@@ -1,38 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { absenceService } from '../api/absenceService';
-import type { LeaveResponse } from '../types/absence';
 import { LeaveRequestForm } from '../components/hr/LeaveRequestForm';
-import type { SalaryRecordResponse } from '../types/employee';
-import { employeeService } from '../api/employeeService';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMyLeaveHistoryQuery, useMySalaryHistoryQuery } from '../hooks/queries/useProfileQueries';
 
 export default function Profile() {
     const { user } = useAuth();
-    const [history, setHistory] = useState<LeaveResponse[]>([]);
-    const [salaryHistory, setSalaryHistory] = useState<SalaryRecordResponse[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const queryClient = useQueryClient();
+    
     const [isRequesting, setIsRequesting] = useState(false);
 
-    const loadHistory = async () => {
-        try {
-            setIsLoading(true);
-            const [absenceData, salaryData] = await Promise.all([
-                absenceService.getMyHistory(),
-                employeeService.getMySalaryHistory()
-            ]);
-
-            setHistory(absenceData);
-            setSalaryHistory(salaryData);
-        } catch (error) {
-            console.error("Failed to load absence history", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadHistory();
-    }, []);
+    const { data: history = [], isLoading: isLoadingHistory } = useMyLeaveHistoryQuery();
+    const { data: salaryHistory = [], isLoading: isLoadingSalary } = useMySalaryHistoryQuery();
 
     const pendingRequests = history.filter(h => h.status === 'Pending').length;
     const approvedLeaves = history.filter(h => h.status === 'Approved').length;
@@ -82,7 +61,10 @@ export default function Profile() {
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-blue-200">
                     <h3 className="text-lg font-bold text-slate-800 mb-4">Submit Leave Request</h3>
                     <LeaveRequestForm 
-                        onSuccess={() => { setIsRequesting(false); loadHistory(); }} 
+                        onSuccess={() => { 
+                            setIsRequesting(false); 
+                            queryClient.invalidateQueries({ queryKey: ['profile', 'leaveHistory'] });
+                        }} 
                         onCancel={() => setIsRequesting(false)} 
                     />
                 </div>
@@ -93,7 +75,7 @@ export default function Profile() {
                 <div className="p-4 border-b border-slate-200 bg-slate-50">
                     <h3 className="font-bold text-slate-800">Leave History</h3>
                 </div>
-                {isLoading ? (
+                {isLoadingHistory ? (
                     <div className="p-8 text-center text-slate-500">Loading history...</div>
                 ) : (
                     <table className="w-full text-left text-sm">
@@ -134,10 +116,10 @@ export default function Profile() {
                 )}
             </div>
 
-
+            {/* Salary History */}
             <div>
                 <h4 className="text-sm font-bold text-slate-800 mb-2">Salary History</h4>
-                {isLoading ? <p className="text-sm text-slate-500">Loading...</p> : (
+                {isLoadingSalary ? <p className="text-sm text-slate-500">Loading...</p> : (
                     <table className="w-full text-left text-sm border border-slate-200">
                         <thead className="bg-slate-100 text-slate-600">
                             <tr>

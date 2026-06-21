@@ -1,9 +1,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
-import { roleService } from '../../api/roleService';
 import { roleSchema, type RoleFormData } from '../../schemas/hrSchema';
 import type { RoleResponse } from '../../types/role';
+import { useUpsertRoleMutation } from '../../hooks/queries/useHrQueries';
 
 interface RoleEditorFormProps {
     role: RoleResponse | null;
@@ -14,8 +14,9 @@ interface RoleEditorFormProps {
 
 export const RoleEditorForm = ({ role, availablePermissions, onSuccess, onCancel }: RoleEditorFormProps) => {
     const isAdmin = role?.name === 'Admin';
+    const upsertMutation = useUpsertRoleMutation();
 
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RoleFormData>({
+    const { register, handleSubmit, formState: { errors } } = useForm<RoleFormData>({
         resolver: zodResolver(roleSchema),
         defaultValues: {
             name: role?.name || '',
@@ -30,7 +31,8 @@ export const RoleEditorForm = ({ role, availablePermissions, onSuccess, onCancel
                 name: data.name,
                 permissions: data.permissions
             };
-            await roleService.upsertRole(payload);
+            
+            await upsertMutation.mutateAsync(payload);
             toast.success(payload.roleId === 0 ? "Role created." : "Role updated.");
             onSuccess();
         } catch (error: any) {
@@ -48,8 +50,12 @@ export const RoleEditorForm = ({ role, availablePermissions, onSuccess, onCancel
                     <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-md">
                         Cancel
                     </button>
-                    <button type="submit" disabled={isSubmitting || isAdmin} className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
-                        {isSubmitting ? 'Saving...' : 'Save Role'}
+                    <button 
+                        type="submit" 
+                        disabled={upsertMutation.isPending || isAdmin} 
+                        className="px-4 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {upsertMutation.isPending ? 'Saving...' : 'Save Role'}
                     </button>
                 </div>
             </div>

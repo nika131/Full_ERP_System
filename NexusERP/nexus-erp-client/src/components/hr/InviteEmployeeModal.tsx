@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { authService } from '../../api/authService';
-import apiClient from '../../api/apiClient';
 import { employeeProfileSchema } from '../../schemas/hrSchema';
+import { useRolesQuery, useRegisterEmployeeMutation } from '../../hooks/queries/useHrQueries';
 
 type EmployeeProfileFormData = z.infer<typeof employeeProfileSchema>;
 
@@ -15,12 +13,13 @@ interface InviteModalProps {
 }
 
 export const InviteEmployeeModal = ({ onClose, onSuccess }: InviteModalProps) => {
-    const [roles, setRoles] = useState<{ roleId: number, name: string }[]>([]);
+    const { data: roles = [] } = useRolesQuery();
+    const registerMutation = useRegisterEmployeeMutation();
 
     const {
         register,
         handleSubmit,
-        formState: { errors, isSubmitting },
+        formState: { errors },
     } = useForm<EmployeeProfileFormData>({
         resolver: zodResolver(employeeProfileSchema),
         defaultValues: {
@@ -31,15 +30,9 @@ export const InviteEmployeeModal = ({ onClose, onSuccess }: InviteModalProps) =>
         }
     });
 
-    useEffect(() => {
-        apiClient.get('/roles/lookup')
-            .then(res => setRoles(res.data))
-            .catch(() => toast.error("Failed to load roles."));
-    }, []);
-
     const onSubmit = async (data: EmployeeProfileFormData) => {
         try {
-            await authService.register(data);
+            await registerMutation.mutateAsync(data);
             toast.success("Employee created successfully.");
             onSuccess();
         } catch (error: any) {
@@ -53,7 +46,7 @@ export const InviteEmployeeModal = ({ onClose, onSuccess }: InviteModalProps) =>
                 <h3 className="text-lg font-bold text-slate-800 mb-4">Invite New Employee</h3>
                 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    
+                    {/* Form Fields */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700">Full Name</label>
                         <input 
@@ -98,6 +91,7 @@ export const InviteEmployeeModal = ({ onClose, onSuccess }: InviteModalProps) =>
                         {errors.roleId && <p className="text-red-500 text-xs mt-1">{errors.roleId.message}</p>}
                     </div>
 
+                    {/* Actions */}
                     <div className="flex justify-end gap-2 pt-4">
                         <button 
                             type="button" 
@@ -108,10 +102,10 @@ export const InviteEmployeeModal = ({ onClose, onSuccess }: InviteModalProps) =>
                         </button>
                         <button 
                             type="submit" 
-                            disabled={isSubmitting} 
+                            disabled={registerMutation.isPending} 
                             className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50"
                         >
-                            {isSubmitting ? 'Creating...' : 'Create Employee'}
+                            {registerMutation.isPending ? 'Creating...' : 'Create Employee'}
                         </button>
                     </div>
                 </form>

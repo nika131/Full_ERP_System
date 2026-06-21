@@ -1,39 +1,15 @@
-import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { useState } from 'react';
 import { User } from 'lucide-react';
-import { roleService } from '../../api/roleService';
 import type { RoleResponse } from '../../types/role';
 import { RoleEditorForm } from '../forms/RoleEditorForm';
+import { useRolesQuery, usePermissionsQuery } from '../../hooks/queries/useHrQueries';
 
 export const RolesManager = () => {
-    const [roles, setRoles] = useState<RoleResponse[]>([]);
-    const [availablePermissions, setAvailablePermissions] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: roles = [], isLoading: isLoadingRoles } = useRolesQuery();
+    const { data: availablePermissions = [], isLoading: isLoadingPerms } = usePermissionsQuery();
 
     const [selectedRole, setSelectedRole] = useState<RoleResponse | null>(null);
     const [isEditing, setIsEditing] = useState(false);
-
-    const loadData = async (signal?: AbortSignal) => {
-        try {
-            setIsLoading(true);
-            const [rolesData, permsData] = await Promise.all([
-                roleService.getRoles(signal),
-                roleService.getAvailablePermissions(signal)
-            ]);
-            setRoles(rolesData);
-            setAvailablePermissions(permsData);
-        } catch (error: any) {
-            if (error.name !== 'CanceledError') toast.error("Failed to load roles.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        const controller = new AbortController();
-        loadData(controller.signal);
-        return () => controller.abort();
-    }, []);
 
     const handleCreateNew = () => {
         setSelectedRole(null);
@@ -47,10 +23,9 @@ export const RolesManager = () => {
 
     const handleSuccess = () => {
         setIsEditing(false);
-        loadData();
     };
 
-    if (isLoading) return <div className="p-8 text-center text-slate-500">Loading roles...</div>;
+    if (isLoadingRoles || isLoadingPerms) return <div className="p-8 text-center text-slate-500">Loading roles...</div>;
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">

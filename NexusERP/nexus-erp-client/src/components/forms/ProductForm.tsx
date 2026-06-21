@@ -2,12 +2,8 @@ import { useForm } from "react-hook-form";
 import { productSchema, type ProductFormData } from "../../schemas/productSchema";
 import type { Product } from "../../types/product";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
-import type { CategoryLookup } from "../../types/category";
-import type { SupplierLookup } from "../../types/supplier";
-import { categoryService } from "../../api/categoryService";
-import { supplierService } from "../../api/supplierService";
-
+import { useEffect } from "react";
+import { useCategoryLookupQuery, useSupplierLookupQuery } from "../../hooks/queries/useInventoryQueries";
 
 interface ProductFormProps {
     initialData?: Product | null;
@@ -16,9 +12,10 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProps) {
-    const [categories, setCatgeories] = useState<CategoryLookup[]>([]);
-    const [suppliers, setSuppliers] = useState<SupplierLookup[]>([]);
-    const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(true);
+    const { data: categories = [], isLoading: isLoadingCategories } = useCategoryLookupQuery();
+    const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSupplierLookupQuery();
+    
+    const isLoadingDropdowns = isLoadingCategories || isLoadingSuppliers;
     
     const {
         register,
@@ -36,25 +33,6 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
             costPrice: 0
         }
     });
-
-    useEffect(() => {
-        const fetchDropdownData = async () => {
-            try {
-                const [cats, sups] = await Promise.all([
-                    categoryService.getLookupCategories(),
-                    supplierService.getLookupSuppliers()
-                ]);
-                setCatgeories(cats);
-                setSuppliers(sups);
-            } catch (err) {
-                console.error("Failed to load dropdown data", err);
-            } finally {
-                setIsLoadingDropdowns(false);
-            }
-        };
-
-        fetchDropdownData();
-    }, []);
 
     useEffect(() => {
         if (isLoadingDropdowns) return;
@@ -87,7 +65,7 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
                 </div>
 
-                {/* The New Relational Dropdowns */}
+                {/* Dropdowns Grid */}
                 <div className="grid grid-cols-1 gap-4 bg-slate-50 p-4 border border-slate-200 rounded">
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
@@ -159,6 +137,7 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                 </div>
             </div>
 
+            {/* Actions */}
             <div className="pt-4 border-t border-slate-200 flex justify-end space-x-3 mt-auto">
                 <button
                 type="button"

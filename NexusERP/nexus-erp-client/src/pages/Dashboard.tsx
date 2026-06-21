@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import type { TopProduct, DashbaordStats } from "../types/dashboard";
 import type { Transaction } from "../types/transaction";
-import { dashboaredService } from "../api/dashboardService";
 import { CursorDataTable, type ColumnDef } from "../components/Ui/CursorDataTable";
 import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
-import type { ChartData } from "recharts/types/state/chartDataSlice";
 import { AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart } from "recharts";
+import { useDashboardStatsQuery, useChartDataQuery, useTopProductsQuery, useTransactionsQuery } from "../hooks/queries/useDashboardQueries";
 
 type TransactionCursorState = {
   createdAt: string | null;
@@ -13,89 +11,37 @@ type TransactionCursorState = {
 };
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashbaordStats | null>(null);
-  const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [topProducts, SetTopProducts] = useState<TopProduct[]>([]);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoadingLedger, setIsloadingLedger] = useState(true);
-  
   const [cursorHistory, setCursorHistory] = useState<TransactionCursorState[]>([{ createdAt: null, transactionId: null }]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [hasMorePages, setHasMorePages] = useState(false);
-  
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setIsLoadingStats(true);
-        const [statsData, chartRes, topProdRes] = await Promise.all([
-          dashboaredService.getStatistics(),
-          dashboaredService.getChartData(),
-          dashboaredService.getTopProducts(),
-        ]);
-        setStats(statsData);
-        setChartData(chartRes);
-        SetTopProducts(topProdRes);
-      } catch (err) {
-        console.error("Failed to load Dashboard data", err);
-      } finally {
-        setIsLoadingStats(false);
-      }
-    };
-    loadDashboardData();
-  }, []);
+  const { data: stats, isLoading: isStatsLoading } = useDashboardStatsQuery();
+  const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery();
+  const { data: topProducts = [], isLoading: isTopProductsLoading } = useTopProductsQuery();
+
+  const isLoadingStats = isStatsLoading || isChartLoading || isTopProductsLoading;
+
+  const currentCursor = cursorHistory[currentIndex];
+  const numericSearchId = searchTerm && !isNaN(Number(searchTerm)) ? Number(searchTerm) : null;
+
+  const { data: transactionsData, isLoading: isLoadingLedger } = useTransactionsQuery(
+    10,
+    currentCursor.createdAt,
+    currentCursor.transactionId,
+    numericSearchId
+  );
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      loadLedger(controller.signal);
-    }, 300);
-    return () => { clearTimeout(timer); controller.abort(); };
-  }, [currentIndex, searchTerm]);
-
-  const loadLedger = async (signal: AbortSignal) => {
-    try {
-      setIsloadingLedger(true);
-      const currentCursor = cursorHistory[currentIndex];
-      
-      const numericSearchId = searchTerm && !isNaN(Number(searchTerm)) ? Number(searchTerm) : null;
-
-      const data = await dashboaredService.getTransactions(
-        10, 
-        currentCursor.createdAt, 
-        currentCursor.transactionId, 
-        null,
-        null, 
-        numericSearchId, 
-        "All", 
-        signal
-      );
-      
-      if (!signal.aborted) {
-        setTransactions(data.items);
-        setHasMorePages(data.hasMorePages);
-        
-        if (data.hasMorePages && cursorHistory.length === currentIndex + 1) {
-          setCursorHistory(prev => [
-            ...prev,
-            { 
-              createdAt: data.nextCreatedAt ?? null, 
-              transactionId: data.nextTransactionId ?? null 
-            } 
-          ]);
-        }
-      }
-    } catch (err: any) {
-      if (!signal.aborted && err.name !== 'CanceledError') console.error(err);
-    } finally {
-      if(!signal.aborted){
-        setIsloadingLedger(false);
-      }
+    if (transactionsData?.hasMorePages && cursorHistory.length === currentIndex + 1) {
+      setCursorHistory(prev => [
+        ...prev,
+        { 
+          createdAt: transactionsData.nextCreatedAt ?? null, 
+          transactionId: transactionsData.nextTransactionId ?? null 
+        } 
+      ]);
     }
-  };
+  }, [transactionsData, currentIndex, cursorHistory.length]);
 
   const handleSearchChange = (val: string) => {
     setSearchTerm(val);
@@ -105,6 +51,9 @@ export default function Dashboard() {
 
   const handleNext = () => setCurrentIndex(prev => prev + 1);
   const handlePrevious = () => setCurrentIndex(prev => prev - 1);
+
+  const transactions = transactionsData?.items || [];
+  const hasMorePages = transactionsData?.hasMorePages || false;
 
   const columns = useMemo<ColumnDef<Transaction>[]>(() => [
     { 

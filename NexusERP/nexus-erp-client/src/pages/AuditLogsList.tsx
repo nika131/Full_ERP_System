@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AuditLog } from "../types/auditLog";
-import { auditService } from "../api/auditService";
 import { CursorDataTable, type ColumnDef } from "../components/Ui/CursorDataTable";
+import { useAuditLogsQuery } from "../hooks/queries/useAuditQueries";
 
 type CursorState = {
     createdAt: string | null;
@@ -9,55 +9,33 @@ type CursorState = {
 };
 
 export default function AuditLogsList() {
-    const [logs, setLogs] = useState<AuditLog[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    
     const [cursorHistory, setCursorHistory] = useState<CursorState[]>([{ createdAt: null, logId: null }]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [hasMorePages, setHasMorePages] = useState(false);
+
+    const currentCursor = cursorHistory[currentIndex];
+
+    const { data, isLoading } = useAuditLogsQuery(
+        10,
+        currentCursor.createdAt,
+        currentCursor.logId,
+        searchTerm
+    );
+
+    const logs = data?.items || [];
+    const hasMorePages = data?.hasMorePages || false;
 
     useEffect(() => {
-        const controller = new AbortController();
-        const timer = setTimeout(() => {
-            loadLogs(controller.signal);
-        }, 300);
-        return () => { clearTimeout(timer); controller.abort(); };
-    }, [currentIndex, searchTerm]); 
-
-    const loadLogs = async (signal: AbortSignal) => {
-        try {
-            setIsLoading(true);
-            const currentCursor = cursorHistory[currentIndex];
-            
-            const data = await auditService.getLogs(
-                10, 
-                currentCursor.createdAt, 
-                currentCursor.logId, 
-                searchTerm, 
-                signal
-            );
-            
-            if (!signal.aborted) {
-                setLogs(data.items);
-                setHasMorePages(data.hasMorePages);
-                
-                if (data.hasMorePages && cursorHistory.length === currentIndex + 1) {
-                    setCursorHistory(prev => [
-                        ...prev, 
-                        { 
-                            createdAt: data.nextCreatedAt ?? null, 
-                            logId: data.nextLogId ?? null 
-                        }
-                    ]);
+        if (data?.hasMorePages && cursorHistory.length === currentIndex + 1) {
+            setCursorHistory(prev => [
+                ...prev, 
+                { 
+                    createdAt: data.nextCreatedAt ?? null, 
+                    logId: data.nextLogId ?? null 
                 }
-            }
-        } catch (err: any) {
-            if (!signal.aborted && err.name !== 'CanceledError') console.error(err);
-        } finally {
-            if (!signal.aborted) setIsLoading(false);
+            ]);
         }
-    };
+    }, [data, currentIndex, cursorHistory.length]);
 
     const handleSearchChange = (val: string) => {
         setSearchTerm(val);
@@ -100,4 +78,4 @@ export default function AuditLogsList() {
             />
         </div>
     );
-};
+}

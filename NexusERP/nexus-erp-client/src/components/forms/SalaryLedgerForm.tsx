@@ -1,17 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { EmployeeResponse, SalaryRecordResponse } from "../../types/employee";
-import { useEffect, useState } from "react";
+import type { EmployeeResponse } from "../../types/employee";
 import { useForm } from "react-hook-form";
-import { employeeService } from "../../api/employeeService";
 import toast from "react-hot-toast";
 import { salaryRecordSchema, type SalaryRecordFormData } from "../../schemas/hrSchema";
-
+import { useSalaryHistoryQuery, useAddSalaryRecordMutation } from "../../hooks/queries/useHrQueries";
 
 export const SalaryForm = ({ employee, onSuccess }: { employee: EmployeeResponse, onSuccess: () => void }) => {
-    const [salaryHistory, setSalaryHistory] = useState<SalaryRecordResponse[]>([]);
-    const [isFetchingSalary, setIsFetchingSalary] = useState(false);
+    const { data: salaryHistory = [], isLoading: isFetchingSalary } = useSalaryHistoryQuery(employee.userId);
+    const addSalaryMutation = useAddSalaryRecordMutation();
 
-    const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<SalaryRecordFormData>({
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<SalaryRecordFormData>({
         resolver: zodResolver(salaryRecordSchema),
         defaultValues: {
             amount: 0,
@@ -20,32 +18,15 @@ export const SalaryForm = ({ employee, onSuccess }: { employee: EmployeeResponse
         }
     });
 
-    const loadSalaryHistory = async () => {
-        try {
-            setIsFetchingSalary(true);
-            const data = await employeeService.getSalaryHistory(employee.userId);
-            setSalaryHistory(data);
-        } catch (error) {
-            toast.error("Failed to load salary history.");
-        } finally {
-            setIsFetchingSalary(false);
-        }
-    };
-
-    useEffect(() => {
-        loadSalaryHistory();
-    }, [employee.userId]);
-
     const onSubmit = async (data: SalaryRecordFormData) => {
         try {
             const payload = {
                 ...data,
                 notes: data.notes || null 
             };
-            await employeeService.addSalaryRecord(employee.userId, payload);
+            await addSalaryMutation.mutateAsync({ userId: employee.userId, payload });
             toast.success("New salary record added.");
-            reset()
-            loadSalaryHistory(); 
+            reset();
             onSuccess();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Failed to add salary.");
@@ -85,8 +66,12 @@ export const SalaryForm = ({ employee, onSuccess }: { employee: EmployeeResponse
                     />
                     {errors.notes && <p className="text-red-500 text-xs mt-1">{errors.notes.message}</p>}
                 </div>
-                <button type="submit" disabled={isSubmitting} className="w-full py-2 bg-slate-800 text-white rounded-md text-sm font-medium hover:bg-slate-700 disabled:opacity-50">
-                    {isSubmitting ? 'Processing...' : 'Apply Contract'}
+                <button 
+                    type="submit" 
+                    disabled={addSalaryMutation.isPending} 
+                    className="w-full py-2 bg-slate-800 text-white rounded-md text-sm font-medium hover:bg-slate-700 disabled:opacity-50"
+                >
+                    {addSalaryMutation.isPending ? 'Processing...' : 'Apply Contract'}
                 </button>
             </form>
 
