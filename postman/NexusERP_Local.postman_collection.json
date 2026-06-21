@@ -968,6 +968,158 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Absences",
+      "item": [
+        {
+          "name": "Request Leave",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"type\": \"Sick\", \r\n  \"startDate\": \"2026-08-01\",\r\n  \"endDate\": \"2026-08-05\",\r\n  \"notes\": \"Medical appointment and recovery.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/absences/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "absences",
+                "request"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My History",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/absences/my-history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "absences",
+                "my-history"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending Requests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    \r",
+                  "    pm.environment.set(\"absenceId\", jsonData.AbsenceId);\r",
+                  "    \r",
+                  "    console.log(\"AbsenceId successfully captured and saved to environment.\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/absences/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "absences",
+                "pending"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Review Request",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"Approved\",\r\n  \"reviewerComments\": \"Approved. Please update your handover document.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/absences/{{absenceId}}/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "absences",
+                "{{absenceId}}",
+                "review"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
