@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using NexusERP.Api.DTOs;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
@@ -21,6 +22,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
             var token = await _authService.Login(request.Username, request.Password);

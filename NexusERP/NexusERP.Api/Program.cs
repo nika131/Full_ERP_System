@@ -9,6 +9,8 @@ using NexusERP.Infrastructure.Repositories;
 using NexusERP.Infrastructure.Services;
 using System.Text;
 using NexusERP.Domain.Constants;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,8 +88,40 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireAbsenceManage", policy => policy.RequireClaim("Permission", Permissions.ManageAbsences));
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("GlobalPolicy", HttpContent =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: HttpContent.Connection.RemoteIpAddress?.ToString() ?? "unknown_ip",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 2,
+            }));
+
+
+    options.AddPolicy("AuthPolicy", HttpContent =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: HttpContent.Connection.RemoteIpAddress?.ToString() ?? "unknown_ip",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+            }));
+
+});
 
 var app = builder.Build();
+
+app.UseRouting();
+
+app.UseRateLimiter();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
@@ -103,5 +137,6 @@ app.UseCors("AllowApp");
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapControllers().RequireRateLimiting("GlobalPolicy");
+
 app.Run();

@@ -45,6 +45,9 @@ apiClient.interceptors.response.use(
                 case 409:
                     toast.error(`Data Conflict: ${message}`);
                     break;
+                case 429:
+                    toast.error("Rate limit exceeded.")
+                    break;
                 case 500:
                     toast.error('A critical server error occurred.')
                     break;
