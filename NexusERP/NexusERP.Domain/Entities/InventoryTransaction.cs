@@ -21,6 +21,9 @@ namespace NexusERP.Domain.Entities
 
         public int UserId { get; set; }
         public User? User { get; set; }
+
+        public int? StoreId { get; set; }
+        public Store Store { get; set; }
         
         public TransactionAction TransactionType { get; set; }
         public int Quantity { get; set; }

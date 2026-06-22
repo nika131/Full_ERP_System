@@ -27,6 +27,7 @@ namespace NexusERP.Infrastructure.Database
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserAbsence> UserAbsences { get; set; }
         public DbSet<SalaryRecord> SalaryRecords { get; set; }
+        public DbSet<Store> Stores { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -59,6 +60,11 @@ namespace NexusERP.Infrastructure.Database
                       .HasConversion(
                           v => v.ToString(),
                           v => (TransactionAction)Enum.Parse(typeof(TransactionAction), v));
+
+                entity.HasOne(e => e.Store)
+                    .WithMany(s => s.Transactions)
+                    .HasForeignKey(e => e.StoreId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // 3. Map Users
@@ -130,6 +136,12 @@ namespace NexusERP.Infrastructure.Database
             modelBuilder.Entity<InventoryTransaction>()
                 .HasIndex(t => new { t.CreatedAt, t.TransactionId })
                 .IsDescending(true, true);
+
+            modelBuilder.Entity<Store>(entity =>
+            {
+                entity.HasKey(e => e.StoreId);
+                entity.HasQueryFilter(e => e.IsActive);
+            });
         }
 
 
