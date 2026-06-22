@@ -11,6 +11,8 @@ using System.Text;
 using NexusERP.Domain.Constants;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using DocumentFormat.OpenXml.InkML;
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,9 +90,38 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireAbsenceManage", policy => policy.RequireClaim("Permission", Permissions.ManageAbsences));
 });
 
+
+builder.Services.AddMemoryCache();
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, token) =>
+    {
+        var ip = context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown_ip";
+
+        var cache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+
+        var strikes = cache.GetOrCreate($"Strikes_{ip}", entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            return 0;
+        });
+
+        strikes++;
+
+        if (strikes >= 5)
+        {
+            cache.Set($"Banned_{ip}", true, TimeSpan.FromHours(24));
+        }
+        else
+        {
+            cache.Set($"Strikes_{ip}", strikes, TimeSpan.FromHours(1));
+        }
+
+        await context.HttpContext.Response.WriteAsync("Rate limit exceeded.");
+    };
 
     options.AddPolicy("GlobalPolicy", HttpContent =>
         RateLimitPartition.GetFixedWindowLimiter(
@@ -121,9 +152,12 @@ var app = builder.Build();
 
 app.UseRouting();
 
+app.UseMiddleware<ExceptionMiddleware>();
+
+app.UseMiddleware<IpBanningMiddleware>();
+
 app.UseRateLimiter();
 
-app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
