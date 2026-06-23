@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 
-namespace NexusERP.Api.DTOs
+namespace NexusERP.Application.DTOs
 {
     public class ProductUpsertDto
     {

@@ -15,7 +15,7 @@ namespace NexusERP.Infrastructure.Migrations
 
             migrationBuilder.Sql("CREATE FULLTEXT INDEX ON SystemAuditLogs(" +
                                  "  Action LANGUAGE 1033, " +
-                                 "  EntityType LANGUAGE 1033, " +
+                                 "  EntityType LANGUAGE 1033 " +
                                  ") KEY INDEX PK_SystemAuditLogs ON AuditLogCatalog;", suppressTransaction: true);
         }
 

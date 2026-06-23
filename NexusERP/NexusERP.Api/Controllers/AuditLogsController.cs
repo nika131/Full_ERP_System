@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NexusERP.Api.DTOs;
+using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 
 namespace NexusERP.Api.Controllers

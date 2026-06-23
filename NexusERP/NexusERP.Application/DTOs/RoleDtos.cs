@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace NexusERP.Api.DTOs
+namespace NexusERP.Application.DTOs
 {
     public class RoleResponseDto
     {

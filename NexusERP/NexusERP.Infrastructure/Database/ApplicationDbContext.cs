@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
+using Microsoft.EntityFrameworkCore.Design;
 
 namespace NexusERP.Infrastructure.Database
 {

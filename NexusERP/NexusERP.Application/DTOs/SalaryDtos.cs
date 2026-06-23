@@ -1,4 +1,4 @@
-﻿namespace NexusERP.Api.DTOs
+﻿namespace NexusERP.Application.DTOs
 {
     public class SalaryDtos 
     {

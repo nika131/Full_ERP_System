@@ -1,13 +1,13 @@
 ﻿using DocumentFormat.OpenXml.Bibliography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NexusERP.Api.DTOs;
+using NexusERP.Application.DTOs;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using System.Security.Claims;
-using static NexusERP.Api.DTOs.SalaryDtos;
+using static NexusERP.Application.DTOs.SalaryDtos;
 
 namespace NexusERP.Api.Controllers
 {

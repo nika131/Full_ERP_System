@@ -6,7 +6,7 @@ using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
-using static NexusERP.Api.DTOs.AbsenceDtos;
+using static NexusERP.Application.DTOs.AbsenceDtos;
 
 namespace NexusERP.Api.Controllers
 {
