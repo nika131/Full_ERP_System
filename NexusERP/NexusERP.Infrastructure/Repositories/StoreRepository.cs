@@ -22,7 +22,17 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<IEnumerable<Store>> GetAllStoresAsync()
         {
-            return await _context.Stores.ToListAsync();
+            return await _context.Stores
+                .Where(s => s.IsActive)
+                .Select(s => new Store
+                {
+                    StoreId = s.StoreId,
+                    Name = s.Name,
+                    Address = s.Address,
+                    Location = s.Location,
+                })
+                .OrderBy(s => s.Name)
+                .ToListAsync();
         }
 
         public async Task<Store?> GetStoreByIdAsync(int id)

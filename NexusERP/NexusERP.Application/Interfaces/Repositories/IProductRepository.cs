@@ -16,6 +16,6 @@ namespace NexusERP.Application.Interfaces.Repositories
         Task SaveTransaction(InventoryTransaction transaction, Product product);
         Task<Product> GetByIdAsync(int id);
         Task Delete(int id, int userId);
-        Task<DashboardResponse> GetDashboardAggregates();
+        Task<DashboardResponse> GetDashboardAggregates(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId);
     }
 }

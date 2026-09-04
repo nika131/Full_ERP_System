@@ -3,7 +3,8 @@ import { productSchema, type ProductFormData } from "../../schemas/productSchema
 import type { Product } from "../../types/product";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { useCategoryLookupQuery, useSupplierLookupQuery } from "../../hooks/queries/useInventoryQueries";
+import { useSupplierLookupQuery } from "../../hooks/queries/useSupplierQueries";
+import { useLookupCategoriesQuery } from "../../hooks/queries/useCategoryQueries";
 
 interface ProductFormProps {
     initialData?: Product | null;
@@ -12,7 +13,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProps) {
-    const { data: categories = [], isLoading: isLoadingCategories } = useCategoryLookupQuery();
+    const { data: categories = [], isLoading: isLoadingCategories } = useLookupCategoriesQuery();
     const { data: suppliers = [], isLoading: isLoadingSuppliers } = useSupplierLookupQuery();
     
     const isLoadingDropdowns = isLoadingCategories || isLoadingSuppliers;

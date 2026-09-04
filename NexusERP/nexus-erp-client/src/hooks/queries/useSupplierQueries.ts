@@ -29,3 +29,11 @@ export const useDeleteSupplierMutation = () => {
         }
     });
 };
+
+export const useSupplierLookupQuery = () => {
+    return useQuery({
+        queryKey: ['suppliers', 'lookup'],
+        queryFn: () => supplierService.getLookupSuppliers(),
+        staleTime: 5 * 60 * 1000, 
+    });
+};

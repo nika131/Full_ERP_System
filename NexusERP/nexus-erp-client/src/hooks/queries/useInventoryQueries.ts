@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, type TransactionPayLoad } from '../../api/productService';
 import type { ProductFormData } from '../../schemas/productSchema';
-import { categoryService } from '../../api/categoryService';
-import { supplierService } from '../../api/supplierService';
 
 export const useProductsQuery = (page: number, limit: number, search: string, category: string, supplier: string) => {
     return useQuery({
@@ -44,18 +42,5 @@ export const useTransactionMutation = () => {
     });
 };
 
-export const useCategoryLookupQuery = () => {
-    return useQuery({
-        queryKey: ['categories', 'lookup'],
-        queryFn: () => categoryService.getLookupCategories(),
-        staleTime: 5 * 60 * 1000, 
-    });
-};
 
-export const useSupplierLookupQuery = () => {
-    return useQuery({
-        queryKey: ['suppliers', 'lookup'],
-        queryFn: () => supplierService.getLookupSuppliers(),
-        staleTime: 5 * 60 * 1000, 
-    });
-};
+

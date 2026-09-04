@@ -5,14 +5,35 @@ import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
 import { AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart } from "recharts";
 import { useDashboardStatsQuery, useChartDataQuery, useTopProductsQuery, useTransactionsQuery } from "../hooks/queries/useDashboardQueries";
 import { StoreMapCanvas } from "../components/maps/StoreMapCanvas";
-import { useNearbyStoresQuery } from "../hooks/queries/useStoreQueries";
+import { useLookupStoresQuery, useNearbyStoresQuery } from "../hooks/queries/useStoreQueries";
+import { useLookupCategoriesQuery } from "../hooks/queries/useCategoryQueries";
+import { useSupplierLookupQuery } from "../hooks/queries/useSupplierQueries";
 
 type TransactionCursorState = {
   createdAt: string | null;
   transactionId: number | null;
 };
 
+export type DashboardFilters = {
+  startDate: string | null;
+  endDate: string | null;
+  storeId: number | null;
+  categoryId: number | null;
+  supplierId: number | null;
+};
+
 export default function Dashboard() {
+  const defaultEndDate = new Date().toISOString().split('T')[0];
+  const defaultStartDate = new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0];
+  
+  const [globalFilters, setGlobalFilters] = useState<DashboardFilters>({
+    startDate: defaultStartDate,
+    endDate: defaultEndDate,
+    storeId: null,
+    categoryId: null,
+    supplierId: null
+  });
+
   const [cursorHistory, setCursorHistory] = useState<TransactionCursorState[]>([{ createdAt: null, transactionId: null }]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,21 +42,25 @@ export default function Dashboard() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([41.7151, 44.8271]);
   const [queryRadius, setQueryRadius] = useState(5000);
 
-  const { data: stats, isLoading: isStatsLoading } = useDashboardStatsQuery();
-  const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery();
-  const { data: topProducts = [], isLoading: isTopProductsLoading } = useTopProductsQuery();
+  const { data: stats, isLoading: isStatsLoading } = useDashboardStatsQuery(globalFilters);
+  const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery(globalFilters);
+  const { data: topProducts = [], isLoading: isTopProductsLoading } = useTopProductsQuery(globalFilters);
   const { data: stores = [] } = useNearbyStoresQuery(mapCenter[0], mapCenter[1], queryRadius);
+
+  const { data: categories = [] } = useLookupCategoriesQuery();
+  const { data: suppliers = [] } = useSupplierLookupQuery();
+  const { data: storesLookup = [] } = useLookupStoresQuery();
 
   const isLoadingStats = isStatsLoading || isChartLoading || isTopProductsLoading;
 
-  const currentCursor = cursorHistory[currentIndex];
-  const numericSearchId = searchTerm && !isNaN(Number(searchTerm)) ? Number(searchTerm) : null;
+  const currentCursor = cursorHistory[currentIndex]
 
   const { data: transactionsData, isLoading: isLoadingLedger } = useTransactionsQuery(
     10,
     currentCursor.createdAt,
     currentCursor.transactionId,
-    numericSearchId
+    searchTerm,
+    globalFilters
   );
 
   useEffect(() => {
@@ -49,6 +74,11 @@ export default function Dashboard() {
       ]);
     }
   }, [transactionsData, currentIndex, cursorHistory.length]);
+
+  useEffect(() => {
+    setCursorHistory([{ createdAt: null, transactionId: null }]);
+    setCurrentIndex(0);
+  }, [globalFilters]);
 
   const handleSearchChange = (val: string) => {
     setSearchTerm(val);
@@ -103,6 +133,76 @@ export default function Dashboard() {
       <div>
         <h2 className="text-2xl font-bold text-slate-800">Business Overview</h2>
         <p className="text-slate-500 text-sm">Real-time inventory and financial metrics.</p>
+      </div>
+
+      {/* GLOBAL FILTERS BAR */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-wrap gap-4 items-end mb-6">
+  
+        {/* Date Filters */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-slate-500">Start Date</label>
+          <input 
+            type="date" 
+            value={globalFilters.startDate || ''}
+            onChange={(e) => setGlobalFilters(prev => ({ ...prev, startDate: e.target.value || null }))}
+            className="border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-slate-500">End Date</label>
+          <input 
+            type="date" 
+            value={globalFilters.endDate || ''}
+            onChange={(e) => setGlobalFilters(prev => ({ ...prev, endDate: e.target.value || null }))}
+            className="border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          />
+        </div>
+
+        {/* Category Filter */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-slate-500">Category</label>
+          <select 
+            value={globalFilters.categoryId || ''}
+            onChange={(e) => setGlobalFilters(prev => ({ ...prev, categoryId: e.target.value ? Number(e.target.value) : null }))}
+            className="border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-emerald-500 w-40"
+          >
+            <option value="">All Categories</option>
+            {categories.map((category) => (
+                <option key={category.categoryId} value={category.categoryId}>
+                    {category.name}
+                </option>
+            ))}
+          </select>
+        </div>
+
+        {/*Supplier Filter*/}
+        <select
+            className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+            value={globalFilters.supplierId || ''}
+            onChange={(e) => setGlobalFilters(prev => ({ ...prev, supplierId: e.target.value ? Number(e.target.value) : null }))}
+        >
+            <option value="">All Suppliers</option>
+            {suppliers.map((supplier) => (
+                <option key={supplier.supplierId} value={supplier.supplierId}>
+                    {supplier.companyName}
+                </option>
+            ))}
+        </select>
+        
+        {/*Store Filter*/}
+        <select
+          className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+          value={globalFilters.storeId || ''}
+          onChange={(e) => setGlobalFilters(prev => ({ ...prev, storeId: e.target.value ? Number(e.target.value) : null }))}
+        >
+          <option value="">All Stores</option>
+          {storesLookup.map((store) => (
+              <option key={store.storeId} value={store.storeId}>
+                  {store.name}
+              </option>
+          ))}
+        </select>
       </div>
 
       {/* TOP ZONE: KPI CARDS */}
@@ -266,7 +366,7 @@ export default function Dashboard() {
           <div className="flex bg-white p-1 rounded-md shadow-sm border border-slate-200 w-72">
             <input 
               type="text" 
-              placeholder="Search by Transaction ID..." 
+              placeholder="Search ID or Product Name..." 
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full px-3 py-2 outline-none text-sm bg-transparent"

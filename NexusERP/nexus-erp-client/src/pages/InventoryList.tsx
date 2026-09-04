@@ -7,8 +7,9 @@ import { ProductForm } from '../components/forms/ProductForm';
 import { ConfirmDialog } from '../components/Ui/ConfirmDialog';
 import type { StockFormData } from '../schemas/stockSchema';
 import { StockManagementForm } from '../components/forms/StockManagementForm';
-import { useProductsQuery, useSaveProductMutation, useDeleteProductMutation, useTransactionMutation, useSupplierLookupQuery } from '../hooks/queries/useInventoryQueries';
+import { useProductsQuery, useSaveProductMutation, useDeleteProductMutation, useTransactionMutation } from '../hooks/queries/useInventoryQueries';
 import { useLookupCategoriesQuery } from '../hooks/queries/useCategoryQueries';
+import { useSupplierLookupQuery } from '../hooks/queries/useSupplierQueries';
 
 export default function InventoryList() {
     const [page, setPage] = useState(1);

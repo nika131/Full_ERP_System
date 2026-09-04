@@ -16,5 +16,11 @@ export const storeService = {
             { signal }
         );
         return response.data;
+    },
+
+    getLookupStores: async (): Promise<StoreResponse[]> => {
+        const response = await apiClient.get<StoreResponse[]>(`/stores`);
+        return response.data;
     }
 };
+

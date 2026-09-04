@@ -13,16 +13,23 @@ namespace NexusERP.Application.Interfaces.Repositories
     {
         Task<CursorPagedResult<InventoryTransaction>> GetPagedTransactionsOptimized(
             int pageSize,
+            int currentUserId,
+            bool canViewAll,
+            string typeFilter,
+            string? searchTerm,
             DateTime? lastCreatedAt,
             int? lastTransactionId,
             int? productId,
             int? supplierId,
-            int? searchTransactionId,
-            int currentUserId,
-            bool canViewAll,
-            string typeFilter);
+            int? storeId = null,
+            int? categoryId = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null);
+
         Task<InventoryTransaction?> GetById(int transactionId);
-        Task<List<RevenueChartData>> GetWeeklyRevenueChart();
-        Task<List<TopProductChartData>> GetTopPerformingProducts();
+
+        Task<List<RevenueChartData>> GetWeeklyRevenueChart(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId);
+
+        Task<List<TopProductChartData>> GetTopPerformingProducts(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId);
     }
 }

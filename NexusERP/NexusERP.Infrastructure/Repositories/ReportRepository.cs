@@ -26,15 +26,19 @@ namespace NexusERP.Infrastructure.Repositories
         }
 
         public async Task<CursorPagedResult<InventoryTransaction>> GetPagedTransactionsOptimized(
-            int pageSize, 
+            int pageSize,
+            int currentUserId,
+            bool canViewAll,
+            string typeFilter,
+            string? searchTerm,
             DateTime? lastCreatedAt,
             int? lastTransactionId,
             int? productId,
             int? supplierId,
-            int? searchTransactionId, 
-            int currentUserId, 
-            bool canViewAll, 
-            string typeFilter)
+            int? storeId = null,
+            int? categoryId = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null)
         {
             var baseQuery = _context.InventoryTransactions
                             .Include(t => t.Product)
@@ -64,9 +68,37 @@ namespace NexusERP.Infrastructure.Repositories
                 baseQuery = baseQuery.Where(t => t.SupplierId == supplierId.Value);
             }
 
-            if (searchTransactionId.HasValue)
+            if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                baseQuery = baseQuery.Where(t => t.TransactionId == searchTransactionId.Value);
+                if (int.TryParse(searchTerm, out int numericSearchId))
+                {
+                    baseQuery = baseQuery.Where(t => t.TransactionId == numericSearchId);
+                }
+                else
+                {
+                    baseQuery = baseQuery.Where(t => t.Product != null && t.Product.Name.Contains(searchTerm));
+                }
+            }
+
+            if (storeId.HasValue)
+            {
+                baseQuery = baseQuery.Where(t => t.StoreId == storeId.Value);
+            }
+
+            if (categoryId.HasValue)
+            {
+                baseQuery = baseQuery.Where(t => t.Product != null && t.Product.CategoryId == categoryId.Value);
+            }
+
+            if (startDate.HasValue)
+            {
+                baseQuery = baseQuery.Where(t => t.CreatedAt >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                baseQuery = baseQuery.Where(t => t.CreatedAt <= endOfDay);
             }
 
 
@@ -114,12 +146,23 @@ namespace NexusERP.Infrastructure.Repositories
                 .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
         }
 
-        public async Task<List<RevenueChartData>> GetWeeklyRevenueChart()
+        public async Task<List<RevenueChartData>> GetWeeklyRevenueChart(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
         {
-            var startDate = DateTime.UtcNow.Date.AddDays(-6);
+            var actualStart = startDate ?? DateTime.UtcNow.Date.AddDays(-6);
+            var actualEnd = endDate ?? DateTime.UtcNow.Date;
 
-            var rawData = await _context.InventoryTransactions
-                .Where(t => t.TransactionType == TransactionAction.Sale && t.CreatedAt >= startDate)
+            var endOfDay = actualEnd.Date.AddDays(1).AddTicks(-1);
+
+            var query = _context.InventoryTransactions
+                .Include(t => t.Product)
+                .Where(t => t.TransactionType == TransactionAction.Sale && t.CreatedAt >= actualStart && t.CreatedAt <= endOfDay)
+                .AsQueryable();
+
+            if (storeId.HasValue) query = query.Where(t => t.StoreId == storeId.Value);
+            if (categoryId.HasValue) query = query.Where(t => t.Product!.CategoryId == categoryId.Value);
+            if (supplierId.HasValue) query = query.Where(t => t.Product!.SupplierId == supplierId.Value);
+
+            var rawData = await query
                 .GroupBy(t => t.CreatedAt.Date)
                 .Select(g => new
                 {
@@ -129,9 +172,11 @@ namespace NexusERP.Infrastructure.Repositories
                 }).ToListAsync();
 
             var chartData = new List<RevenueChartData>();
-            for(int i = 0; i <= 6; i++)
+            int totalDays = (int)(actualEnd.Date - actualStart.Date).TotalDays;
+
+            for (int i = 0; i <= totalDays; i++)
             {
-                var targetDate = startDate.AddDays(i);
+                var targetDate = actualStart.Date.AddDays(i);
                 var dayData = rawData.FirstOrDefault(d => d.Date == targetDate);
 
                 chartData.Add(new RevenueChartData
@@ -145,14 +190,26 @@ namespace NexusERP.Infrastructure.Repositories
             return chartData;
         }
 
-        public async Task<List<TopProductChartData>> GetTopPerformingProducts()
+        public async Task<List<TopProductChartData>> GetTopPerformingProducts(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
         {
-            var cutoffDate = DateTime.UtcNow.AddDays(-14);
-
-            return await _context.InventoryTransactions
+            var query = _context.InventoryTransactions
                 .Include(t => t.Product)
-                .Where(t => t.TransactionType == TransactionAction.Sale && t.CreatedAt >= cutoffDate)
-                .GroupBy(t => new { t.ProductId, t.Product!.Name})
+                .Where(t => t.TransactionType == TransactionAction.Sale)
+                .AsQueryable();
+
+            if (startDate.HasValue) query = query.Where(t => t.CreatedAt >= startDate.Value);
+            if (endDate.HasValue)
+            {
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(t => t.CreatedAt <= endOfDay);
+            }
+
+            if (storeId.HasValue) query = query.Where(t => t.StoreId == storeId.Value);
+            if (categoryId.HasValue) query = query.Where(t => t.Product!.CategoryId == categoryId.Value);
+            if (supplierId.HasValue) query = query.Where(t => t.Product!.SupplierId == supplierId.Value);
+
+            return await query
+                .GroupBy(t => new { t.ProductId, t.Product!.Name })
                 .Select(g => new TopProductChartData
                 {
                     ProductName = g.Key.Name ?? "Unknown",

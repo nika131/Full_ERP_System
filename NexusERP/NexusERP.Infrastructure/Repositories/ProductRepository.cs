@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
@@ -143,10 +144,19 @@ namespace NexusERP.Infrastructure.Repositories
             }
         }
 
-        public async Task<DashboardResponse> GetDashboardAggregates()
+        public async Task<DashboardResponse> GetDashboardAggregates(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
         {
-            var inventoryStats = await _context.Products
+            var productQuery = _context.Products
                 .Where(p => p.IsActive)
+                .AsQueryable();
+
+            if (categoryId.HasValue)
+                productQuery = productQuery.Where(p => p.CategoryId == categoryId.Value);
+
+            if (supplierId.HasValue)
+                productQuery = productQuery.Where(p => p.SupplierId == supplierId.Value);
+
+            var inventoryStats = await productQuery
                 .GroupBy(p => 1)
                 .Select(g => new 
                 {
@@ -155,9 +165,28 @@ namespace NexusERP.Infrastructure.Repositories
                     lowStockCount = g.Count(p => p.Quantity < 5)
                 }).FirstOrDefaultAsync();
 
-            var realizedProfit = await _context.InventoryTransactions
+            var transactionQuery = _context.InventoryTransactions
+                .Include(t => t.Product)
                 .Where(t => t.TransactionType == TransactionAction.Sale)
-                .SumAsync(t => t.Profit);
+                .AsQueryable();
+
+            if (startDate.HasValue)
+                transactionQuery = transactionQuery.Where(t => t.CreatedAt >= startDate.Value);
+
+            if (endDate.HasValue)
+                transactionQuery = transactionQuery.Where(t => t.CreatedAt <= endDate.Value);
+
+            if (storeId.HasValue)
+                transactionQuery = transactionQuery.Where(t => t.StoreId == storeId.Value);
+
+            if (categoryId.HasValue)
+                transactionQuery = transactionQuery.Where(t => t.Product.CategoryId == categoryId.Value);
+
+            if (supplierId.HasValue)
+                transactionQuery = transactionQuery.Where(t => t.Product.SupplierId == supplierId.Value);
+
+            var realizedProfit = await transactionQuery.SumAsync(t => t.Profit);
+            var totalSalesAmount = await transactionQuery.SumAsync(t => t.TotalAmount);
 
             var stats = new DashboardResponse
             {
@@ -165,6 +194,7 @@ namespace NexusERP.Infrastructure.Repositories
                 TotalCost = inventoryStats?.TotalCost ?? 0,
                 LowStockCount = inventoryStats?.lowStockCount ?? 0,
                 TotalProfit = realizedProfit,
+                TotalSales = totalSalesAmount,
                 MarginPrecentage = (inventoryStats?.TotalValue ?? 0) > 0
                     ? (realizedProfit / inventoryStats!.TotalValue) * 100
                     : 0

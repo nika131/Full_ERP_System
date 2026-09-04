@@ -3,10 +3,11 @@ import type { DashbaordStats, TopProduct } from "../types/dashboard";
 import type { CursorPagedResult } from "../types/pagination";
 import type { Transaction } from "../types/transaction";
 import apiClient from "./apiClient";
+import type { DashboardFilters } from "../pages/Dashboard";
 
 export const dashboaredService = {
-    getStatistics: async (): Promise<DashbaordStats> => {
-        const response = await apiClient.get('/Dashboard/statistics');
+    getStatistics: async (filters: DashboardFilters): Promise<DashbaordStats> => {
+        const response = await apiClient.get('/Dashboard/statistics', {params: filters});
         return response.data;
     },
 
@@ -14,35 +15,35 @@ export const dashboaredService = {
         pageSize: number = 10,
         lastCreatedAt: string | null = null,
         lastTransactionId: number | null = null,
-        productId: number | null = null,
-        supplierId: number | null = null,
-        searchTransactionId: number | null = null,
-        typeFilter: string = "All",
+        searchTerm: string | null = null,
+        filters: DashboardFilters,
         signal?: AbortSignal
     ): Promise<CursorPagedResult<Transaction>> => {
         
         const params = new URLSearchParams();
         params.append('pageSize', pageSize.toString());
-        params.append('typeFilter', typeFilter);
         
         if (lastCreatedAt) params.append('lastCreatedAt', lastCreatedAt);
         if (lastTransactionId !== null) params.append('lastTransactionId', lastTransactionId.toString());
         
-        if (productId !== null) params.append('productId', productId.toString());
-        if (supplierId !== null) params.append('supplierId', supplierId.toString());
-        if (searchTransactionId !== null) params.append('searchTransactionId', searchTransactionId.toString());
+        if (searchTerm !== null) params.append('searchTerm', searchTerm);
+        if (filters.startDate) params.append('startDate', filters.startDate);
+        if (filters.endDate) params.append('endDate', filters.endDate);
+        if (filters.storeId !== null) params.append('storeId', filters.storeId.toString());
+        if (filters.categoryId !== null) params.append('categoryId', filters.categoryId.toString());
+        if (filters.supplierId !== null) params.append('supplierId', filters.supplierId.toString());
 
         const response = await apiClient.get(`/reports`, { params, signal });
         return response.data;
     },
 
-    getChartData: async (): Promise<ChartData[]> => {
-        const response = await apiClient.get('/Dashboard/revenueChart');
+    getChartData: async (filters: DashboardFilters): Promise<ChartData[]> => {
+        const response = await apiClient.get('/Dashboard/revenueChart', { params: filters });
         return response.data;
     },
 
-    getTopProducts: async (): Promise<TopProduct[]> => {
-        const response = await apiClient.get('/Dashboard/top-Products');
+    getTopProducts: async (filters: DashboardFilters): Promise<TopProduct[]> => {
+        const response = await apiClient.get('/Dashboard/top-Products', { params: filters });
         return response.data;
     },
 };

@@ -22,23 +22,38 @@ namespace NexusERP.Api.Controllers
 
 
         [HttpGet("statistics")]
-        public async Task<IActionResult> GetDashboardStatistics()
+        public async Task<IActionResult> GetDashboardStatistics(
+                                [FromQuery] DateTime? startDate,
+                                [FromQuery] DateTime? endDate,
+                                [FromQuery] int? storeId,
+                                [FromQuery] int? categoryId,
+                                [FromQuery] int? supplierId)
         {
-            var stats = await _Productrepository.GetDashboardAggregates();
+            var stats = await _Productrepository.GetDashboardAggregates(startDate, endDate, storeId, categoryId, supplierId);
             return Ok(stats);
         }
 
         [HttpGet("revenueChart")]
-        public async Task<IActionResult> GetChartData()
+        public async Task<IActionResult> GetChartData(
+                                [FromQuery] DateTime? startDate,
+                                [FromQuery] DateTime? endDate,
+                                [FromQuery] int? storeId,
+                                [FromQuery] int? categoryId,
+                                [FromQuery] int? supplierId)
         {
-            var chartData = await _ReportRepository.GetWeeklyRevenueChart();
+            var chartData = await _ReportRepository.GetWeeklyRevenueChart(startDate, endDate, storeId, categoryId, supplierId);
             return Ok(chartData);
         }
 
         [HttpGet("top-Products")]
-        public async Task<IActionResult> GetTopProducts()
+        public async Task<IActionResult> GetTopProducts(
+                                [FromQuery] DateTime? startDate,
+                                [FromQuery] DateTime? endDate,
+                                [FromQuery] int? storeId,
+                                [FromQuery] int? categoryId,
+                                [FromQuery] int? supplierId)
         {
-            var data = await _ReportRepository.GetTopPerformingProducts();
+            var data = await _ReportRepository.GetTopPerformingProducts(startDate, endDate, storeId, categoryId, supplierId);
             return Ok(data);
         }
     }

@@ -11,6 +11,14 @@ export const useNearbyStoresQuery = (lat: number, lon: number, radius: number) =
     });
 };
 
+export const useLookupStoresQuery = () => {
+    return useQuery({
+        queryKey: ['lookupStores'],
+        queryFn: ()  => storeService.getLookupStores(),
+        staleTime: 5 * 60 * 1000,
+    })
+}
+
 /* export const useSaveStoreMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({

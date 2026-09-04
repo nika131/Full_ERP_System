@@ -37,7 +37,11 @@ namespace NexusERP.Api.Controllers
             [FromQuery] int? lastTransactionId = null,
             [FromQuery] int? productId = null,
             [FromQuery] int? supplierId = null,
-            [FromQuery] int? searchTransactionId = null,
+            [FromQuery] int? storeId = null,
+            [FromQuery] int? categoryId = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? searchTerm = null,
             [FromQuery] string typeFilter = "All")
         {
             if (pageSize > 100) pageSize = 100;
@@ -45,7 +49,20 @@ namespace NexusERP.Api.Controllers
             bool canViewAll = User.HasPermission(Permissions.ViewAllTransactions);
 
             var secureData = await _repository.GetPagedTransactionsOptimized(
-                pageSize, lastCreatedAt, lastTransactionId, productId, supplierId, searchTransactionId, User.GetCurrentUserId(), canViewAll, typeFilter);
+                    pageSize,
+                    User.GetCurrentUserId(),
+                    canViewAll,
+                    typeFilter,
+                    searchTerm,
+                    lastCreatedAt,
+                    lastTransactionId,
+                    productId,
+                    supplierId,
+                    storeId,
+                    categoryId,
+                    startDate,
+                    endDate
+            );
 
             var responseItems = secureData.Items.Select(t => new TransactionResponseDto
             {
