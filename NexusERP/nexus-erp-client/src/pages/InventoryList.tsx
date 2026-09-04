@@ -7,11 +7,14 @@ import { ProductForm } from '../components/forms/ProductForm';
 import { ConfirmDialog } from '../components/Ui/ConfirmDialog';
 import type { StockFormData } from '../schemas/stockSchema';
 import { StockManagementForm } from '../components/forms/StockManagementForm';
-import { useProductsQuery, useSaveProductMutation, useDeleteProductMutation, useTransactionMutation } from '../hooks/queries/useInventoryQueries';
+import { useProductsQuery, useSaveProductMutation, useDeleteProductMutation, useTransactionMutation, useSupplierLookupQuery } from '../hooks/queries/useInventoryQueries';
+import { useLookupCategoriesQuery } from '../hooks/queries/useCategoryQueries';
 
 export default function InventoryList() {
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('')
+    const [supplierFilter, setSupplierFilter] = useState('')
 
     const [isSildeOverOpen, setIsSlideOverOpen] = useState(false);
     const [selectedProduct, setSelectedProduct]= useState<Product | null>(null);
@@ -24,10 +27,13 @@ export default function InventoryList() {
     const [isStockSlideOverOpen, setIsStockSlideOverOpen] = useState(false);
     const [selectedStockProduct, setSelectedStockProduct] = useState<Product | null>(null);
 
-    const { data: productsData, isLoading, isError } = useProductsQuery(page, 10, searchTerm);
+    const { data: productsData, isLoading, isError } = useProductsQuery(page, 10, searchTerm, categoryFilter, supplierFilter);
     const saveProductMutation = useSaveProductMutation();
     const deleteProductMutation = useDeleteProductMutation();
     const transactionMutation = useTransactionMutation();
+
+    const { data: categories = [] } = useLookupCategoriesQuery();
+    const { data: suppliers = [] } = useSupplierLookupQuery();
 
     const products = productsData?.items || [];
     const totalPages = productsData?.totalPages || 1;
@@ -182,19 +188,57 @@ export default function InventoryList() {
             </div>
 
             {/* Filters */}
-            <div className="flex bg-white p-1 rounded-md shadow-sm border border-slate-200 max-w-md">
-                <input 
-                type="text" 
-                placeholder="Search products by name or ID..." 
-                value={searchTerm}
-                onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1); 
-                }}
-                className="w-full px-3 py-2 outline-none text-sm bg-transparent"
-                />
-            </div>
 
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+                {/*SearchTerm Filter*/}
+                <div className="flex flex-1 bg-white p-1 rounded-md shadow-sm border border-slate-200 max-w-md">
+                    <input 
+                    type="text" 
+                    placeholder="Search products by name or ID..." 
+                    value={searchTerm}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setPage(1); 
+                    }}
+                    className="w-full px-3 py-2 outline-none text-sm bg-transparent"
+                    />
+                </div>
+
+                {/*Category Filter*/}
+                <select
+                    className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+                    value={categoryFilter}
+                    onChange={(e) => { 
+                        setCategoryFilter(e.target.value); 
+                        setPage(1); 
+                    }}
+                >
+                    <option value="">All Category</option>
+                    {categories.map((category) => (
+                        <option key={category.categoryId} value={category.name}>
+                            {category.name}
+                        </option>
+                    ))}
+                </select>
+
+                {/*Supplier Filter*/}
+                <select
+                    className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+                    value={supplierFilter}
+                    onChange={(e) => { 
+                        setSupplierFilter(e.target.value); 
+                        setPage(1); 
+                    }}
+                >
+                    <option value="">All Suppliers</option>
+                    {suppliers.map((supplier) => (
+                        <option key={supplier.supplierId} value={supplier.companyName}>
+                            {supplier.companyName}
+                        </option>
+                    ))}
+                </select>
+            </div>
+            
             {isError && (
                 <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded text-sm">
                 Failed to load Inventory Data. Please try again later.

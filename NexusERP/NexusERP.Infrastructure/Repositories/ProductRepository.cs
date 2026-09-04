@@ -24,13 +24,27 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
+        public async Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName)
         {
             var baseQuery = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
                 .Where(p => p.IsActive)
                 .AsNoTracking();
+
+            if (!string.IsNullOrEmpty(supplierName))
+            {
+                baseQuery = baseQuery.Where(p =>
+                    p.Supplier.ContactName == supplierName
+                );
+            }
+
+            if (!string.IsNullOrEmpty(categoryName))
+            {
+                baseQuery = baseQuery.Where(p =>
+                    p.Category.CategoryName == categoryName
+                );
+            }
 
             if (!string.IsNullOrEmpty(searchTerm))
             {

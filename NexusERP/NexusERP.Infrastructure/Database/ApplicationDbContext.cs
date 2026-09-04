@@ -142,6 +142,9 @@ namespace NexusERP.Infrastructure.Database
             {
                 entity.HasKey(e => e.StoreId);
                 entity.HasQueryFilter(e => e.IsActive);
+
+                entity.Property(e => e.Location)
+                .HasColumnType("geography");
             });
         }
 

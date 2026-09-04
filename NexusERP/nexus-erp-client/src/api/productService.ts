@@ -16,14 +16,16 @@ export const productService = {
         page: number = 1, 
         pageSize: number = 10, 
         searchTerm?: string,
+        categoryName?: string,
+        supplierName?: string,
         signal?: AbortSignal
     ): Promise<PagedResult<Product>> => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('pageSize', pageSize.toString());
-        if (searchTerm) {
-            params.append('searchTerm', searchTerm);
-        }
+        if (searchTerm) params.append('searchTerm', searchTerm);
+        if(categoryName) params.append('categoryName', categoryName);
+        if(supplierName) params.append('supplierName', supplierName);
 
         const response = await apiClient.get(`/products?${params.toString()}`, { signal });
         return response.data;

@@ -4,6 +4,8 @@ import { CursorDataTable, type ColumnDef } from "../components/Ui/CursorDataTabl
 import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
 import { AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart } from "recharts";
 import { useDashboardStatsQuery, useChartDataQuery, useTopProductsQuery, useTransactionsQuery } from "../hooks/queries/useDashboardQueries";
+import { StoreMapCanvas } from "../components/maps/StoreMapCanvas";
+import { useNearbyStoresQuery } from "../hooks/queries/useStoreQueries";
 
 type TransactionCursorState = {
   createdAt: string | null;
@@ -15,9 +17,14 @@ export default function Dashboard() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [mapRadius, setMapRadius] = useState(5000); 
+  const [mapCenter, setMapCenter] = useState<[number, number]>([41.7151, 44.8271]);
+  const [queryRadius, setQueryRadius] = useState(5000);
+
   const { data: stats, isLoading: isStatsLoading } = useDashboardStatsQuery();
   const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery();
   const { data: topProducts = [], isLoading: isTopProductsLoading } = useTopProductsQuery();
+  const { data: stores = [] } = useNearbyStoresQuery(mapCenter[0], mapCenter[1], queryRadius);
 
   const isLoadingStats = isStatsLoading || isChartLoading || isTopProductsLoading;
 
@@ -224,6 +231,32 @@ export default function Dashboard() {
           </div>
         </div>
 
+      </div>
+
+      {/* SPATIAL STORE MAP */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex justify-between items-center mb-6">
+              <div>
+                  <h3 className="text-lg font-bold text-slate-800">Operational Territory</h3>
+                  <p className="text-xs text-slate-500">{stores.length} active locations within {mapRadius / 1000}km</p>
+              </div>
+              <div className="w-64 flex items-center gap-3">
+                  <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Radius: {mapRadius / 1000}km</label>
+                  <input
+                      type="range"
+                      min="1000"
+                      max="50000"
+                      step="1000"
+                      value={mapRadius}
+                      onChange={(e) => setMapRadius(Number(e.target.value))}
+                      onPointerUp={(e) => setQueryRadius(Number(e.currentTarget.value))}
+                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                  />
+              </div>
+          </div>
+          <div className="h-125 w-full relative rounded-lg overflow-hidden">
+              <StoreMapCanvas center={mapCenter} radius={mapRadius} stores={stores} />
+          </div>
       </div>
 
       {/* BOTTOM ZONE: TRANSACTION LEDGER */}

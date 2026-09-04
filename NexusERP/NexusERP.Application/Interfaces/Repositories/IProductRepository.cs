@@ -11,7 +11,7 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IProductRepository
     {
-        Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm);
+        Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName);
         Task Upsert(Product product, int userId);
         Task SaveTransaction(InventoryTransaction transaction, Product product);
         Task<Product> GetByIdAsync(int id);

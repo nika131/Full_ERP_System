@@ -30,11 +30,13 @@ namespace NexusERP.Api.Controllers
         public async Task<IActionResult> GetProducts(
                     [FromQuery] int page = 1,
                     [FromQuery] int pageSize = 10,
-                    [FromQuery] string? searchTerm = null)
+                    [FromQuery] string? searchTerm = null,
+                    [FromQuery] string? categoryName = null,
+                    [FromQuery] string? supplierName = null)
         {
             if (pageSize > 100) pageSize = 100;
 
-            var result = await _repository.GetPaged(page, pageSize, searchTerm);
+            var result = await _repository.GetPaged(page, pageSize, searchTerm, categoryName, supplierName);
 
             var responseItems = result.Items.Select(p => new ProductResponseDto
             {

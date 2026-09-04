@@ -4,10 +4,10 @@ import type { ProductFormData } from '../../schemas/productSchema';
 import { categoryService } from '../../api/categoryService';
 import { supplierService } from '../../api/supplierService';
 
-export const useProductsQuery = (page: number, limit: number, search: string) => {
+export const useProductsQuery = (page: number, limit: number, search: string, category: string, supplier: string) => {
     return useQuery({
-        queryKey: ['products', { page, limit, search }],
-        queryFn: ({ signal }) => productService.getProducts(page, limit, search, signal),
+        queryKey: ['products', { page, limit, search, category, supplier }],
+        queryFn: ({ signal }) => productService.getProducts(page, limit, search, category, supplier, signal),
         staleTime: 60 * 1000, 
     });
 };

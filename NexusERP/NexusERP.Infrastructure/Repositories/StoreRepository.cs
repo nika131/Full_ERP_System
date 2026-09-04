@@ -45,7 +45,7 @@ namespace NexusERP.Infrastructure.Repositories
         public async Task<IEnumerable<Store>> GetStoresWithinRadiusAsync(Point location, double radiusInMeteres)
         {
             return await _context.Stores
-                .Where(s => s.Location.IsWithinDistance(location, radiusInMeteres))
+                .Where(s => s.Location.Distance(location) <= radiusInMeteres)
                 .ToListAsync();
         }
     }
