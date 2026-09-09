@@ -1,5 +1,6 @@
 ﻿using NetTopologySuite.Geometries;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,5 +17,7 @@ namespace NexusERP.Application.Interfaces.Repositories
         Task UpdateStoreAsync(Store store);
 
         Task<IEnumerable<Store>> GetStoresWithinRadiusAsync(Point location, double radiusInMeters);
+
+        Task<PagedResult<Store>> GetPagedStoresAsync(int pageNumber, int pageSize, string? searchTerm = null);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using NexusERP.Application.DTOs;
+using NexusERP.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,6 @@ namespace NexusERP.Application.Interfaces.Services
         Task UpdateStoreAsync(int id, UpdateStoreDto dto);
 
         Task<IEnumerable<StoreDto>> GetStoresNearbyAsync(double latitude, double longitude, double radiusInMeters);
+        Task<PagedResult<StoreDto>> GetPagedStoresAsync(int pageNumber, int pageSize, string? searchTerm = null);
     }
 }

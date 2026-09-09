@@ -13,6 +13,7 @@ import { Permissions } from './constants/permissions';
 import Profile from './pages/Profile';
 import EmployeeList from './pages/EmployeeList';
 import PendingLeaves from './pages/PendingLeaves';
+import StoreList from './pages/StoreList';
 
 
 function App() {
@@ -57,6 +58,10 @@ return (
 
               <Route element={<ProtectedRoute requiredPermission={Permissions.ManageUsers} />}>
                 <Route path="/pending-leaves" element={<PendingLeaves />} />
+              </Route>
+
+              <Route element={<ProtectedRoute requiredPermission={Permissions.ViewDashboard} />}>
+                <Route path="/stores" element={<StoreList />} />
               </Route>
 
             </Route>

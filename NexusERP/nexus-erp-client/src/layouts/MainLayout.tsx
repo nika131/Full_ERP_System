@@ -65,6 +65,12 @@ export default function MainLayout() {
                         System Logs
                     </Link>
                 )}
+
+                {canAccess(Permissions.ViewDashboard) && (
+                    <Link to="/stores" className={`block px-4 py-2 rounded transition-colors ${isActive('/stores') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Stores
+                    </Link>
+                )}
             </nav>
         </aside>
 

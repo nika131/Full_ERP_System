@@ -17,7 +17,7 @@ export const storeSchema = z.object({
         .min(-180, "Longitude must be between -180 and 180")
         .max(180, "Longitude must be between -180 and 180"),
         
-    isActive: z.boolean().default(true)
+    isActive: z.boolean()
 });
 
 export type StoreFormData = z.infer<typeof storeSchema>;

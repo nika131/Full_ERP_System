@@ -2,6 +2,7 @@
 using NetTopologySuite.Geometries;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,31 @@ namespace NexusERP.Infrastructure.Repositories
         public StoreRepository(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        public async Task<PagedResult<Store>> GetPagedStoresAsync(int pageNumber, int pageSize, string? searchTerm = null)
+        {
+            var query = _context.Stores.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                query = query.Where(s => s.Name.Contains(searchTerm) || s.Address.Contains(searchTerm));
+            }
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(s => s.StoreId)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<Store>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
         public async Task<IEnumerable<Store>> GetAllStoresAsync()

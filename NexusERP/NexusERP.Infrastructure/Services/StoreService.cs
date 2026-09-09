@@ -5,6 +5,7 @@ using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Exceptions;
+using NexusERP.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,19 @@ namespace NexusERP.Infrastructure.Services
         {
             _storeRepository = storeRepository;
             _geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+        }
+
+        public async Task<PagedResult<StoreDto>> GetPagedStoresAsync(int pageNumber, int pageSize, string? searchTerm = null)
+        {
+            var pagedResult = await _storeRepository.GetPagedStoresAsync(pageNumber, pageSize, searchTerm);
+            
+            return new PagedResult<StoreDto>
+            {
+                Items = pagedResult.Items.Select(MapToDto).ToList(),
+                TotalCount = pagedResult.TotalCount,
+                PageNumber = pagedResult.PageNumber,
+                PageSize = pagedResult.PageSize
+            };
         }
 
         public async Task<IEnumerable<StoreDto>> GetAllStoresAsync()

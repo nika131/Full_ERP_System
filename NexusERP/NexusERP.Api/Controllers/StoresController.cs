@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Services;
+using NexusERP.Domain.Models;
 
 namespace NexusERP.Api.Controllers
 {
@@ -15,6 +16,18 @@ namespace NexusERP.Api.Controllers
         public StoresController(IStoreService storeService)
         {
             _storeService = storeService;
+        }
+
+        [HttpGet("paged")]
+        public async Task<ActionResult<PagedResult<StoreDto>>> GetPagedStores(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null)
+        {
+            if (pageSize > 100) pageSize = 100; 
+
+            var pagedStores = await _storeService.GetPagedStoresAsync(pageNumber, pageSize, searchTerm);
+            return Ok(pagedStores);
         }
 
         [HttpGet]
