@@ -12,8 +12,10 @@ using QuestPDF.Infrastructure;
 
 namespace NexusERP.Infrastructure.Services
 {
+    
     public class PdfExportService : IPdfExportService
     {
+        
         public byte[] GenerateInvoice(InventoryTransaction model)
         {
             return Document.Create(container =>
@@ -38,7 +40,7 @@ namespace NexusERP.Infrastructure.Services
                         {
                             col.Item().Text("SUPPLIER INFORMATION").SemiBold();
                             // Traverse the graph, supply a fallback if null
-                            col.Item().Text(model.Supplier?.CompanyName ?? "N/A").FontSize(14).Medium();
+                            //col.Item().Text(model.Supplier?.CompanyName ?? "N/A").FontSize(14).Medium();
                         });
                     });
 
@@ -72,10 +74,10 @@ namespace NexusERP.Infrastructure.Services
                             table.Cell().Element(ValueStyle).Text(model.Product?.Name ?? "Unknown Product");
                             table.Cell().Element(ValueStyle).Text(model.TransactionType.ToString());
                             table.Cell().Element(ValueStyle).Text(model.Quantity.ToString());
-                            table.Cell().Element(ValueStyle).Text($"{model.TotalAmount:C2}");
+                            //table.Cell().Element(ValueStyle).Text($"{model.TotalAmount:C2}");
                         });
 
-                        col.Item().PaddingTop(20).AlignRight().Text($"Total Amount: {model.TotalAmount:C2}").FontSize(16).SemiBold();
+                        //col.Item().PaddingTop(20).AlignRight().Text($"Total Amount: {model.TotalAmount:C2}").FontSize(16).SemiBold();
                     });
 
                     page.Footer().AlignCenter().Text(x => {

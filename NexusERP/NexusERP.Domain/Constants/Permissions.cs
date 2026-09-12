@@ -32,5 +32,14 @@ namespace NexusERP.Domain.Constants
         public const string ViewDashboard = "Dashboard.View";
 
         public const string ManageAbsences = "Absences.Manage";
+
+        public const string ApplyItemDiscount = "Transactions.ApplyItemDiscount";
+        public const string ApplyCartDiscount = "Transactions.ApplyCartDiscount";
+        public const string editTransaction = "Transactions.Edit";
+        public const string deleteTransaction = "Transactions.Delete";
+
+        public const string ManageShifts = "Shifts.Manage";
+        public const string OpenCloseShift = "Shifts.OpenClose";
+        public const string PerformCashMovements = "Shifts.CashMovements";
     }
 }

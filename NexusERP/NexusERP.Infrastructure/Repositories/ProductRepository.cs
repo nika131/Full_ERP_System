@@ -146,15 +146,10 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<DashboardResponse> GetDashboardAggregates(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
         {
-            var productQuery = _context.Products
-                .Where(p => p.IsActive)
-                .AsQueryable();
+            var productQuery = _context.Products.Where(p => p.IsActive).AsQueryable();
 
-            if (categoryId.HasValue)
-                productQuery = productQuery.Where(p => p.CategoryId == categoryId.Value);
-
-            if (supplierId.HasValue)
-                productQuery = productQuery.Where(p => p.SupplierId == supplierId.Value);
+            if (categoryId.HasValue) productQuery = productQuery.Where(p => p.CategoryId == categoryId.Value);
+            if (supplierId.HasValue) productQuery = productQuery.Where(p => p.SupplierId == supplierId.Value);
 
             var inventoryStats = await productQuery
                 .GroupBy(p => 1)
@@ -165,28 +160,25 @@ namespace NexusERP.Infrastructure.Repositories
                     lowStockCount = g.Count(p => p.Quantity < 5)
                 }).FirstOrDefaultAsync();
 
-            var transactionQuery = _context.InventoryTransactions
-                .Include(t => t.Product)
-                .Where(t => t.TransactionType == TransactionAction.Sale)
+            var salesQuery = _context.ReceiptItems
+                .Include(ri => ri.Receipt)
+                .Include(ri => ri.Product)
+                .Where(ri => ri.Receipt!.IsActive)
                 .AsQueryable();
 
-            if (startDate.HasValue)
-                transactionQuery = transactionQuery.Where(t => t.CreatedAt >= startDate.Value);
+            if (startDate.HasValue) salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt >= startDate.Value);
+            if (endDate.HasValue) 
+            {
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt <= endOfDay);
+            }
 
-            if (endDate.HasValue)
-                transactionQuery = transactionQuery.Where(t => t.CreatedAt <= endDate.Value);
+            if (storeId.HasValue) salesQuery = salesQuery.Where(ri => ri.Receipt!.StoreId == storeId.Value);
+            if (categoryId.HasValue) salesQuery = salesQuery.Where(ri => ri.Product!.CategoryId == categoryId.Value);
+            if (supplierId.HasValue) salesQuery = salesQuery.Where(ri => ri.Product!.SupplierId == supplierId.Value);
 
-            if (storeId.HasValue)
-                transactionQuery = transactionQuery.Where(t => t.StoreId == storeId.Value);
-
-            if (categoryId.HasValue)
-                transactionQuery = transactionQuery.Where(t => t.Product.CategoryId == categoryId.Value);
-
-            if (supplierId.HasValue)
-                transactionQuery = transactionQuery.Where(t => t.Product.SupplierId == supplierId.Value);
-
-            var realizedProfit = await transactionQuery.SumAsync(t => t.Profit);
-            var totalSalesAmount = await transactionQuery.SumAsync(t => t.TotalAmount);
+            var totalSalesAmount = await salesQuery.SumAsync(ri => ri.LineTotal);
+            var realizedProfit = await salesQuery.SumAsync(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity));
 
             var stats = new DashboardResponse
             {

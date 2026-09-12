@@ -15,6 +15,8 @@ namespace NexusERP.Domain.Entities
 
         public Point Location { get; set; }
 
+        public decimal MaxCartDiscountPercentage { get; set; }
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } 
         public DateTime? UpdatedAt { get; set; }

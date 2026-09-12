@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace NexusERP.Domain.Enums
 {
-    internal class PosEnums
-    {
-    }
+    public enum ShapeType { square, Circle, Triangle, Pentagon, Star, Diamond, Heart }
+    public enum ShiftStatus { Open, Closed }
+    public enum CashMovementType { PayIn, PayOut }
+    public enum PaymentMethod { Cash, Card, Voucher }
 }

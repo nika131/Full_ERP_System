@@ -42,7 +42,7 @@ namespace NexusERP.Infrastructure.Repositories
         {
             var baseQuery = _context.InventoryTransactions
                             .Include(t => t.Product)
-                            .Include(t => t.Supplier)
+                                .ThenInclude(p => p!.Supplier)
                             .Include(t => t.User)
                             .AsNoTracking();
 
@@ -65,7 +65,7 @@ namespace NexusERP.Infrastructure.Repositories
 
             if (supplierId.HasValue)
             {
-                baseQuery = baseQuery.Where(t => t.SupplierId == supplierId.Value);
+                baseQuery = baseQuery.Where(t => t.Product != null && t.Product.SupplierId == supplierId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -150,25 +150,25 @@ namespace NexusERP.Infrastructure.Repositories
         {
             var actualStart = startDate ?? DateTime.UtcNow.Date.AddDays(-6);
             var actualEnd = endDate ?? DateTime.UtcNow.Date;
-
             var endOfDay = actualEnd.Date.AddDays(1).AddTicks(-1);
 
-            var query = _context.InventoryTransactions
-                .Include(t => t.Product)
-                .Where(t => t.TransactionType == TransactionAction.Sale && t.CreatedAt >= actualStart && t.CreatedAt <= endOfDay)
+            var query = _context.ReceiptItems
+                .Include(ri => ri.Receipt)
+                .Include(ri => ri.Product)
+                .Where(ri => ri.Receipt!.IsActive && ri.Receipt.CreatedAt >= actualStart && ri.Receipt.CreatedAt <= endOfDay)
                 .AsQueryable();
 
-            if (storeId.HasValue) query = query.Where(t => t.StoreId == storeId.Value);
-            if (categoryId.HasValue) query = query.Where(t => t.Product!.CategoryId == categoryId.Value);
-            if (supplierId.HasValue) query = query.Where(t => t.Product!.SupplierId == supplierId.Value);
+            if (storeId.HasValue) query = query.Where(ri => ri.Receipt!.StoreId == storeId.Value);
+            if (categoryId.HasValue) query = query.Where(ri => ri.Product!.CategoryId == categoryId.Value);
+            if (supplierId.HasValue) query = query.Where(ri => ri.Product!.SupplierId == supplierId.Value);
 
             var rawData = await query
-                .GroupBy(t => t.CreatedAt.Date)
+                .GroupBy(ri => ri.Receipt!.CreatedAt.Date)
                 .Select(g => new
                 {
                     Date = g.Key,
-                    Revenue = g.Sum(t => t.TotalAmount),
-                    Profit = g.Sum(t => t.Profit)
+                    Revenue = g.Sum(ri => ri.LineTotal),
+                    Profit = g.Sum(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity))
                 }).ToListAsync();
 
             var chartData = new List<RevenueChartData>();
@@ -192,28 +192,29 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<List<TopProductChartData>> GetTopPerformingProducts(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
         {
-            var query = _context.InventoryTransactions
-                .Include(t => t.Product)
-                .Where(t => t.TransactionType == TransactionAction.Sale)
+            var query = _context.ReceiptItems
+                .Include(ri => ri.Receipt)
+                .Include(ri => ri.Product)
+                .Where(ri => ri.Receipt!.IsActive)
                 .AsQueryable();
 
-            if (startDate.HasValue) query = query.Where(t => t.CreatedAt >= startDate.Value);
+            if (startDate.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt >= startDate.Value);
             if (endDate.HasValue)
             {
                 var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(t => t.CreatedAt <= endOfDay);
+                query = query.Where(ri => ri.Receipt!.CreatedAt <= endOfDay);
             }
 
-            if (storeId.HasValue) query = query.Where(t => t.StoreId == storeId.Value);
-            if (categoryId.HasValue) query = query.Where(t => t.Product!.CategoryId == categoryId.Value);
-            if (supplierId.HasValue) query = query.Where(t => t.Product!.SupplierId == supplierId.Value);
+            if (storeId.HasValue) query = query.Where(ri => ri.Receipt!.StoreId == storeId.Value);
+            if (categoryId.HasValue) query = query.Where(ri => ri.Product!.CategoryId == categoryId.Value);
+            if (supplierId.HasValue) query = query.Where(ri => ri.Product!.SupplierId == supplierId.Value);
 
             return await query
-                .GroupBy(t => new { t.ProductId, t.Product!.Name })
+                .GroupBy(ri => new { ri.ProductId, ri.Product!.Name })
                 .Select(g => new TopProductChartData
                 {
                     ProductName = g.Key.Name ?? "Unknown",
-                    Revenue = g.Sum(t => t.TotalAmount)
+                    Revenue = g.Sum(ri => ri.LineTotal)
                 })
                 .OrderByDescending(x => x.Revenue)
                 .Take(5)

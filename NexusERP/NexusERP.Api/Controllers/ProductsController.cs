@@ -88,14 +88,12 @@ namespace NexusERP.Api.Controllers
                 return BadRequest(new { message = $"Invalid transaction type: '{dto.TransactionType}'." });
             }
 
-            bool isSale = parsedAction == TransactionAction.Sale;
-
-            if (isSale && !User.HasPermission(Permissions.PerformSales))
+            if (parsedAction == TransactionAction.Sale)
             {
-                return StatusCode(403, "Missing Perform Sales permission.");
+                return BadRequest(new { message = "Sales must now be processed through the POS Checkout system to generate a valid Receipt." });
             }
 
-            if (!isSale && !User.HasPermission(Permissions.PerformInboundTransactions))
+            if (!User.HasPermission(Permissions.PerformInboundTransactions))
             {
                 return StatusCode(403, "Missing Inbound Inventory permission.");
             }
@@ -103,7 +101,6 @@ namespace NexusERP.Api.Controllers
             var transactionEntity = new InventoryTransaction
             {
                 ProductId = dto.ProductId,
-                SupplierId = dto.SupplierId > 0 ? dto.SupplierId : null,
                 TransactionType = parsedAction,
                 Quantity = dto.Quantity
             };

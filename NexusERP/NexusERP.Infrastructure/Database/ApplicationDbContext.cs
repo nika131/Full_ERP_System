@@ -29,6 +29,10 @@ namespace NexusERP.Infrastructure.Database
         public DbSet<UserAbsence> UserAbsences { get; set; }
         public DbSet<SalaryRecord> SalaryRecords { get; set; }
         public DbSet<Store> Stores { get; set; }
+        public DbSet<CashMovement> CashMovements { get; set; }
+        public DbSet<Shift> Shifts { get; set; }
+        public DbSet<Receipt> Receipts { get; set; }
+        public DbSet<ReceiptItem> ReceiptItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -53,9 +57,6 @@ namespace NexusERP.Infrastructure.Database
             modelBuilder.Entity<InventoryTransaction>(entity =>
             {
                 entity.HasKey(e => e.TransactionId);
-                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.Profit).HasColumnType("decimal(18,2)");
 
                 entity.Property(e => e.TransactionType)
                       .HasConversion(
@@ -145,6 +146,70 @@ namespace NexusERP.Infrastructure.Database
 
                 entity.Property(e => e.Location)
                 .HasColumnType("geography");
+            });
+
+            // Store Mapping
+            modelBuilder.Entity<Store>(entity =>
+            {
+                entity.Property(e => e.MaxCartDiscountPercentage).HasColumnType("decimal(18,2)");
+            });
+
+            // Product Mapping
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.Property(e => e.VatRate).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MarketDiscountRate).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MaxDiscountPercentage).HasColumnType("decimal(18,2)");
+            });
+
+            // Shift Mapping
+            modelBuilder.Entity<Shift>(entity =>
+            {
+                entity.HasKey(e => e.ShiftId);
+                entity.Property(e => e.StartingCash).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ExpectedEndingCash).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ActualEndingCash).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalSales).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalProfit).HasColumnType("decimal(18,2)");
+            });
+
+            // Cash Movement Mapping
+            modelBuilder.Entity<CashMovement>(entity =>
+            {
+                entity.HasKey(e => e.MovementId);
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+            });
+
+            // Receipt Mapping
+            modelBuilder.Entity<Receipt>(entity =>
+            {
+                entity.HasKey(e => e.ReceiptId);
+                entity.Property(e => e.SubTotal).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CartDiscountAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalVatAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.FinalTotal).HasColumnType("decimal(18,2)");
+
+                entity.HasOne(r => r.Shift)
+                      .WithMany()
+                      .HasForeignKey(r => r.ShiftId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ReceiptItem Mapping
+            modelBuilder.Entity<ReceiptItem>(entity =>
+            {
+                entity.HasKey(e => e.ItemId);
+                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CostPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.VatRate).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MarketDiscountAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ManualItemDiscountAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.LineTotal).HasColumnType("decimal(18,2)");
+
+                entity.HasOne(e => e.Receipt)
+                      .WithMany(r => r.Lines)
+                      .HasForeignKey(e => e.ReceiptId)
+                      .OnDelete(DeleteBehavior.Cascade); 
             });
         }
 

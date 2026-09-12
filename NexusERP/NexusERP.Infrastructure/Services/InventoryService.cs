@@ -41,9 +41,6 @@ namespace NexusERP.Infrastructure.Services
                         throw new AppException($"Insufficient stock. Only {product.Quantity} available.");
 
                     product.Quantity -= qty;
-                    transaction.UnitPrice = transaction.UnitPrice > 0 ? transaction.UnitPrice : product.Price;
-                    transaction.TotalAmount = transaction.UnitPrice * qty;
-                    transaction.Profit = transaction.TotalAmount - (product.CostPrice * qty);
                     break;
 
                 case TransactionAction.Loss:
@@ -51,9 +48,6 @@ namespace NexusERP.Infrastructure.Services
                         throw new AppException($"Cannot deduct {qty}. Only {product.Quantity} available.");
 
                     product.Quantity -= qty;
-                    transaction.UnitPrice = 0;
-                    transaction.TotalAmount = 0;
-                    transaction.Profit = -(product.CostPrice * qty); 
                     break;
 
                 case TransactionAction.Damage:
@@ -61,26 +55,13 @@ namespace NexusERP.Infrastructure.Services
                         throw new AppException($"Cannot deduct {qty}. Only {product.Quantity} available.");
 
                     product.Quantity -= qty;
-                    transaction.UnitPrice = 0;
-                    transaction.TotalAmount = 0;
-                    transaction.Profit = -(product.CostPrice * qty); 
                     break;
 
                 case TransactionAction.Restock:
                     var oldQuantity = product.Quantity;
                     var oldTotalValue = oldQuantity * product.CostPrice;
 
-                    transaction.UnitPrice = transaction.UnitPrice > 0 ? transaction.UnitPrice : product.CostPrice;
-                    var incomingTotalValue = transaction.UnitPrice * qty;
-
                     product.Quantity += qty;
-                    transaction.TotalAmount = incomingTotalValue;
-                    transaction.Profit = 0;
-
-                    if (product.Quantity > 0)
-                    {
-                        product.CostPrice = (oldTotalValue + incomingTotalValue) / product.Quantity;
-                    }
                     break;
 
                 default:

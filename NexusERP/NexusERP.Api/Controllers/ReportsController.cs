@@ -69,11 +69,11 @@ namespace NexusERP.Api.Controllers
                 TransactionId = t.TransactionId,
                 ProductId = t.ProductId,
                 ProductName = t.Product?.Name ?? "Unknown",
-                SupplierName = t.Supplier?.ContactName ?? "N/A",
+                SupplierName = t.Product?.Supplier?.ContactName ?? "N/A",
                 TransactionType = t.TransactionType.ToString(),
                 Quantity = t.Quantity,
-                TotalAmount = t.TotalAmount,
-                Profit = t.Profit,
+                TotalAmount = 0,
+                Profit = 0,
                 CreatedAt = t.CreatedAt,
             }).ToList();
 

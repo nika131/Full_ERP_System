@@ -9,28 +9,24 @@ using System.Threading.Tasks;
 
 namespace NexusERP.Domain.Entities
 {
-    public class InventoryTransaction : ICreationTracked
+    public class InventoryTransaction : IAuditTracked
     {
         public int TransactionId { get; set; }
 
         public int ProductId { get; set; }
         public Product? Product { get; set; }
 
-        public int? SupplierId { get; set; }
-        public Supplier? Supplier { get; set; }
-
         public int UserId { get; set; }
         public User? User { get; set; }
 
         public int? StoreId { get; set; }
         public Store? Store { get; set; }
-        
+
         public TransactionAction TransactionType { get; set; }
         public int Quantity { get; set; }
-        public decimal UnitPrice { get; set; }
-        public decimal TotalAmount { get; set; }
-        public decimal Profit { get; set; }
 
+        public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }

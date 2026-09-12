@@ -1,4 +1,5 @@
 ﻿using NexusERP.Application.Interfaces;
+using NexusERP.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -24,6 +25,16 @@ namespace NexusERP.Domain.Entities
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }
+
+        public decimal VatRate { get; set; }
+        public decimal MarketDiscountRate { get; set; }
+        public decimal MaxDiscountPercentage { get; set; }
+
+        public string? Barcode { get; set; }
+        public string? ImageUrl { get; set; }
+        public ShapeType? ShapeType { get; set; }
+        public string? ShapeColor { get; set; }
+        public string? ShapeText { get; set; }
 
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }

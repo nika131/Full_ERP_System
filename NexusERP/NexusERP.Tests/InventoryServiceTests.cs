@@ -32,8 +32,7 @@ namespace NexusERP.Tests
             var saleTransaction = new InventoryTransaction
             {
                 ProductId = 1,
-                Quantity = 2,
-                UnitPrice = 800m
+                Quantity = 2
             };
 
             mockRepo.Setup(repo => repo.GetByIdAsync(1)).ReturnsAsync(fakeProduct);
@@ -41,10 +40,6 @@ namespace NexusERP.Tests
             await service.ProcessTransaction(saleTransaction, userId: 99, "Sale");
 
             Assert.Equal(8, fakeProduct.Quantity);
-
-            Assert.Equal(1600m, saleTransaction.TotalAmount);
-
-            Assert.Equal(600m, saleTransaction.Profit);
 
             mockRepo.Verify(repo => repo.SaveTransaction(saleTransaction, fakeProduct), Times.Once);
         }
@@ -75,8 +70,6 @@ namespace NexusERP.Tests
             await service.ProcessTransaction(lossTransaction, userId: 99, "Loss");
 
             Assert.Equal(2, fakeProduct.Quantity);
-            Assert.Equal(0m, lossTransaction.TotalAmount);
-            Assert.Equal(-600m, lossTransaction.Profit);
 
             mockRepo.Verify(repo => repo.SaveTransaction(lossTransaction, fakeProduct), Times.Once);
         }
@@ -98,7 +91,6 @@ namespace NexusERP.Tests
             {
                 ProductId = 3,
                 Quantity = 10,
-                UnitPrice = 100m
             };
 
             mockRepo.Setup(repo => repo.GetByIdAsync(3)).ReturnsAsync(fakeProduct);
@@ -129,7 +121,6 @@ namespace NexusERP.Tests
             {
                 ProductId = 4,
                 Quantity = 10,
-                UnitPrice = 150m 
             };
 
             mockRepo.Setup(repo => repo.GetByIdAsync(4)).ReturnsAsync(fakeProduct);
@@ -137,8 +128,6 @@ namespace NexusERP.Tests
             await service.ProcessTransaction(restockTransaction, userId: 99, "Restock");
 
             Assert.Equal(20, fakeProduct.Quantity); 
-            Assert.Equal(1500m, restockTransaction.TotalAmount);
-            Assert.Equal(0m, restockTransaction.Profit);
 
             Assert.Equal(125m, fakeProduct.CostPrice);
 
@@ -195,7 +184,6 @@ namespace NexusERP.Tests
             {
                 ProductId = 6,
                 Quantity = -4, 
-                UnitPrice = 20m
             };
 
             mockRepo.Setup(repo => repo.GetByIdAsync(6)).ReturnsAsync(fakeProduct);
