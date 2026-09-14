@@ -1,11 +1,12 @@
-﻿using System;
+﻿using NexusERP.Application.DTOs;
+using NexusERP.Domain.Entities;
+using NexusERP.Domain.Models;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using NexusERP.Domain.Entities;
-using NexusERP.Domain.Models;
 
 namespace NexusERP.Application.Interfaces.Repositories
 {
@@ -31,5 +32,7 @@ namespace NexusERP.Application.Interfaces.Repositories
         Task<List<RevenueChartData>> GetWeeklyRevenueChart(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId);
 
         Task<List<TopProductChartData>> GetTopPerformingProducts(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId);
+        Task<PagedResult<ShiftAuditDto>> GetPagedShiftsAsync(int pageNumber, int pageSize, int? storeId);
+        Task<PagedResult<ReceiptAuditDto>> GetPagedReceiptsAsync(int pageNumber, int pageSize, string? receiptNumber);
     }
 }

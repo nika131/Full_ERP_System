@@ -59,6 +59,18 @@ export default function MainLayout() {
                         Employees
                     </Link>
                 )}
+
+                {canAccess(Permissions.ViewDashboard) && (
+                    <Link to="/stores" className={`block px-4 py-2 rounded transition-colors ${isActive('/stores') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Stores
+                    </Link>
+                )}
+
+                {canAccess(Permissions.ViewDashboard) && (
+                    <Link to="/shiftAuditList" className={`block px-4 py-2 rounded transition-colors ${isActive('/shiftAuditList') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        shifts
+                    </Link>
+                )}
             
                 {canAccess(Permissions.ViewAuditLogs) && (
                     <Link to="/logs" className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/logs') ? 'bg-emerald-600' : 'hover:bg-gray-800 text-gray-400'}`}>
@@ -66,11 +78,6 @@ export default function MainLayout() {
                     </Link>
                 )}
 
-                {canAccess(Permissions.ViewDashboard) && (
-                    <Link to="/stores" className={`block px-4 py-2 rounded transition-colors ${isActive('/stores') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
-                        Stores
-                    </Link>
-                )}
             </nav>
         </aside>
 

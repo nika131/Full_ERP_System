@@ -5,11 +5,13 @@ export const useAuditLogsQuery = (
     limit: number,
     createdAt: string | null,
     logId: number | null,
-    search: string
+    search: string,
+    startDate: string,
+    endDate: string
 ) => {
     return useQuery({
-        queryKey: ['auditLogs', { limit, createdAt, logId, search }],
-        queryFn: ({ signal }) => auditService.getLogs(limit, createdAt, logId, search, signal),
+        queryKey: ['auditLogs', { limit, createdAt, logId, search, startDate, endDate }],
+        queryFn: ({ signal }) => auditService.getLogs(limit, createdAt, logId, search, startDate, endDate, signal),
         staleTime: 0, 
     });
 };

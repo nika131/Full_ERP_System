@@ -22,30 +22,38 @@ namespace NexusERP.Infrastructure.Repositories
         }
 
 
-        public async Task<CursorPagedResult<SystemAuditLog>> GetPagedLogsOptimized(
+        public async Task<CursorPagedResult<AuditLogResponseDto>> GetPagedLogsOptimized(
             int pageSize, 
             DateTime? lastCreatedAt,
             int? lastLogId,
-            string? searchTerm)
+            string? searchTerm,
+            DateTime? startDate,
+            DateTime? endDate)
         {
-            var retentionDate = DateTime.UtcNow.AddDays(-30);
+            var minumumDate = startDate ?? DateTime.UtcNow.AddDays(-30);
 
             var baseQuery = _context.SystemAuditLogs
                 .Include(log => log.User)
-                .Where(log => log.CreatedAt >= retentionDate)
+                .Where(log => log.CreatedAt >= minumumDate)
                 .AsNoTracking();
 
-            if (!string.IsNullOrEmpty(searchTerm))
+            if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 bool isNumeric = int.TryParse(searchTerm, out int searchUserId);
-
                 var formattedSearch = $"\"{searchTerm}\"";
 
                 baseQuery = baseQuery.Where(log =>
                     EF.Functions.Contains(log.Action, formattedSearch) ||
                     EF.Functions.Contains(log.EntityType, formattedSearch) ||
-                    (isNumeric && log.UserId == log.UserId)
+                    (log.User != null && log.User.Username.Contains(searchTerm)) ||
+                    (isNumeric && log.UserId == searchUserId)
                 );
+            }
+
+            if (endDate.HasValue)
+            {
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                baseQuery = baseQuery.Where(log => log.CreatedAt <= endOfDay);
             }
 
             if (lastCreatedAt.HasValue && lastLogId.HasValue)
@@ -61,6 +69,17 @@ namespace NexusERP.Infrastructure.Repositories
                 .OrderByDescending(log => log.CreatedAt)
                 .ThenByDescending(log => log.LogId)
                 .Take(fetchCount)
+                .Select(log => new AuditLogResponseDto
+                {
+                    LogId = log.LogId,
+                    UserId = log.UserId,
+                    Username = log.User != null ? log.User.Username : "Deleted User",
+                    EntityType = log.EntityType,
+                    EntityId = log.EntityId,
+                    Action = log.Action,
+                    ChangesMade = log.ChangesMade,
+                    CreatedAt = log.CreatedAt
+                })
                 .ToListAsync();
 
             bool hasMorePages = items.Count == fetchCount;
@@ -77,7 +96,7 @@ namespace NexusERP.Infrastructure.Repositories
                 items.RemoveAt(items.Count - 1);
             }
 
-            return new CursorPagedResult<SystemAuditLog>
+            return new CursorPagedResult<AuditLogResponseDto>
             {
                 Items = items,
                 NextCreatedAt = nextCreatedAtCursor,

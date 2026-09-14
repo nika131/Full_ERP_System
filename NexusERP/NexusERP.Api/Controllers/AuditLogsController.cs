@@ -22,26 +22,17 @@ namespace NexusERP.Api.Controllers
             [FromQuery] int pageSize = 50,
             [FromQuery] DateTime? lastCreatedAt = null,
             [FromQuery] int? lastLogId = null,
-            [FromQuery] string? searchTerm = null)
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
         {
             if(pageSize > 100) pageSize = 100;
 
-            var logs = await _repository.GetPagedLogsOptimized(pageSize, lastCreatedAt, lastLogId, searchTerm);
-
-            var responseItems = logs.Items.Select(log => new AuditLogResponseDto
-            {
-                LogId = log.LogId,
-                UserId = log.UserId,
-                PerformedBy = log.User?.FullName ?? "System/Unknown",
-                Action = log.Action,
-                EntityType = log.EntityType,
-                ChangesMade = log.ChangesMade,
-                CreatedAt = log.CreatedAt,
-            }).ToList();
+            var logs = await _repository.GetPagedLogsOptimized(pageSize, lastCreatedAt, lastLogId, searchTerm, startDate, endDate);
 
             return Ok(new
             {
-                items = responseItems,
+                items = logs.Items,
                 nextCreatedAt = logs.NextCreatedAt,
                 nextLogId = logs.NextId,
                 pageSize = logs.PageSize,

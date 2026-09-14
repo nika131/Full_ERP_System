@@ -53,6 +53,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<IPdfExportService, PdfExportService>();
 builder.Services.AddScoped<IStoreService, StoreService>();
+builder.Services.AddScoped<IPosService, PosService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -91,6 +92,11 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireExportExcel", policy => policy.RequireClaim("Permission", Permissions.ExportExcelTransactions));
 
     options.AddPolicy("RequireAbsenceManage", policy => policy.RequireClaim("Permission", Permissions.ManageAbsences));
+
+    options.AddPolicy("RequireOpenCloseShifts", policy => policy.RequireClaim("Permission", Permissions.OpenCloseShift));
+    options.AddPolicy("RequirePerformCashMovements", policy => policy.RequireClaim("Permission", Permissions.PerformCashMovements));
+    options.AddPolicy("RequireManageShifts", policy => policy.RequireClaim("Permission", Permissions.ManageShifts));
+    options.AddPolicy("RequirePerformSales", policy => policy.RequireClaim("Permission", Permissions.PerformSales));
 });
 
 
@@ -175,5 +181,25 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers().RequireRateLimiting("GlobalPolicy");
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var adminRole = dbContext.Roles.FirstOrDefault(r => r.Name == "Admin");
+
+    if (adminRole != null)
+    {
+        var allPermissions = NexusERP.Domain.Constants.Permissions.GetAllPermissions();
+
+        bool isSynchronized = adminRole.Permissions.Count == allPermissions.Count &&
+                              !adminRole.Permissions.Except(allPermissions).Any();
+
+        if (!isSynchronized)
+        {
+            adminRole.Permissions = allPermissions;
+            dbContext.SaveChanges();
+        }
+    }
+}
 
 app.Run();

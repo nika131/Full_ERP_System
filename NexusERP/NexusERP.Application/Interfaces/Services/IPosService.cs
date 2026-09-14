@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NexusERP.Application.Interfaces.Services
 {
-    internal interface IPosService
+    public interface IPosService
     {
         Task<Shift> OpenShiftAsync(int userId, OpenShiftDto dto);
         Task<Shift> CloseShiftAsync(int shiftId, int userId, CloseShiftDto dto);

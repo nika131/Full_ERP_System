@@ -38,11 +38,24 @@ namespace NexusERP.Infrastructure.Database
         {
             base.OnModelCreating(modelBuilder);
 
+            // Globally enforce zero cascades (Restrict) on all non-ownership FKs
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var fk in entityType.GetForeignKeys())
+                {
+                    if (!fk.IsOwnership)
+                    {
+                        fk.DeleteBehavior = DeleteBehavior.Restrict;
+                    }
+                }
+            }
+
+            // Global Query Filters (Soft Delete)
             modelBuilder.Entity<Category>().HasQueryFilter(c => c.IsActive);
             modelBuilder.Entity<Product>().HasQueryFilter(p => p.IsActive);
             modelBuilder.Entity<Supplier>().HasQueryFilter(s => s.IsActive);
             modelBuilder.Entity<User>().HasQueryFilter(u => u.IsActive);
-
+            modelBuilder.Entity<Store>().HasQueryFilter(e => e.IsActive);
 
             // 1. Map Product
             modelBuilder.Entity<Product>(entity =>
@@ -50,33 +63,28 @@ namespace NexusERP.Infrastructure.Database
                 entity.HasKey(e => e.ProductId);
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.CostPrice).HasColumnType("decimal(18,2)");
-
+                entity.Property(e => e.VatRate).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MarketDiscountRate).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MaxDiscountPercentage).HasColumnType("decimal(18,2)");
             });
 
             // 2. Map Inventory Transactions
             modelBuilder.Entity<InventoryTransaction>(entity =>
             {
                 entity.HasKey(e => e.TransactionId);
-
                 entity.Property(e => e.TransactionType)
                       .HasConversion(
                           v => v.ToString(),
                           v => (TransactionAction)Enum.Parse(typeof(TransactionAction), v));
 
-                entity.HasOne(e => e.Store)
-                    .WithMany(s => s.Transactions)
-                    .HasForeignKey(e => e.StoreId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(t => new { t.CreatedAt, t.TransactionId })
+                      .IsDescending(true, true);
             });
 
             // 3. Map Users
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.UserId);
-                entity.HasOne(e => e.Role)
-                        .WithMany()
-                        .HasForeignKey(e => e.RoleId)
-                        .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Role>(entity =>
@@ -84,8 +92,8 @@ namespace NexusERP.Infrastructure.Database
                 entity.HasKey(e => e.RoleId);
                 entity.Property(e => e.Permissions)
                     .HasConversion(
-                        v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
-                        v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null) ?? new List<string>());
+                        v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                        v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>());
             });
 
             modelBuilder.Entity<UserAbsence>(entity =>
@@ -96,7 +104,6 @@ namespace NexusERP.Infrastructure.Database
                     .HasConversion(
                         v => v.ToString(),
                         v => (AbsenceType)Enum.Parse(typeof(AbsenceType), v));
-
                 entity.Property(e => e.Status)
                     .HasConversion(
                         v => v.ToString(),
@@ -104,62 +111,32 @@ namespace NexusERP.Infrastructure.Database
 
                 entity.HasOne(e => e.User)
                     .WithMany(u => u.Absences)
-                    .HasForeignKey(e => e.UserId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .HasForeignKey(e => e.UserId);
 
                 entity.HasOne(e => e.ReviewedBy)
                     .WithMany()
-                    .HasForeignKey(e => e.ReviewedByUserId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .HasForeignKey(e => e.ReviewedByUserId);
             });
-
 
             modelBuilder.Entity<SalaryRecord>(entity =>
             {
                 entity.HasKey(e => e.SalaryRecordId);
-
                 entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
-
-                entity.HasOne(e => e.User)
-                      .WithMany(u => u.SalaryRecords)
-                      .HasForeignKey(e => e.UserId)
-                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Category>().HasKey(e => e.CategoryId);
             modelBuilder.Entity<Supplier>().HasKey(e => e.SupplierId);
             modelBuilder.Entity<SystemAuditLog>().HasKey(e => e.LogId);
 
-
             modelBuilder.Entity<SystemAuditLog>()
-            .HasIndex(log => new { log.CreatedAt, log.LogId })
-            .IsDescending(true, true);
-            
-            modelBuilder.Entity<InventoryTransaction>()
-                .HasIndex(t => new { t.CreatedAt, t.TransactionId })
+                .HasIndex(log => new { log.CreatedAt, log.LogId })
                 .IsDescending(true, true);
 
             modelBuilder.Entity<Store>(entity =>
             {
                 entity.HasKey(e => e.StoreId);
-                entity.HasQueryFilter(e => e.IsActive);
-
-                entity.Property(e => e.Location)
-                .HasColumnType("geography");
-            });
-
-            // Store Mapping
-            modelBuilder.Entity<Store>(entity =>
-            {
+                entity.Property(e => e.Location).HasColumnType("geography");
                 entity.Property(e => e.MaxCartDiscountPercentage).HasColumnType("decimal(18,2)");
-            });
-
-            // Product Mapping
-            modelBuilder.Entity<Product>(entity =>
-            {
-                entity.Property(e => e.VatRate).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.MarketDiscountRate).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.MaxDiscountPercentage).HasColumnType("decimal(18,2)");
             });
 
             // Shift Mapping
@@ -188,14 +165,9 @@ namespace NexusERP.Infrastructure.Database
                 entity.Property(e => e.CartDiscountAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalVatAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.FinalTotal).HasColumnType("decimal(18,2)");
-
-                entity.HasOne(r => r.Shift)
-                      .WithMany()
-                      .HasForeignKey(r => r.ShiftId)
-                      .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // ReceiptItem Mapping
+            // ReceiptItem Mapping (Cleaned of explicit Cascade)
             modelBuilder.Entity<ReceiptItem>(entity =>
             {
                 entity.HasKey(e => e.ItemId);
@@ -205,11 +177,6 @@ namespace NexusERP.Infrastructure.Database
                 entity.Property(e => e.MarketDiscountAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.ManualItemDiscountAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.LineTotal).HasColumnType("decimal(18,2)");
-
-                entity.HasOne(e => e.Receipt)
-                      .WithMany(r => r.Lines)
-                      .HasForeignKey(e => e.ReceiptId)
-                      .OnDelete(DeleteBehavior.Cascade); 
             });
         }
 

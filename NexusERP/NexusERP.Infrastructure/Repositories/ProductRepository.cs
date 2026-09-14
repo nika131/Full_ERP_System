@@ -108,8 +108,9 @@ namespace NexusERP.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task SaveTransaction(InventoryTransaction transaction, Product product)
+        public async Task SaveTransaction(InventoryTransaction transaction, Product product, SystemAuditLog audit)
         {
+            _context.SystemAuditLogs.Add(audit);
             _context.InventoryTransactions.Add(transaction);
             _context.Products.Update(product); 
             await _context.SaveChangesAsync();

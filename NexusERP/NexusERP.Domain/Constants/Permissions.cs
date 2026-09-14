@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -41,5 +42,14 @@ namespace NexusERP.Domain.Constants
         public const string ManageShifts = "Shifts.Manage";
         public const string OpenCloseShift = "Shifts.OpenClose";
         public const string PerformCashMovements = "Shifts.CashMovements";
+
+        public static List<string> GetAllPermissions()
+        {
+            return typeof(Permissions)
+                .GetFields(BindingFlags.Public | BindingFlags.Static)
+                .Where(f => f.IsLiteral && !f.IsInitOnly && f.FieldType == typeof(string))
+                .Select(f => (string)f.GetRawConstantValue()!)
+                .ToList();
+        }
     }
 }

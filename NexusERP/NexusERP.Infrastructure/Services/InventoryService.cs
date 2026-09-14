@@ -37,11 +37,7 @@ namespace NexusERP.Infrastructure.Services
             switch (actionEnum)
             {
                 case TransactionAction.Sale:
-                    if (product.Quantity < qty)
-                        throw new AppException($"Insufficient stock. Only {product.Quantity} available.");
-
-                    product.Quantity -= qty;
-                    break;
+                    throw new AppException($"Sales must now be processed through the POS Checkout system to generate a valid Receipt.");
 
                 case TransactionAction.Loss:
                     if (product.Quantity < qty)
@@ -67,8 +63,19 @@ namespace NexusERP.Infrastructure.Services
                 default:
                     throw new AppException("Unsupported transaction operation.");
             }
+
+            string changes = $"{transactionType} product '{product.Name}' quantity {qty}.";
+            var audit = new SystemAuditLog
+            {
+                UserId = userId,
+                EntityType = "Product",
+                EntityId = product.ProductId,
+                Action = transactionType,
+                ChangesMade = changes,
+                CreatedAt = DateTime.UtcNow
+            };
             
-            await _productRepository.SaveTransaction(transaction, product);
+            await _productRepository.SaveTransaction(transaction, product, audit);
         }
     }
 }

@@ -8,6 +8,8 @@ export const auditService = {
         lastCreatedAt: string | null = null,
         lastLogId: number | null = null,
         search?: string,
+        startDate?: string,
+        endDate?: string,
         signal?: AbortSignal
     ): Promise<CursorPagedResult<AuditLog>> => {
         const params = new URLSearchParams({
@@ -17,6 +19,8 @@ export const auditService = {
         if (lastCreatedAt) params.append('lastCreatedAt', lastCreatedAt);
         if (lastLogId !== null) params.append('lastLogId', lastLogId.toString());
         if (search) params.append('searchTerm', search);
+        if (startDate) params.append('startDate', startDate)
+        if (endDate) params.append('endDate', endDate)
 
         const response = await apiClient.get(`/auditLogs?${params.toString()}`, { signal });
         return response.data;

@@ -14,6 +14,7 @@ import Profile from './pages/Profile';
 import EmployeeList from './pages/EmployeeList';
 import PendingLeaves from './pages/PendingLeaves';
 import StoreList from './pages/StoreList';
+import ShiftAuditList from './pages/ShiftAuditList';
 
 
 function App() {
@@ -64,6 +65,9 @@ return (
                 <Route path="/stores" element={<StoreList />} />
               </Route>
 
+              <Route element={<ProtectedRoute requiredPermission={Permissions.ViewDashboard} />}>
+                <Route path="/shiftAuditList" element={<ShiftAuditList />} />
+              </Route>
             </Route>
           </Route>
 

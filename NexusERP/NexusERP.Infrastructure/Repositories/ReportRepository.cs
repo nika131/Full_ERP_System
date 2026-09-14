@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -220,6 +221,71 @@ namespace NexusERP.Infrastructure.Repositories
                 .Take(5)
                 .AsNoTracking()
                 .ToListAsync();
+        }
+
+        public async Task<PagedResult<ShiftAuditDto>> GetPagedShiftsAsync(int PageNumber, int pageSize, int? storeId)
+        {
+            var query = _context.Shifts
+                .Include(s => s.User)
+                .Include(s => s.Store)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (storeId.HasValue) query = query.Where(s => s.StoreId == storeId.Value);
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(s => s.StartDate)
+                .Skip((PageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(s => new ShiftAuditDto
+                {
+                    ShiftId = s.ShiftId,
+                    StoreName = s.Store!.Name,
+                    CashierName = s.User!.Username,
+                    StartDate = s.StartDate,
+                    EndDate = s.EndDate,
+                    StartingCash = s.StartingCash,
+                    ExpectedEndingCash = s.ExpectedEndingCash,
+                    ActualEndingCash = s.ActualEndingCash,
+                    TotalSales = s.TotalSales,
+                    Status = s.Status.ToString(),
+                }).ToListAsync();
+
+            return new PagedResult<ShiftAuditDto> { Items = items, TotalCount = totalCount, PageNumber = PageNumber, PageSize = pageSize};
+        }
+
+        public async Task<PagedResult<ReceiptAuditDto>> GetPagedReceiptsAsync(int pageNumber, int pageSize, string? receiptNumber)
+        {
+            var query = _context.Receipts
+                .Include(r => r.User)
+                .Include(r => r.Store)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(receiptNumber))
+                query = query.Where(r => r.ReceiptNumber.Contains(receiptNumber));
+
+            var totalcount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new ReceiptAuditDto
+                {
+                    ReceiptId = r.ReceiptId,
+                    ReceiptNumber = r.ReceiptNumber,
+                    StoreName = r.Store!.Name,
+                    CashierName = r.User!.Username,
+                    CreatedAt = r.CreatedAt,
+                    SubTotal = r.SubTotal,
+                    CartDiscountAmount = r.CartDiscountAmount,
+                    TotalVatAmount = r.TotalVatAmount,
+                    FinalTotal = r.FinalTotal,
+                    PaymentMethod = r.PaymentMethod.ToString(),
+                }).ToListAsync();
+
+            return new PagedResult<ReceiptAuditDto> { Items = items, TotalCount = totalcount, PageNumber = pageNumber, PageSize = pageSize };
         }
     }
 }

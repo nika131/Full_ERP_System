@@ -87,6 +87,24 @@ namespace NexusERP.Api.Controllers
             });
         }
 
+        [HttpGet("shifts")]
+        [Authorize(Policy = "RequireManageShifts")]
+        public async Task<IActionResult> GetShifts([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? storeId = null)
+        {
+            if (pageSize > 100) pageSize = 100;
+
+            return Ok(await _repository.GetPagedShiftsAsync(page, pageSize, storeId));
+        }
+
+        [HttpGet("receipts")]
+        [Authorize(Policy = "RequireViewAllTransactions")]
+        public async Task<IActionResult> GetReceipts([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
+        {
+            if (pageSize > 100) pageSize = 100;
+
+            return Ok(await _repository.GetPagedReceiptsAsync(page, pageSize, search));
+        }
+
         /*
         [HttpGet("export/excel")]
         [Authorize(Policy = "RequireExportExcel")]

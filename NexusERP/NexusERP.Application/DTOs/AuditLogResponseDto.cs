@@ -6,6 +6,7 @@ namespace NexusERP.Application.DTOs
     {
         public int LogId { get; set; }
         public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
         public string PerformedBy { get; set; } = string.Empty;
         public string Action { get; set; } = string.Empty;
         public string EntityType { get; set; } = string.Empty;

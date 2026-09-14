@@ -1,6 +1,7 @@
 export interface AuditLog {
     logId: number;
-    userName: string;
+    userId: number;
+    username: string;
     entityType: string;
     entityId: number;
     action: string;
