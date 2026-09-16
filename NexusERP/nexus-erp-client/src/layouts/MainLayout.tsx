@@ -43,55 +43,74 @@ export default function MainLayout() {
             </div>
             
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto whitespace-nowrap">
-                <Link to="/profile" className={`block px-4 py-2 rounded transition-colors ${isActive('/profile') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                <Link to="/profile" 
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={`block px-4 py-2 rounded transition-colors ${isActive('/profile') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`} >
                     My Profile
                 </Link>
 
                 {canAccess(Permissions.ViewDashboard) && (
-                    <Link to="/dashboard" className={`block px-4 py-2 rounded transition-colors ${isActive('/dashboard') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                    <Link to="/dashboard" 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/dashboard') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
                         Dashboard
                     </Link>
                 )}
 
                 {/* Conditional Navigation Links */}
                 {canAccess(Permissions.ViewProducts) && (
-                    <Link to="/inventory" className={`block px-4 py-2 rounded transition-colors ${isActive('/inventory') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                    <Link to="/inventory" 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/inventory') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}
+                    >    
                         Inventory
                     </Link>
                 )}
 
                 {canAccess(Permissions.ManageSuppliers) && (
-                    <Link to="/suppliers" className={`block px-4 py-2 rounded transition-colors ${isActive('/suppliers') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                    <Link to="/suppliers" 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/suppliers') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
                         Suppliers
                     </Link>
                 )}
 
                 {canAccess(Permissions.ManageCategories) && (
-                    <Link to="/categories" className={`block px-4 py-2 rounded transition-colors ${isActive('/categories') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                    <Link to="/categories" 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/categories') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
                         Categories
                     </Link>
                 )}
                 
                 {canAccess(Permissions.ManageUsers) && (
-                    <Link to="/employees" className={`block px-4 py-2 rounded transition-colors ${isActive('/employees') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                    <Link to="/employees" 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/employees') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
                         Employees
                     </Link>
                 )}
 
                 {canAccess(Permissions.ViewDashboard) && (
-                    <Link to="/stores" className={`block px-4 py-2 rounded transition-colors ${isActive('/stores') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                    <Link to="/stores" 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/stores') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
                         Stores
                     </Link>
                 )}
 
                 {canAccess(Permissions.ViewDashboard) && (
-                    <Link to="/shiftAuditList" className={`block px-4 py-2 rounded transition-colors ${isActive('/shiftAuditList') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                    <Link to="/shiftAuditList" 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/shiftAuditList') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
                         shifts
                     </Link>
                 )}
             
                 {canAccess(Permissions.ViewAuditLogs) && (
-                    <Link to="/logs" className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/logs') ? 'bg-emerald-600' : 'hover:bg-gray-800 text-gray-400'}`}>
+                    <Link to="/logs" 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors mt-8 ${isActive('/logs') ? 'bg-emerald-600' : 'hover:bg-gray-800 text-gray-400'}`}>
                         System Logs
                     </Link>
                 )}

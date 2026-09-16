@@ -24,23 +24,46 @@ export type DashboardFilters = {
 };
 
 export default function Dashboard() {
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>(() => {
+    const saved = sessionStorage.getItem('dashboardFilters');
+    if (saved) {
+      const parsed = JSON.parse(saved) as DashboardFilters;
+      return [
+        parsed.startDate ? new Date(parsed.startDate) : null,
+        parsed.endDate ? new Date(parsed.endDate) : null
+      ]
+    }
+    return [null, null]
+  });
   const [startDate, endDate] = dateRange;
 
-  const formattedStart = startDate ? startDate.toISOString().split('T')[0] : '';
-  const formattedEnd = endDate ? endDate.toISOString().split('T')[0] : '';
+  const [globalFilters, setGlobalFilters] = useState<DashboardFilters>(() => {
+    const saved = sessionStorage.getItem('dashboardFilters');
+    if (saved) return JSON.parse(saved)
 
-  const [globalFilters, setGlobalFilters] = useState<DashboardFilters>({
-    startDate: formattedStart,
-    endDate: formattedEnd,
-    storeId: null,
-    categoryId: null,
-    supplierId: null
+    return {
+      startDate: '',
+      endDate: '',
+      storeId: null,
+      categoryId: null,
+      supplierId: null
+    }
   });
 
   const [cursorHistory, setCursorHistory] = useState<TransactionCursorState[]>([{ createdAt: null, transactionId: null }]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
+
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return sessionStorage.getItem('dashboaredSearch') || '';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboardFilters', JSON.stringify(globalFilters))
+  }, [globalFilters])
+
+  useEffect(() => {
+    sessionStorage.setItem('dashboardSearch', searchTerm)
+  }, [searchTerm])
 
   const [mapRadius, setMapRadius] = useState(5000); 
   const [mapCenter, setMapCenter] = useState<[number, number]>([41.7151, 44.8271]);
@@ -92,6 +115,22 @@ export default function Dashboard() {
 
   const handleNext = () => setCurrentIndex(prev => prev + 1);
   const handlePrevious = () => setCurrentIndex(prev => prev - 1);
+
+  const clearFilters = () => {
+    setDateRange([null, null]);
+    setSearchTerm('')
+
+    setGlobalFilters({
+      startDate: '',
+      endDate: '',
+      storeId: null,
+      categoryId: null,
+      supplierId: null
+    })
+
+    sessionStorage.removeItem('dashboardFilters')
+    sessionStorage.removeItem('dashboardSearch')
+  }
 
   const transactions = transactionsData?.items || [];
   const hasMorePages = transactionsData?.hasMorePages || false;
@@ -212,6 +251,12 @@ export default function Dashboard() {
             ))}
           </select>
         </div>
+
+        <button
+          onClick={clearFilters}
+          className="px-4 py-2 bg-slate-100 text-slate-600 rounded text-sm font-medium hover:bg-slate-200 transition-colors">
+          Clear all filters
+        </button>
 
       </div>
 
