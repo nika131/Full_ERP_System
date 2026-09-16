@@ -23,6 +23,8 @@ namespace NexusERP.Domain.Entities
 
         [ConcurrencyCheck]
         public int Quantity { get; set; }
+        public int? LowStockThreshold { get; set; }
+
         public decimal Price { get; set; }
         public decimal CostPrice { get; set; }
 
@@ -31,6 +33,7 @@ namespace NexusERP.Domain.Entities
         public decimal MaxDiscountPercentage { get; set; }
 
         public string? Barcode { get; set; }
+
         public string? ImageUrl { get; set; }
         public ShapeType? ShapeType { get; set; }
         public string? ShapeColor { get; set; }

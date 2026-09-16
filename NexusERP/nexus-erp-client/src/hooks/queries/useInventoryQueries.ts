@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, type TransactionPayLoad } from '../../api/productService';
 import type { ProductFormData } from '../../schemas/productSchema';
 
-export const useProductsQuery = (page: number, limit: number, search: string, category: string, supplier: string) => {
+export const useProductsQuery = (page: number, limit: number, search: string, category: string, supplier: string, lowStockOnly: boolean) => {
     return useQuery({
-        queryKey: ['products', { page, limit, search, category, supplier }],
-        queryFn: ({ signal }) => productService.getProducts(page, limit, search, category, supplier, signal),
+        queryKey: ['products', { page, limit, search, category, supplier, lowStockOnly }],
+        queryFn: ({ signal }) => productService.getProducts(page, limit, search, category, supplier, lowStockOnly, signal),
         staleTime: 60 * 1000, 
     });
 };

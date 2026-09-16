@@ -18,6 +18,7 @@ export const productService = {
         searchTerm?: string,
         categoryName?: string,
         supplierName?: string,
+        lowStockOnly?: boolean,
         signal?: AbortSignal
     ): Promise<PagedResult<Product>> => {
         const params = new URLSearchParams();
@@ -26,6 +27,7 @@ export const productService = {
         if (searchTerm) params.append('searchTerm', searchTerm);
         if(categoryName) params.append('categoryName', categoryName);
         if(supplierName) params.append('supplierName', supplierName);
+        if(lowStockOnly) params.append('lowStockOnly', 'true')
 
         const response = await apiClient.get(`/products?${params.toString()}`, { signal });
         return response.data;

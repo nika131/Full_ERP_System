@@ -25,13 +25,21 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName)
+        public async Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName, bool lowStockOnly = false)
         {
             var baseQuery = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
                 .Where(p => p.IsActive)
                 .AsNoTracking();
+
+            if (lowStockOnly)
+            {
+                var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "GlobalLowStockThreshold");
+                int globalThreshold = setting != null && int.TryParse(setting.SettingValue, out int parsed) ? parsed : 5;
+
+                baseQuery = baseQuery.Where(p => p.Quantity <= (p.LowStockThreshold ?? globalThreshold));
+            }
 
             if (!string.IsNullOrEmpty(supplierName))
             {
@@ -92,6 +100,15 @@ namespace NexusERP.Infrastructure.Repositories
                 existing.SupplierId = product.SupplierId;
                 existing.Price = product.Price;
                 existing.CostPrice = product.CostPrice;
+                existing.LowStockThreshold = product.LowStockThreshold;
+                existing.VatRate = product.VatRate;
+                existing.MarketDiscountRate = product.MarketDiscountRate;
+                existing.MaxDiscountPercentage = product.MaxDiscountPercentage;
+                existing.Barcode = product.Barcode;
+                existing.ImageUrl = product.ImageUrl;
+                existing.ShapeType = product.ShapeType;
+                existing.ShapeColor = product.ShapeColor;
+                existing.ShapeText = product.ShapeText;
             }
 
             var audit = new SystemAuditLog
@@ -147,6 +164,9 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<DashboardResponse> GetDashboardAggregates(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
         {
+            var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "GlobalLowStockThreshold");
+            int globalDefaultThreshold = setting != null && int.TryParse(setting.SettingValue, out int parsed) ? parsed : 5;
+
             var productQuery = _context.Products.Where(p => p.IsActive).AsQueryable();
 
             if (categoryId.HasValue) productQuery = productQuery.Where(p => p.CategoryId == categoryId.Value);
@@ -158,7 +178,7 @@ namespace NexusERP.Infrastructure.Repositories
                 {
                     TotalValue = g.Sum(p => p.Price * p.Quantity),
                     TotalCost = g.Sum(p => p.CostPrice * p.Quantity),
-                    lowStockCount = g.Count(p => p.Quantity < 5)
+                    lowStockCount = g.Count(p => p.Quantity <= (p.LowStockThreshold ?? globalDefaultThreshold))
                 }).FirstOrDefaultAsync();
 
             var salesQuery = _context.ReceiptItems
@@ -201,6 +221,16 @@ namespace NexusERP.Infrastructure.Repositories
                 stats.InventoryHealth = "STABLE";
 
             return stats;
+        }
+
+        public async Task<List<Product>> GetProductsLowOnStock()
+        {
+            var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "GlobalLowStockThreshold");
+            int globalDefaultThreshold = setting != null && int.TryParse(setting.SettingValue, out int parsed) ? parsed : 5; 
+
+            return await _context.Products
+                .Where(p => p.Quantity <= (p.LowStockThreshold ?? globalDefaultThreshold))
+                .ToListAsync();
         }
     }
 }

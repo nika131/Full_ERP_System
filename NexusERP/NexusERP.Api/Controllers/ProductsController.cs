@@ -32,11 +32,12 @@ namespace NexusERP.Api.Controllers
                     [FromQuery] int pageSize = 10,
                     [FromQuery] string? searchTerm = null,
                     [FromQuery] string? categoryName = null,
-                    [FromQuery] string? supplierName = null)
+                    [FromQuery] string? supplierName = null,
+                    [FromQuery] bool lowStockOnly = false)
         {
             if (pageSize > 100) pageSize = 100;
 
-            var result = await _repository.GetPaged(page, pageSize, searchTerm, categoryName, supplierName);
+            var result = await _repository.GetPaged(page, pageSize, searchTerm, categoryName, supplierName, lowStockOnly);
 
             var responseItems = result.Items.Select(p => new ProductResponseDto
             {
@@ -47,8 +48,17 @@ namespace NexusERP.Api.Controllers
                 SupplierId = p.SupplierId,
                 CompanyName = p.Supplier?.CompanyName ?? "No Supplier",
                 Quantity = p.Quantity,
+                LowStockThreshold = p.LowStockThreshold,
                 Price = p.Price,
-                CostPrice = p.CostPrice
+                CostPrice = p.CostPrice,
+                VatRate = p.VatRate,
+                MarketDiscountRate = p.MarketDiscountRate,
+                MaxDiscountPercentage = p.MaxDiscountPercentage,
+                Barcode = p.Barcode,
+                ImageUrl = p.ImageUrl,
+                ShapeType = p.ShapeType,
+                ShapeColor = p.ShapeColor,
+                ShapeText = p.ShapeText
             }).ToList();
 
             return Ok(new
@@ -69,10 +79,20 @@ namespace NexusERP.Api.Controllers
                 ProductId = dto.ProductId,
                 Name = dto.Name,
                 CategoryId = dto.CategoryId,
+                SupplierId = dto.SupplierId,
                 Price = dto.Price,
                 CostPrice = dto.CostPrice,
-                SupplierId = dto.SupplierId
-            };
+                Quantity = dto.Quantity,
+                LowStockThreshold = dto.LowStockThreshold,
+                VatRate = dto.VatRate,
+                MarketDiscountRate = dto.MarketDiscountRate,
+                MaxDiscountPercentage = dto.MaxDiscountPercentage,
+                Barcode = dto.Barcode,
+                ImageUrl = dto.ImageUrl,
+                ShapeType = dto.ShapeType,
+                ShapeColor = dto.ShapeColor,
+                ShapeText = dto.ShapeText
+            }; 
 
             await _repository.Upsert(product, User.GetCurrentUserId());
 
@@ -116,6 +136,14 @@ namespace NexusERP.Api.Controllers
         {
             await _repository.Delete(id, User.GetCurrentUserId());
             return Ok(new { message = "Product deleted successfully." });
+        }
+
+        [HttpGet("lowOnStock")]
+        public async Task<IActionResult> GetProductsLowOnStock()
+        {
+            var products = await _repository.GetProductsLowOnStock();
+
+            return Ok(new { products });
         }
     }
 }

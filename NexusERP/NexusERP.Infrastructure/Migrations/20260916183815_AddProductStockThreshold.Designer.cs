@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using NexusERP.Infrastructure.Database;
@@ -12,9 +13,11 @@ using NexusERP.Infrastructure.Database;
 namespace NexusERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260916183815_AddProductStockThreshold")]
+    partial class AddProductStockThreshold
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -167,9 +170,6 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
-
-                    b.Property<int?>("LowStockThreshold")
-                        .HasColumnType("int");
 
                     b.Property<decimal>("MarketDiscountRate")
                         .HasColumnType("decimal(18,2)");
@@ -549,39 +549,6 @@ namespace NexusERP.Infrastructure.Migrations
                         .IsDescending();
 
                     b.ToTable("SystemAuditLogs");
-                });
-
-            modelBuilder.Entity("NexusERP.Domain.Entities.SystemSetting", b =>
-                {
-                    b.Property<string>("SettingKey")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SettingValue")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedByUserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SettingKey");
-
-                    b.ToTable("SystemSettings");
-
-                    b.HasData(
-                        new
-                        {
-                            SettingKey = "GlobalLowStockThreshold",
-                            Description = "The Deafult low Stock alert threshold for products that do not have custom threshold.",
-                            SettingValue = "5",
-                            UpdatedAt = new DateTime(2026, 9, 16, 19, 49, 34, 517, DateTimeKind.Utc).AddTicks(6940)
-                        });
                 });
 
             modelBuilder.Entity("NexusERP.Domain.Entities.User", b =>

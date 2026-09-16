@@ -33,6 +33,7 @@ namespace NexusERP.Infrastructure.Database
         public DbSet<Shift> Shifts { get; set; }
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<ReceiptItem> ReceiptItems { get; set; }
+        public DbSet<SystemSetting> SystemSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -178,6 +179,17 @@ namespace NexusERP.Infrastructure.Database
                 entity.Property(e => e.ManualItemDiscountAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.LineTotal).HasColumnType("decimal(18,2)");
             });
+
+            //settings table
+            modelBuilder.Entity<SystemSetting>().HasData(
+                new SystemSetting
+                {
+                    SettingKey = "GlobalLowStockThreshold",
+                    SettingValue = "5",
+                    Description = "The Deafult low Stock alert threshold for products that do not have custom threshold.",
+                    UpdatedAt = DateTime.UtcNow
+                }
+            );
         }
 
 
