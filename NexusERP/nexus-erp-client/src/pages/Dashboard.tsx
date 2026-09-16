@@ -8,6 +8,7 @@ import { StoreMapCanvas } from "../components/maps/StoreMapCanvas";
 import { useLookupStoresQuery, useNearbyStoresQuery } from "../hooks/queries/useStoreQueries";
 import { useLookupCategoriesQuery } from "../hooks/queries/useCategoryQueries";
 import { useSupplierLookupQuery } from "../hooks/queries/useSupplierQueries";
+import DatePicker from "react-datepicker";
 
 type TransactionCursorState = {
   createdAt: string | null;
@@ -23,12 +24,15 @@ export type DashboardFilters = {
 };
 
 export default function Dashboard() {
-  const defaultEndDate = new Date().toISOString().split('T')[0];
-  const defaultStartDate = new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0];
-  
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [startDate, endDate] = dateRange;
+
+  const formattedStart = startDate ? startDate.toISOString().split('T')[0] : '';
+  const formattedEnd = endDate ? endDate.toISOString().split('T')[0] : '';
+
   const [globalFilters, setGlobalFilters] = useState<DashboardFilters>({
-    startDate: defaultStartDate,
-    endDate: defaultEndDate,
+    startDate: formattedStart,
+    endDate: formattedEnd,
     storeId: null,
     categoryId: null,
     supplierId: null
@@ -136,36 +140,37 @@ export default function Dashboard() {
       </div>
 
       {/* GLOBAL FILTERS BAR */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-wrap gap-4 items-end mb-6">
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   
         {/* Date Filters */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">Start Date</label>
-          <input 
-            type="date" 
-            value={globalFilters.startDate || ''}
-            onChange={(e) => setGlobalFilters(prev => ({ ...prev, startDate: e.target.value || null }))}
-            className="border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-emerald-500"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">End Date</label>
-          <input 
-            type="date" 
-            value={globalFilters.endDate || ''}
-            onChange={(e) => setGlobalFilters(prev => ({ ...prev, endDate: e.target.value || null }))}
-            className="border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-emerald-500"
+        <div className="border border-slate-300 rounded bg-white w-full">
+          <DatePicker
+              selectsRange={true}
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(update: [Date | null, Date | null]) => {
+                  setDateRange(update);
+                  const [newStart, newEnd] = update;
+                  setGlobalFilters(prev => ({
+                    ...prev,
+                    startDate: newStart ? newStart.toISOString().split('T')[0] : '',
+                    endDate: newEnd ? newEnd.toISOString().split('T')[0] : ''
+                  }))
+              }}
+              maxDate={new Date()} 
+              placeholderText="Select date range..."
+              wrapperClassName="w-full"
+              className="w-full p-2 text-sm text-left outline-none bg-transparent"
+              isClearable={true}
           />
         </div>
 
         {/* Category Filter */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-slate-500">Category</label>
+        <div className="flex flex-col gap-1 w-full">
           <select 
             value={globalFilters.categoryId || ''}
             onChange={(e) => setGlobalFilters(prev => ({ ...prev, categoryId: e.target.value ? Number(e.target.value) : null }))}
-            className="border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-emerald-500 w-40"
+            className="border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-emerald-500"
           >
             <option value="">All Categories</option>
             {categories.map((category) => (
@@ -177,36 +182,41 @@ export default function Dashboard() {
         </div>
 
         {/*Supplier Filter*/}
-        <select
+        <div className="flex flex-col gap-1 w-full">
+          <select
             className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
             value={globalFilters.supplierId || ''}
             onChange={(e) => setGlobalFilters(prev => ({ ...prev, supplierId: e.target.value ? Number(e.target.value) : null }))}
-        >
+          >
             <option value="">All Suppliers</option>
             {suppliers.map((supplier) => (
                 <option key={supplier.supplierId} value={supplier.supplierId}>
                     {supplier.companyName}
                 </option>
             ))}
-        </select>
+          </select>
+        </div>
         
         {/*Store Filter*/}
-        <select
-          className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
-          value={globalFilters.storeId || ''}
-          onChange={(e) => setGlobalFilters(prev => ({ ...prev, storeId: e.target.value ? Number(e.target.value) : null }))}
-        >
-          <option value="">All Stores</option>
-          {storesLookup.map((store) => (
-              <option key={store.storeId} value={store.storeId}>
-                  {store.name}
-              </option>
-          ))}
-        </select>
+        <div className="flex flex-col gap-1 w-full">
+          <select
+            className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+            value={globalFilters.storeId || ''}
+            onChange={(e) => setGlobalFilters(prev => ({ ...prev, storeId: e.target.value ? Number(e.target.value) : null }))}
+          >
+            <option value="">All Stores</option>
+            {storesLookup.map((store) => (
+                <option key={store.storeId} value={store.storeId}>
+                    {store.name}
+                </option>
+            ))}
+          </select>
+        </div>
+
       </div>
 
       {/* TOP ZONE: KPI CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Card 1: Total Value */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 flex items-center space-x-4">
           <div className="p-3 bg-emerald-50 rounded-full text-emerald-600">
@@ -241,7 +251,7 @@ export default function Dashboard() {
           <div>
             <p className="text-sm font-medium text-slate-500">Profit Margin</p>
             <h3 className="text-2xl font-bold text-slate-800">
-              {isLoadingStats ? '...' : `${stats?.marginPrecentage.toFixed(1)}%`}
+              {isLoadingStats ? '...' : `${stats?.marginPrecentage?.toFixed(1)}%`}
             </h3>
           </div>
         </div>
@@ -361,9 +371,10 @@ export default function Dashboard() {
 
       {/* BOTTOM ZONE: TRANSACTION LEDGER */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <h3 className="text-lg font-bold text-slate-800">Transaction Ledger</h3>
-          <div className="flex bg-white p-1 rounded-md shadow-sm border border-slate-200 w-72">
+
+          <div className="flex bg-white p-1 rounded-md shadow-sm border border-slate-200 w-full sm:w-72">
             <input 
               type="text" 
               placeholder="Search ID or Product Name..." 

@@ -27,14 +27,14 @@ export default function Profile() {
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
+            <div className="relative flex flex-col sm:flex-row justify-center items-center w-full min-h-[40px] gap-4 sm:gap-0 mt-4 sm:mt-0">
+                <div className="text-center">
                     <h2 className="text-2xl font-bold text-slate-800">My Profile</h2>
                     <p className="text-sm text-slate-500">Manage your account and time off.</p>
                 </div>
                 <button 
                     onClick={() => setIsRequesting(!isRequesting)}
-                    className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                    className="sm:absolute sm:right-0 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors w-full sm:w-auto"
                 >
                     {isRequesting ? 'Cancel Request' : '+ Request Time Off'}
                 </button>
@@ -78,41 +78,43 @@ export default function Profile() {
                 {isLoadingHistory ? (
                     <div className="p-8 text-center text-slate-500">Loading history...</div>
                 ) : (
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-white text-slate-500 border-b border-slate-200">
-                            <tr>
-                                <th className="p-4 font-medium">Type</th>
-                                <th className="p-4 font-medium">Start Date</th>
-                                <th className="p-4 font-medium">End Date</th>
-                                <th className="p-4 font-medium">Status</th>
-                                <th className="p-4 font-medium">Manager Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {history.map((record) => (
-                                <tr key={record.absenceId} className="hover:bg-slate-50">
-                                    <td className="p-4 font-medium text-slate-800">{record.type}</td>
-                                    <td className="p-4 text-slate-600">{new Date(record.startDate).toLocaleDateString()}</td>
-                                    <td className="p-4 text-slate-600">{new Date(record.endDate).toLocaleDateString()}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(record.status)}`}>
-                                            {record.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-slate-500 italic">
-                                        {record.reviewerComments || '-'}
-                                    </td>
-                                </tr>
-                            ))}
-                            {history.length === 0 && (
+                    <div className='overflow-x-auto w-full'>
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-white text-slate-500 border-b border-slate-200">
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-slate-500">
-                                        No leave history found.
-                                    </td>
+                                    <th className="p-4 font-medium">Type</th>
+                                    <th className="p-4 font-medium">Start Date</th>
+                                    <th className="p-4 font-medium">End Date</th>
+                                    <th className="p-4 font-medium">Status</th>
+                                    <th className="p-4 font-medium">Manager Notes</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {history.map((record) => (
+                                    <tr key={record.absenceId} className="hover:bg-slate-50">
+                                        <td className="p-4 font-medium text-slate-800">{record.type}</td>
+                                        <td className="p-4 text-slate-600">{new Date(record.startDate).toLocaleDateString()}</td>
+                                        <td className="p-4 text-slate-600">{new Date(record.endDate).toLocaleDateString()}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(record.status)}`}>
+                                                {record.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-slate-500 italic">
+                                            {record.reviewerComments || '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {history.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="p-8 text-center text-slate-500">
+                                            No leave history found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 

@@ -161,10 +161,10 @@ export default function InventoryList() {
             </div>
 
             {/* Filters */}
+            <div className="w-full flex flex-col sm:flex-row flex-wrap gap-4">
 
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
                 {/*SearchTerm Filter*/}
-                <div className="flex flex-1 bg-white p-1 rounded-md shadow-sm border border-slate-200 max-w-md">
+                <div className="flex flex-1 min-w-[180px] bg-white p-1 rounded-md shadow-sm border border-slate-200">
                     <input 
                     type="text" 
                     placeholder="Search products by name or ID..." 
@@ -179,7 +179,7 @@ export default function InventoryList() {
 
                 {/*Category Filter*/}
                 <select
-                    className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+                    className="w-full sm:w-48 bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
                     value={categoryFilter}
                     onChange={(e) => { 
                         setCategoryFilter(e.target.value); 
@@ -196,7 +196,7 @@ export default function InventoryList() {
 
                 {/*Supplier Filter*/}
                 <select
-                    className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+                    className="w-full sm:w-48 bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
                     value={supplierFilter}
                     onChange={(e) => { 
                         setSupplierFilter(e.target.value); 

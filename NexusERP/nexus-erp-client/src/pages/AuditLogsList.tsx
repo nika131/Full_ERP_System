@@ -78,7 +78,10 @@ export default function AuditLogsList() {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-slate-800">System Audit Logs</h2>
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">System Audit Logs</h2>
+                <p className="text-sm text-slate-500">Track system events, user activity, and security alerts.</p>
+            </div>
 
             {/* Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-4 md-4">

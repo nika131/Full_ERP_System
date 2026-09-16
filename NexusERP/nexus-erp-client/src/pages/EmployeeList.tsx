@@ -80,36 +80,21 @@ export default function EmployeeList() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-slate-800">Employee Directory</h2>
-                <div className="flex justify-between items-center border-b border-slate-200 pb-4">
-                    <button 
-                        onClick={() => setIsInviteModalOpen(true)}
-                        className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700"
-                    >
-                        + Invite Employee
-                    </button>
 
-                    {isInviteModalOpen && (
-                        <InviteEmployeeModal 
-                            onClose={() => setIsInviteModalOpen(false)} 
-                            onSuccess={() => { 
-                                setIsInviteModalOpen(false); 
-                                queryClient.invalidateQueries({ queryKey: ['employees'] });
-                            }} 
-                        />
-                    )}
-                </div>
-                <div className="flex bg-slate-100 p-1 rounded-lg">
+            {/* HEADER */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-200">
+                <h2 className="text-2xl font-bold text-slate-800">Employee Directory</h2>
+                
+                <div className="flex bg-slate-100 p-1 rounded-lg w-full sm:w-auto">
                     <button 
                         onClick={() => setActiveView('Directory')}
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeView === 'Directory' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeView === 'Directory' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Employee Directory
                     </button>
                     <button 
                         onClick={() => setActiveView('Roles')}
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeView === 'Roles' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeView === 'Roles' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Roles & Permissions
                     </button>
@@ -126,10 +111,11 @@ export default function EmployeeList() {
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                             <p className="text-sm font-medium text-slate-500">Pending Leave Approvals</p>
-                            <div className="flex items-center gap-2 mt-1">
-                                <p className={`text-2xl font-bold ${pendingLeavesCount > 0 ? 'text-amber-600' : 'text-slate-800'}`}>
+                            <div className="flex justify-center items-center gap-2 mt-2">
+                                <p className={`text-2xl font-bold leading-none ${pendingLeavesCount > 0 ? 'text-amber-600' : 'text-slate-800'}`}>
                                     {pendingLeavesCount}
                                 </p>
+                                
                                 {pendingLeavesCount > 0 && (
                                     <span className="flex h-3 w-3 relative">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -149,8 +135,9 @@ export default function EmployeeList() {
                     </div>
 
                     {/* Filters */}
-                    <div className="flex gap-4 max-w-2xl">
-                        <div className="flex-1 bg-white p-1 rounded-md shadow-sm border border-slate-200">
+                    <div className="flex flex-col md:flex-row gap-4 w-full md:items-center">
+                        
+                        <div className="w-full md:flex-1 md:max-w-md bg-white p-1 rounded-md shadow-sm border border-slate-200">
                             <input 
                                 type="text" 
                                 placeholder="Search employees..." 
@@ -159,18 +146,29 @@ export default function EmployeeList() {
                                 className="w-full px-3 py-2 outline-none text-sm bg-transparent" 
                             />
                         </div>
-                        <select 
-                            className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
-                            value={roleFilter} 
-                            onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-                        >
-                            <option value="All">All Roles</option>
-                            {roles.map((role) => (
-                                <option key={role.roleId} value={role.name}>
-                                    {role.name}
-                                </option>
-                            ))}
-                        </select>
+
+                        <div className="flex flex-col min-[350px]:flex-row gap-4 w-full md:w-auto md:ml-auto">
+                            <select 
+                                className="flex-1 md:flex-none bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
+                                value={roleFilter} 
+                                onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+                            >
+                                <option value="All">All Roles</option>
+                                {roles.map((role) => (
+                                    <option key={role.roleId} value={role.name}>
+                                        {role.name}
+                                    </option>
+                                ))}
+                            </select>
+                            
+                            <button 
+                                onClick={() => setIsInviteModalOpen(true)}
+                                className="flex-1 md:flex-none whitespace-nowrap bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700"
+                            >
+                                + Invite Employee
+                            </button>
+                        </div>
+
                     </div>
 
                     <DataTable 
@@ -208,6 +206,19 @@ export default function EmployeeList() {
             ) : (
                 <RolesManager />
             )}
+
+            
+            <div className="flex justify-between items-center border-b border-slate-200 pb-4">
+                {isInviteModalOpen && (
+                    <InviteEmployeeModal 
+                        onClose={() => setIsInviteModalOpen(false)} 
+                        onSuccess={() => { 
+                            setIsInviteModalOpen(false); 
+                            queryClient.invalidateQueries({ queryKey: ['employees'] });
+                        }} 
+                    />
+                )}
+            </div>
         </div>
     );
 }

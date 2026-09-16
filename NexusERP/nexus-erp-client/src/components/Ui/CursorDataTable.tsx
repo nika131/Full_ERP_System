@@ -69,10 +69,7 @@ export function CursorDataTable<T>({
         </table>
       </div>
 
-      <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-        <div className="text-sm text-slate-500">
-           <span>Data stream optimized for high volume</span>
-        </div>
+      <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end">
         
         <div className="flex items-center space-x-4">
           <button 
@@ -93,6 +90,7 @@ export function CursorDataTable<T>({
             <ChevronRight size={16} />
           </button>
         </div>
+        
       </div>
     </div>
   );
