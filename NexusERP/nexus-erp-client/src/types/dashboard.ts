@@ -2,6 +2,7 @@ export interface DashbaordStats {
     totalValue: number;
     totalCost: number;
     totalProfit: number;
+    totalSales: number;
     lowStockCount: number;
     marginPrecentage: number;
     inventoryHealth: string;

@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoryService } from '../../api/categoryService';
 import type { CategoryFormData } from '../../schemas/categorySchema';
-import { Signal } from 'lucide-react';
 
 export const useCategoriesQuery = (page: number, limit: number, search: string) => {
     return useQuery({

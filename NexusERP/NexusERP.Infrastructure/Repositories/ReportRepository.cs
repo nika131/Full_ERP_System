@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using NexusERP.Application.DTOs;
@@ -147,10 +148,10 @@ namespace NexusERP.Infrastructure.Repositories
                 .FirstOrDefaultAsync(t => t.TransactionId == transactionId);
         }
 
-        public async Task<List<RevenueChartData>> GetWeeklyRevenueChart(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
+        public async Task<List<RevenueChartData>> GetWeeklyRevenueChart(DashboardFilterRequest dto)
         {
-            var actualStart = startDate ?? DateTime.UtcNow.Date.AddDays(-6);
-            var actualEnd = endDate ?? DateTime.UtcNow.Date;
+            var actualStart = dto.StartDate ?? DateTime.UtcNow.Date.AddDays(-6);
+            var actualEnd = dto.EndDate ?? DateTime.UtcNow.Date;
             var endOfDay = actualEnd.Date.AddDays(1).AddTicks(-1);
 
             var query = _context.ReceiptItems
@@ -159,39 +160,70 @@ namespace NexusERP.Infrastructure.Repositories
                 .Where(ri => ri.Receipt!.IsActive && ri.Receipt.CreatedAt >= actualStart && ri.Receipt.CreatedAt <= endOfDay)
                 .AsQueryable();
 
-            if (storeId.HasValue) query = query.Where(ri => ri.Receipt!.StoreId == storeId.Value);
-            if (categoryId.HasValue) query = query.Where(ri => ri.Product!.CategoryId == categoryId.Value);
-            if (supplierId.HasValue) query = query.Where(ri => ri.Product!.SupplierId == supplierId.Value);
-
-            var rawData = await query
-                .GroupBy(ri => ri.Receipt!.CreatedAt.Date)
-                .Select(g => new
-                {
-                    Date = g.Key,
-                    Revenue = g.Sum(ri => ri.LineTotal),
-                    Profit = g.Sum(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity))
-                }).ToListAsync();
+            if (dto.StartHour.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay >= dto.StartHour.Value);
+            if (dto.EndHour.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
+            if (dto.StoreIds != null && dto.StoreIds.Any()) query = query.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));
+            if (dto.CategoryIds != null && dto.CategoryIds.Any()) query = query.Where(ri => dto.CategoryIds.Contains(ri.Product!.CategoryId));
+            if (dto.SupplierIds != null && dto.SupplierIds.Any()) query = query.Where(ri => dto.SupplierIds.Contains(ri.Product!.SupplierId));
+            if (dto.EmployeeIds != null && dto.EmployeeIds.Any()) query = query.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
             var chartData = new List<RevenueChartData>();
-            int totalDays = (int)(actualEnd.Date - actualStart.Date).TotalDays;
 
-            for (int i = 0; i <= totalDays; i++)
+            // Single Day Selected -> Group by Hour
+            if (actualStart.Date == actualEnd.Date)
             {
-                var targetDate = actualStart.Date.AddDays(i);
-                var dayData = rawData.FirstOrDefault(d => d.Date == targetDate);
+                var rawData = await query
+                    .GroupBy(ri => ri.Receipt!.CreatedAt.Hour)
+                    .Select(g => new
+                    {
+                        Hour = g.Key,
+                        Revenue = g.Sum(ri => ri.LineTotal),
+                        Profit = g.Sum(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity))
+                    }).ToListAsync();
 
-                chartData.Add(new RevenueChartData
+                for (int i = 0; i <= 23; i++)
                 {
-                    Date = targetDate.ToString("MMM dd"),
-                    Revenue = dayData?.Revenue ?? 0,
-                    Profit = dayData?.Profit ?? 0
-                });
+                    var hourData = rawData.FirstOrDefault(d => d.Hour == i);
+                    chartData.Add(new RevenueChartData
+                    {
+                        Date = $"{i:D2}:00", 
+                        Revenue = hourData?.Revenue ?? 0,
+                        Profit = hourData?.Profit ?? 0
+                    });
+                }
+            }
+            // Multiple Days Selected -> Group by Date
+            else
+            {
+                var rawData = await query
+                    .GroupBy(ri => ri.Receipt!.CreatedAt.Date)
+                    .Select(g => new
+                    {
+                        Date = g.Key,
+                        Revenue = g.Sum(ri => ri.LineTotal),
+                        Profit = g.Sum(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity))
+                    }).ToListAsync();
+
+                int totalDays = (int)(actualEnd.Date - actualStart.Date).TotalDays;
+
+                for (int i = 0; i <= totalDays; i++)
+                {
+                    var targetDate = actualStart.Date.AddDays(i);
+                    var dayData = rawData.FirstOrDefault(d => d.Date == targetDate);
+
+                    chartData.Add(new RevenueChartData
+                    {
+                        Date = targetDate.ToString("MMM dd"),
+                        Revenue = dayData?.Revenue ?? 0,
+                        Profit = dayData?.Profit ?? 0
+                    });
+                }
             }
 
             return chartData;
         }
 
-        public async Task<List<TopProductChartData>> GetTopPerformingProducts(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
+        public async Task<List<TopProductChartData>> GetTopPerformingProducts(DashboardFilterRequest dto)
         {
             var query = _context.ReceiptItems
                 .Include(ri => ri.Receipt)
@@ -199,16 +231,20 @@ namespace NexusERP.Infrastructure.Repositories
                 .Where(ri => ri.Receipt!.IsActive)
                 .AsQueryable();
 
-            if (startDate.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt >= startDate.Value);
-            if (endDate.HasValue)
+            if (dto.StartDate.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt >= dto.StartDate.Value);
+            if (dto.EndDate.HasValue)
             {
-                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                var endOfDay = dto.EndDate.Value.Date.AddDays(1).AddTicks(-1);
                 query = query.Where(ri => ri.Receipt!.CreatedAt <= endOfDay);
             }
 
-            if (storeId.HasValue) query = query.Where(ri => ri.Receipt!.StoreId == storeId.Value);
-            if (categoryId.HasValue) query = query.Where(ri => ri.Product!.CategoryId == categoryId.Value);
-            if (supplierId.HasValue) query = query.Where(ri => ri.Product!.SupplierId == supplierId.Value);
+            if (dto.StartHour.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay >= dto.StartHour.Value);
+            if (dto.EndHour.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
+
+            if (dto.StoreIds != null && dto.StoreIds.Any()) query = query.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));
+            if (dto.CategoryIds != null && dto.CategoryIds.Any()) query = query.Where(ri => dto.CategoryIds.Contains(ri.Product!.CategoryId));
+            if (dto.SupplierIds != null && dto.SupplierIds.Any()) query = query.Where(ri => dto.SupplierIds.Contains(ri.Product!.SupplierId));
+            if (dto.EmployeeIds != null && dto.EmployeeIds.Any()) query = query.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
             return await query
                 .GroupBy(ri => new { ri.ProductId, ri.Product!.Name })

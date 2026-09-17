@@ -20,7 +20,7 @@ export const productService = {
         supplierName?: string,
         lowStockOnly?: boolean,
         signal?: AbortSignal
-    ): Promise<PagedResult<Product>> => {
+    ): Promise<PagedResult<Product> & { totalValue: number }> => {
         const params = new URLSearchParams();
         params.append('page', page.toString());
         params.append('pageSize', pageSize.toString());

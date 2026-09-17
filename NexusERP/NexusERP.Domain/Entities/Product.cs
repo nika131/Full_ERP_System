@@ -16,9 +16,9 @@ namespace NexusERP.Domain.Entities
         public string Name { get; set; } = string.Empty;
 
         public int CategoryId { get; set; }
-        public Category Category { get; set; }
+        public Category? Category { get; set; }
 
-        public int? SupplierId { get; set; }
+        public int SupplierId { get; set; }
         public Supplier? Supplier { get; set; }
 
         [ConcurrencyCheck]

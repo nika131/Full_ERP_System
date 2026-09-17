@@ -29,9 +29,9 @@ namespace NexusERP.Application.Interfaces.Repositories
 
         Task<InventoryTransaction?> GetById(int transactionId);
 
-        Task<List<RevenueChartData>> GetWeeklyRevenueChart(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId);
+        Task<List<RevenueChartData>> GetWeeklyRevenueChart(DashboardFilterRequest request);
 
-        Task<List<TopProductChartData>> GetTopPerformingProducts(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId);
+        Task<List<TopProductChartData>> GetTopPerformingProducts(DashboardFilterRequest request);
         Task<PagedResult<ShiftAuditDto>> GetPagedShiftsAsync(int pageNumber, int pageSize, int? storeId);
         Task<PagedResult<ReceiptAuditDto>> GetPagedReceiptsAsync(int pageNumber, int pageSize, string? receiptNumber);
     }

@@ -1,5 +1,6 @@
 ﻿using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
+using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -161,6 +162,20 @@ namespace NexusERP.Infrastructure.Repositories
                 .Where(s => s.UserId == userId)
                 .OrderByDescending(s => s.EffectiveDate) 
                 .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<List<UserLookupDto>> GetLookupUsersAsync()
+        {
+            return await _context.Users
+                .Where(u => u.IsActive)
+                .AsNoTracking()
+                .Select(u => new UserLookupDto
+                {
+                    UserId = u.UserId,
+                    FullName = u.FullName,
+                    Username = u.Username
+                })
                 .ToListAsync();
         }
     }

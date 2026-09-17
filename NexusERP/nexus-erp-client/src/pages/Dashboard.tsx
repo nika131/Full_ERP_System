@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Transaction } from "../types/transaction";
 import { CursorDataTable, type ColumnDef } from "../components/Ui/CursorDataTable";
-import { AlertCircle, DollarSign, Package, TrendingUp } from "lucide-react";
+import { AlertCircle, DollarSign, FilterX, Package, TrendingUp } from "lucide-react";
 import { AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart } from "recharts";
 import { useDashboardStatsQuery, useChartDataQuery, useTopProductsQuery, useTransactionsQuery } from "../hooks/queries/useDashboardQueries";
 import { StoreMapCanvas } from "../components/maps/StoreMapCanvas";
-import { useLookupStoresQuery, useNearbyStoresQuery } from "../hooks/queries/useStoreQueries";
+import { useLookupStoresQuery } from "../hooks/queries/useStoreQueries";
 import { useLookupCategoriesQuery } from "../hooks/queries/useCategoryQueries";
 import { useSupplierLookupQuery } from "../hooks/queries/useSupplierQueries";
+import { useLookupUsersQuery } from "../hooks/queries/useHrQueries";
 import DatePicker from "react-datepicker";
+import { useNavigate } from "react-router-dom";
+import { MultiSelectDropdown } from "../components/Ui/MultiSelectDropdown";
 
 type TransactionCursorState = {
   createdAt: string | null;
@@ -18,10 +21,24 @@ type TransactionCursorState = {
 export type DashboardFilters = {
   startDate: string | null;
   endDate: string | null;
-  storeId: number | null;
-  categoryId: number | null;
-  supplierId: number | null;
+  startHour: string | null;
+  endHour: string | null;
+  storeIds: number[];
+  categoryIds: number[];
+  supplierIds: number[];
+  employeeIds: number[];
 };
+
+// Generates an array of ["00:00", "00:30", "01:00" ... "23:30"]
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const hour = Math.floor(i / 2).toString().padStart(2, '0');
+  const minute = i % 2 === 0 ? '00' : '30';
+  return `${hour}:${minute}`;
+});
+
+const defaultEnd = new Date();
+const defaultStart = new Date();
+defaultStart.setDate(defaultEnd.getDate() - 7);
 
 export default function Dashboard() {
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>(() => {
@@ -29,25 +46,40 @@ export default function Dashboard() {
     if (saved) {
       const parsed = JSON.parse(saved) as DashboardFilters;
       return [
-        parsed.startDate ? new Date(parsed.startDate) : null,
-        parsed.endDate ? new Date(parsed.endDate) : null
+        parsed.startDate ? new Date(parsed.startDate) : defaultStart,
+        parsed.endDate ? new Date(parsed.endDate) : defaultEnd
       ]
     }
-    return [null, null]
+    return [defaultStart, defaultEnd]
   });
   const [startDate, endDate] = dateRange;
 
   const [globalFilters, setGlobalFilters] = useState<DashboardFilters>(() => {
     const saved = sessionStorage.getItem('dashboardFilters');
-    if (saved) return JSON.parse(saved)
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+            startDate: parsed.startDate || defaultStart.toISOString().split('T')[0],
+            endDate: parsed.endDate || defaultEnd.toISOString().split('T')[0],
+            startHour: parsed.startHour || '',
+            endHour: parsed.endHour || '',
+            storeIds: Array.isArray(parsed.storeIds) ? parsed.storeIds : [],
+            categoryIds: Array.isArray(parsed.categoryIds) ? parsed.categoryIds : [],
+            supplierIds: Array.isArray(parsed.supplierIds) ? parsed.supplierIds : [],
+            employeeIds: Array.isArray(parsed.employeeIds) ? parsed.employeeIds : []
+        };
+    }
 
     return {
-      startDate: '',
-      endDate: '',
-      storeId: null,
-      categoryId: null,
-      supplierId: null
-    }
+        startDate: defaultStart.toISOString().split('T')[0],
+        endDate: defaultEnd.toISOString().split('T')[0],
+        startHour: '',
+        endHour: '',
+        storeIds: [],
+        categoryIds: [],
+        supplierIds: [],
+        employeeIds: []
+    };
   });
 
   const [cursorHistory, setCursorHistory] = useState<TransactionCursorState[]>([{ createdAt: null, transactionId: null }]);
@@ -65,18 +97,18 @@ export default function Dashboard() {
     sessionStorage.setItem('dashboardSearch', searchTerm)
   }, [searchTerm])
 
-  const [mapRadius, setMapRadius] = useState(5000); 
-  const [mapCenter, setMapCenter] = useState<[number, number]>([41.7151, 44.8271]);
-  const [queryRadius, setQueryRadius] = useState(5000);
+  const [mapCenter] = useState<[number, number]>([41.7151, 44.8271]);
 
   const { data: stats, isLoading: isStatsLoading } = useDashboardStatsQuery(globalFilters);
   const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery(globalFilters);
   const { data: topProducts = [], isLoading: isTopProductsLoading } = useTopProductsQuery(globalFilters);
-  const { data: stores = [] } = useNearbyStoresQuery(mapCenter[0], mapCenter[1], queryRadius);
 
   const { data: categories = [] } = useLookupCategoriesQuery();
   const { data: suppliers = [] } = useSupplierLookupQuery();
   const { data: storesLookup = [] } = useLookupStoresQuery();
+  const { data: employees = [] } = useLookupUsersQuery();
+
+  const navigate = useNavigate();
 
   const isLoadingStats = isStatsLoading || isChartLoading || isTopProductsLoading;
 
@@ -117,23 +149,44 @@ export default function Dashboard() {
   const handlePrevious = () => setCurrentIndex(prev => prev - 1);
 
   const clearFilters = () => {
-    setDateRange([null, null]);
+    const today = new Date()
+    setDateRange([today, today]);
     setSearchTerm('')
 
     setGlobalFilters({
-      startDate: '',
-      endDate: '',
-      storeId: null,
-      categoryId: null,
-      supplierId: null
+      startDate: today.toISOString().split('T')[0],
+      endDate: today.toISOString().split('T')[0],
+      startHour: '',
+      endHour: '',
+      storeIds: [],
+      categoryIds: [],
+      supplierIds: [],
+      employeeIds: [],
     })
 
-    sessionStorage.removeItem('dashboardFilters')
     sessionStorage.removeItem('dashboardSearch')
   }
 
   const transactions = transactionsData?.items || [];
   const hasMorePages = transactionsData?.hasMorePages || false;
+
+  const toggleStoreFilter = (storeId: number) => {
+    setGlobalFilters(prev => {
+      const isSelected = prev.storeIds.includes(storeId);
+
+      return {
+        ...prev,
+        storeIds: isSelected
+          ? prev.storeIds.filter(id => id !== storeId)
+          : [...prev.storeIds, storeId]
+      };
+    })
+
+    setCursorHistory([{ createdAt: null, transactionId: null }])
+    setCurrentIndex(0)
+  }
+
+  const isSingleDay = globalFilters.startDate !== '' && globalFilters.startDate === globalFilters.endDate;
 
   const columns = useMemo<ColumnDef<Transaction>[]>(() => [
     { 
@@ -179,10 +232,10 @@ export default function Dashboard() {
       </div>
 
       {/* GLOBAL FILTERS BAR */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200 flex flex-wrap items-center gap-3 mb-6">
   
         {/* Date Filters */}
-        <div className="border border-slate-300 rounded bg-white w-full">
+        <div className="flex-1 min-w-50 border border-slate-300 rounded bg-white h-10 overflow-hidden">
           <DatePicker
               selectsRange={true}
               startDate={startDate}
@@ -200,77 +253,136 @@ export default function Dashboard() {
               placeholderText="Select date range..."
               wrapperClassName="w-full"
               className="w-full p-2 text-sm text-left outline-none bg-transparent"
-              isClearable={true}
           />
         </div>
 
-        {/* Category Filter */}
-        <div className="flex flex-col gap-1 w-full">
+        {/* Time Window Filters */}
+        <div className="flex-1 min-w-[220px] flex items-center border border-slate-300 rounded bg-white h-10 px-1 hover:border-emerald-400 transition-colors focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
           <select 
-            value={globalFilters.categoryId || ''}
-            onChange={(e) => setGlobalFilters(prev => ({ ...prev, categoryId: e.target.value ? Number(e.target.value) : null }))}
-            className="border border-slate-200 rounded px-3 py-2 text-sm outline-none focus:border-emerald-500"
+            value={globalFilters.startHour || ''}
+            onChange={(e) => {
+              setGlobalFilters(prev => ({ ...prev, startHour: e.target.value }));
+              setCursorHistory([{ createdAt: null, transactionId: null }]);
+              setCurrentIndex(0);
+            }}
+            className="w-full text-sm outline-none bg-transparent text-slate-700 cursor-pointer text-center appearance-none px-2"
           >
-            <option value="">All Categories</option>
-            {categories.map((category) => (
-                <option key={category.categoryId} value={category.categoryId}>
-                    {category.name}
-                </option>
+            <option value="">Start Time</option>
+            {TIME_OPTIONS.map(time => (
+              <option 
+                key={`start-${time}`} 
+                value={time} 
+                // RESTRICTION: Disable any start time that is later than the selected end time
+                disabled={globalFilters.endHour ? time > globalFilters.endHour : false}
+              >
+                {time}
+              </option>
             ))}
           </select>
+          
+          <span className="text-slate-300 font-medium px-1">-</span>
+          
+          <select 
+            value={globalFilters.endHour || ''}
+            onChange={(e) => {
+              setGlobalFilters(prev => ({ ...prev, endHour: e.target.value }));
+              setCursorHistory([{ createdAt: null, transactionId: null }]);
+              setCurrentIndex(0);
+            }}
+            className="w-full text-sm outline-none bg-transparent text-slate-700 cursor-pointer text-center appearance-none px-2"
+          >
+            <option value="">End Time</option>
+            {TIME_OPTIONS.map(time => (
+              <option 
+                key={`end-${time}`} 
+                value={time}
+                // RESTRICTION: Disable any end time that is earlier than the selected start time
+                disabled={globalFilters.startHour ? time < globalFilters.startHour : false}
+              >
+                {time}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Category Filter */}
+        <div className="flex-1 min-w-40">
+          <MultiSelectDropdown 
+            placeholder="All Categories"
+            options={categories.map(c => ({ id: c.categoryId, name: c.name }))}
+            selectedIds={globalFilters.categoryIds}
+            onChange={(ids) => {
+              setGlobalFilters(prev => ({ ...prev, categoryIds: ids }));
+              setCursorHistory([{ createdAt: null, transactionId: null }]);
+              setCurrentIndex(0);
+            }}
+          />
         </div>
 
         {/*Supplier Filter*/}
-        <div className="flex flex-col gap-1 w-full">
-          <select
-            className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
-            value={globalFilters.supplierId || ''}
-            onChange={(e) => setGlobalFilters(prev => ({ ...prev, supplierId: e.target.value ? Number(e.target.value) : null }))}
-          >
-            <option value="">All Suppliers</option>
-            {suppliers.map((supplier) => (
-                <option key={supplier.supplierId} value={supplier.supplierId}>
-                    {supplier.companyName}
-                </option>
-            ))}
-          </select>
+        <div className="flex-1 min-w-40">
+          <MultiSelectDropdown 
+            placeholder="All Suppliers"
+            options={suppliers.map(s => ({ id: s.supplierId, name: s.companyName }))}
+            selectedIds={globalFilters.supplierIds}
+            onChange={(ids) => {
+              setGlobalFilters(prev => ({ ...prev, supplierIds: ids }));
+              setCursorHistory([{ createdAt: null, transactionId: null }]);
+              setCurrentIndex(0);
+            }}
+          />
         </div>
         
         {/*Store Filter*/}
-        <div className="flex flex-col gap-1 w-full">
-          <select
-            className="bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
-            value={globalFilters.storeId || ''}
-            onChange={(e) => setGlobalFilters(prev => ({ ...prev, storeId: e.target.value ? Number(e.target.value) : null }))}
-          >
-            <option value="">All Stores</option>
-            {storesLookup.map((store) => (
-                <option key={store.storeId} value={store.storeId}>
-                    {store.name}
-                </option>
-            ))}
-          </select>
+        <div className="flex-1 min-w-40">
+          <MultiSelectDropdown 
+            placeholder="All Stores"
+            options={storesLookup.map(s => ({ id: s.storeId, name: s.name }))}
+            selectedIds={globalFilters.storeIds}
+            onChange={(ids) => {
+              setGlobalFilters(prev => ({ ...prev, storeIds: ids }));
+              setCursorHistory([{ createdAt: null, transactionId: null }]);
+              setCurrentIndex(0);
+            }}
+          />
         </div>
 
+        {/* Employee Custom Dropdown */}
+        <div className="flex-1 min-w-35">
+          <MultiSelectDropdown 
+            placeholder="All Employees"
+            options={employees.map((e: any) => ({ id: e.userId, name: e.fullName || e.username }))}
+            selectedIds={globalFilters.employeeIds}
+            onChange={(ids) => {
+              setGlobalFilters(prev => ({ ...prev, employeeIds: ids }));
+              setCursorHistory([{ createdAt: null, transactionId: null }]);
+              setCurrentIndex(0);
+            }}
+          />
+        </div>
+
+        {/*Clear filter */}
         <button
           onClick={clearFilters}
-          className="px-4 py-2 bg-slate-100 text-slate-600 rounded text-sm font-medium hover:bg-slate-200 transition-colors">
-          Clear all filters
+          title="Clear all filters"
+          className="h-10 w-10 shrink-0 bg-slate-50 text-slate-500 rounded border border-slate-300 flex items-center justify-center hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors"
+        >
+          <FilterX size={18} />
         </button>
 
       </div>
 
       {/* TOP ZONE: KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Card 1: Total Value */}
+        {/* Card 1: Total Sale */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 flex items-center space-x-4">
           <div className="p-3 bg-emerald-50 rounded-full text-emerald-600">
             <DollarSign size={24} />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Inventory Value</p>
+            <p className="text-sm font-medium text-slate-500">Total Sales</p>
             <h3 className="text-2xl font-bold text-slate-800">
-              {isLoadingStats ? '...' : `$${stats?.totalValue.toLocaleString()}`}
+              {isLoadingStats ? '...' : `$${stats?.totalSales?.toLocaleString()}`}
             </h3>
           </div>
         </div>
@@ -302,7 +414,13 @@ export default function Dashboard() {
         </div>
 
         {/* Card 4: Alerts */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 flex items-center space-x-4">
+        <div 
+          onClick={() => navigate('/inventory', { state: { triggerLowStock: true } })}
+          title="Click to view low stock products"
+          className={`bg-white p-6 rounded-lg shadow-sm border border-slate-200 flex items-center space-x-4 cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-md active:translate-y-0 active:shadow-sm ${
+            stats?.lowStockCount && stats.lowStockCount > 0 ? 'hover:border-red-300' : 'hover:border-emerald-300'
+          }`}
+        >
           <div className={`p-3 rounded-full ${stats?.lowStockCount && stats.lowStockCount > 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
             <AlertCircle size={24} />
           </div>
@@ -314,6 +432,10 @@ export default function Dashboard() {
             {stats && stats.lowStockCount > 0 && (
               <p className="text-xs text-red-500 font-medium mt-1">{stats.lowStockCount} items low on stock</p>
             )}
+
+            <p className="text-[11px] text-slate-400 font-normal mt-0.5 sm:hidden">
+              Tap to view list &rarr;
+            </p>
           </div>
         </div>
       </div>
@@ -321,68 +443,72 @@ export default function Dashboard() {
       {/* MIDDLE ZONE: CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
-        {/* Left Side: 7-Day Revenue Trend */}
+        {/* Left Side: Revenue Trend */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">7-Day Revenue & Profit Trend</h3>
-          <div className="h-72 min-h-75 w-full">
-            {isLoadingStats ? (
-              <div className="w-full h-full flex items-center justify-center text-slate-400">Loading chart data...</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => `$${value}`} />
-                  <Tooltip 
-                      contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      formatter={(value: any) => {
-                        if(value == undefined || value == null) return ['N/A', "Value"];
-                        return [`$${Number(value).toFixed(2)}`]
-                    }}
-                  />
-                  <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                  <Area type="monotone" dataKey="profit" name="Profit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+          <h3 className="text-lg font-bold text-slate-800 mb-6">Revenue & Profit Trend</h3>
+          <div className="h-72 w-full relative">
+            <div className="absolute inset-0">
+              {isLoadingStats ? (
+                <div className="w-full h-full flex items-center justify-center text-slate-400">Loading chart data...</div>
+              ) : (
+                <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => `$${value}`} />
+                    <Tooltip 
+                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        // Dynamic logic applied to the tooltip title
+                        labelFormatter={(label) => `${isSingleDay ? 'Time' : 'Date'}: ${label}`}
+                        formatter={(value: any) => {
+                          if(value == undefined || value == null) return ['N/A', "Value"];
+                          return [`$${Number(value).toFixed(2)}`]
+                      }}
+                    />
+                    <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                    <Area type="monotone" dataKey="profit" name="Profit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Right Side: Top 5 Products Bar Chart */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-800 mb-6">Top Products by Revenue</h3>
-          <div className="h-72 min-h-75 w-full">
-            {isLoadingStats ? (
-              <div className="w-full h-full flex items-center justify-center text-slate-400">Loading top products...</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="productName" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 12 }} width={80} />
-                  <Tooltip 
-                    cursor={{fill: '#f1f5f9'}}
-                    contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: any) => {
-                        if (value == undefined || value == null) return ['N/A', "value"];
-                        return [`$${Number(value).toLocaleString()}`, 'Revenue']
-                    } }
-                        
-                  />
-                  <Bar dataKey="revenue" fill="#10b981" radius={[0, 4, 4, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+          <div className="h-72 min-h-72 w-full ">
+              {isLoadingStats ? (
+                <div className="w-full h-full flex items-center justify-center text-slate-400">Loading top products...</div>
+              ) : (
+                <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1} initialDimension={{ width: 520, height: 288 }}>
+                  <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="productName" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 12 }} width={80} />
+                    <Tooltip 
+                      cursor={{fill: '#f1f5f9'}}
+                      contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value: any) => {
+                          if (value == undefined || value == null) return ['N/A', "value"];
+                          return [`$${Number(value).toLocaleString()}`, 'Revenue']
+                      } }
+                          
+                    />
+                    <Bar dataKey="revenue" fill="#10b981" radius={[0, 4, 4, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
           </div>
         </div>
 
@@ -393,24 +519,19 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-6">
               <div>
                   <h3 className="text-lg font-bold text-slate-800">Operational Territory</h3>
-                  <p className="text-xs text-slate-500">{stores.length} active locations within {mapRadius / 1000}km</p>
-              </div>
-              <div className="w-64 flex items-center gap-3">
-                  <label className="text-sm font-medium text-slate-700 whitespace-nowrap">Radius: {mapRadius / 1000}km</label>
-                  <input
-                      type="range"
-                      min="1000"
-                      max="50000"
-                      step="1000"
-                      value={mapRadius}
-                      onChange={(e) => setMapRadius(Number(e.target.value))}
-                      onPointerUp={(e) => setQueryRadius(Number(e.currentTarget.value))}
-                      className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-                  />
+                  <p className="text-xs text-slate-500">
+                    {globalFilters.storeIds.length > 0
+                      ? `${globalFilters.storeIds.length} stores selected`
+                      : `Showing all ${storesLookup.length} active locations`} 
+                  </p>
               </div>
           </div>
           <div className="h-125 w-full relative rounded-lg overflow-hidden">
-              <StoreMapCanvas center={mapCenter} radius={mapRadius} stores={stores} />
+              <StoreMapCanvas 
+                center={mapCenter} 
+                stores={storesLookup} 
+                selectedStoreIds={globalFilters.storeIds}
+                onStoreClick={toggleStoreFilter}/>
           </div>
       </div>
 

@@ -24,4 +24,11 @@ namespace NexusERP.Application.DTOs
         public int RoleId { get; set; }
     }
 
+    public class UserLookupDto
+    {
+        public int UserId { get; set; }
+        public string? FullName { get; set; }
+        public string Username { get; set; } = string.Empty;
+    }
+
 }

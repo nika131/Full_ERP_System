@@ -1,4 +1,5 @@
-﻿using NexusERP.Domain.Entities;
+﻿using NexusERP.Application.DTOs;
+using NexusERP.Domain.Entities;
 using NexusERP.Domain.Models;
 using System;
 using System.Collections.Generic;
@@ -18,5 +19,6 @@ namespace NexusERP.Application.Interfaces.Repositories
 
         Task AddSalaryRecordAsync(int userId, SalaryRecord record);
         Task<IEnumerable<SalaryRecord>> GetSalaryHistoryAsync(int userId);
+        Task<List<UserLookupDto>> GetLookupUsersAsync();
     }
 }

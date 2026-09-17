@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using DocumentFormat.OpenXml.Office2016.Excel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
@@ -22,38 +23,23 @@ namespace NexusERP.Api.Controllers
 
 
         [HttpGet("statistics")]
-        public async Task<IActionResult> GetDashboardStatistics(
-                                [FromQuery] DateTime? startDate,
-                                [FromQuery] DateTime? endDate,
-                                [FromQuery] int? storeId,
-                                [FromQuery] int? categoryId,
-                                [FromQuery] int? supplierId)
+        public async Task<IActionResult> GetDashboardStatistics([FromQuery] DashboardFilterRequest request)
         {
-            var stats = await _Productrepository.GetDashboardAggregates(startDate, endDate, storeId, categoryId, supplierId);
+            var stats = await _Productrepository.GetDashboardAggregates(request);
             return Ok(stats);
         }
 
         [HttpGet("revenueChart")]
-        public async Task<IActionResult> GetChartData(
-                                [FromQuery] DateTime? startDate,
-                                [FromQuery] DateTime? endDate,
-                                [FromQuery] int? storeId,
-                                [FromQuery] int? categoryId,
-                                [FromQuery] int? supplierId)
+        public async Task<IActionResult> GetChartData([FromQuery] DashboardFilterRequest request)
         {
-            var chartData = await _ReportRepository.GetWeeklyRevenueChart(startDate, endDate, storeId, categoryId, supplierId);
+            var chartData = await _ReportRepository.GetWeeklyRevenueChart(request);
             return Ok(chartData);
         }
 
         [HttpGet("top-Products")]
-        public async Task<IActionResult> GetTopProducts(
-                                [FromQuery] DateTime? startDate,
-                                [FromQuery] DateTime? endDate,
-                                [FromQuery] int? storeId,
-                                [FromQuery] int? categoryId,
-                                [FromQuery] int? supplierId)
+        public async Task<IActionResult> GetTopProducts([FromQuery] DashboardFilterRequest request)
         {
-            var data = await _ReportRepository.GetTopPerformingProducts(startDate, endDate, storeId, categoryId, supplierId);
+            var data = await _ReportRepository.GetTopPerformingProducts(request);
             return Ok(data);
         }
     }

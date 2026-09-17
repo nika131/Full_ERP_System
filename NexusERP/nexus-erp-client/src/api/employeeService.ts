@@ -26,6 +26,11 @@ export const employeeService = {
         return response.data;
     },
 
+    getLookupUsers: async (signal?: AbortSignal): Promise<{ userId: number; fullName: string; username: string }[]> => {
+        const response = await apiClient.get(`/employees/lookup`, { signal });
+        return response.data;
+    },
+
     updateEmployee: async (userId: number, payload: EmployeeUpdatePayload): Promise<void> => {
         await apiClient.put(`/employees/${userId}`, payload);
     },

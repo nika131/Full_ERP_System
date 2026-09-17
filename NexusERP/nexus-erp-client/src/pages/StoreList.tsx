@@ -107,7 +107,11 @@ export default function StoreList() {
                     <p className="text-xs text-slate-500">Overview of all registered store locations.</p>
                 </div>
                 <div className="h-[400px] w-full relative z-0 rounded-lg overflow-hidden border border-slate-200">
-                    <StoreMapCanvas center={mapCenter} radius={9999999} stores={stores} />
+                    <StoreMapCanvas 
+                        center={mapCenter} 
+                        stores={allStores} 
+                        selectedStoreIds={[]}
+                        onStoreClick={() => {}}/>
                 </div>
             </div>
 

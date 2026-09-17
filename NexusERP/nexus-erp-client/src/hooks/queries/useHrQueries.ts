@@ -13,6 +13,14 @@ export const useEmployeesQuery = (page: number, limit: number, search: string, r
     });
 };
 
+export const useLookupUsersQuery = () => {
+    return useQuery({
+        queryKey: ['users', 'lookup'],
+        queryFn: () => employeeService.getLookupUsers(),
+        staleTime: 5 * 60 * 1000,
+    });
+};
+
 export const useRolesQuery = () => {
     return useQuery({
         queryKey: ['roles'],

@@ -146,5 +146,12 @@ namespace NexusERP.Api.Controllers
             await _repository.AddSalaryRecordAsync(id, record);
             return Ok(new { message = "Salary record added successfully." });
         }
+
+        [HttpGet("lookup")]
+        public async Task<IActionResult> GetLookupUsers()
+        {
+            var users = await _repository.GetLookupUsersAsync();
+            return Ok(users);
+        }
     }
 }

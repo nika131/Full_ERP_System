@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -25,7 +26,7 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<PagedResult<Product>> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName, bool lowStockOnly = false)
+        public async Task<(PagedResult<Product> Result, decimal totalValue)> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName, bool lowStockOnly = false)
         {
             var baseQuery = _context.Products
                 .Include(p => p.Category)
@@ -65,19 +66,23 @@ namespace NexusERP.Infrastructure.Repositories
             }
 
             var totalCount = await baseQuery.CountAsync();
+            var totalValue = await baseQuery.SumAsync(p => p.Price * p.Quantity);
+
             var items = await baseQuery
                 .OrderByDescending(p => p.ProductId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new PagedResult<Product>
+            var pagedResult =  new PagedResult<Product>
             {
                 Items = items,
                 TotalCount = totalCount,
                 PageNumber = pageNumber,
                 PageSize = pageSize
             };
+
+            return (pagedResult, totalValue);
         }
 
         public async Task Upsert(Product product, int userId)
@@ -162,15 +167,15 @@ namespace NexusERP.Infrastructure.Repositories
             }
         }
 
-        public async Task<DashboardResponse> GetDashboardAggregates(DateTime? startDate, DateTime? endDate, int? storeId, int? categoryId, int? supplierId)
+        public async Task<DashboardResponse> GetDashboardAggregates(DashboardFilterRequest dto)
         {
             var setting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "GlobalLowStockThreshold");
             int globalDefaultThreshold = setting != null && int.TryParse(setting.SettingValue, out int parsed) ? parsed : 5;
 
             var productQuery = _context.Products.Where(p => p.IsActive).AsQueryable();
 
-            if (categoryId.HasValue) productQuery = productQuery.Where(p => p.CategoryId == categoryId.Value);
-            if (supplierId.HasValue) productQuery = productQuery.Where(p => p.SupplierId == supplierId.Value);
+            if (dto.CategoryIds != null && dto.CategoryIds.Any()) productQuery = productQuery.Where(p => dto.CategoryIds.Contains(p.CategoryId));
+            if (dto.SupplierIds != null && dto.SupplierIds.Any()) productQuery = productQuery.Where(p => dto.SupplierIds.Contains(p.SupplierId));
 
             var inventoryStats = await productQuery
                 .GroupBy(p => 1)
@@ -187,16 +192,20 @@ namespace NexusERP.Infrastructure.Repositories
                 .Where(ri => ri.Receipt!.IsActive)
                 .AsQueryable();
 
-            if (startDate.HasValue) salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt >= startDate.Value);
-            if (endDate.HasValue) 
+            if (dto.StartDate.HasValue) salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt >= dto.StartDate.Value);
+            if (dto.EndDate.HasValue) 
             {
-                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                var endOfDay = dto.EndDate.Value.Date.AddDays(1).AddTicks(-1);
                 salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt <= endOfDay);
             }
 
-            if (storeId.HasValue) salesQuery = salesQuery.Where(ri => ri.Receipt!.StoreId == storeId.Value);
-            if (categoryId.HasValue) salesQuery = salesQuery.Where(ri => ri.Product!.CategoryId == categoryId.Value);
-            if (supplierId.HasValue) salesQuery = salesQuery.Where(ri => ri.Product!.SupplierId == supplierId.Value);
+            if (dto.StartHour.HasValue) salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay >= dto.StartHour.Value);
+            if (dto.EndHour.HasValue) salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
+
+            if (dto.StoreIds != null && dto.StoreIds.Any()) salesQuery = salesQuery.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));
+            if (dto.CategoryIds != null && dto.CategoryIds.Any()) salesQuery = salesQuery.Where(ri => dto.CategoryIds.Contains(ri.Product!.CategoryId));
+            if (dto.SupplierIds != null && dto.SupplierIds.Any()) salesQuery = salesQuery.Where(ri => dto.SupplierIds.Contains(ri.Product!.SupplierId));
+            if (dto.EmployeeIds != null && dto.EmployeeIds.Any()) salesQuery = salesQuery.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
             var totalSalesAmount = await salesQuery.SumAsync(ri => ri.LineTotal);
             var realizedProfit = await salesQuery.SumAsync(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity));

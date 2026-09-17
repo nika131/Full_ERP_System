@@ -37,7 +37,7 @@ namespace NexusERP.Api.Controllers
         {
             if (pageSize > 100) pageSize = 100;
 
-            var result = await _repository.GetPaged(page, pageSize, searchTerm, categoryName, supplierName, lowStockOnly);
+            var (result, totalValue) = await _repository.GetPaged(page, pageSize, searchTerm, categoryName, supplierName, lowStockOnly);
 
             var responseItems = result.Items.Select(p => new ProductResponseDto
             {
@@ -67,6 +67,7 @@ namespace NexusERP.Api.Controllers
                 totalCount = result.TotalCount,
                 pageNumber = result.PageNumber,
                 pageSize = result.PageSize,
+                totalValue = totalValue
             });
         }
 

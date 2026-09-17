@@ -13,6 +13,7 @@ import { useSupplierLookupQuery } from '../hooks/queries/useSupplierQueries';
 import { AlertTriangle, Plus, Settings } from 'lucide-react';
 import { GlobalSettingsModal } from '../components/Ui/GlobalSettingsModal';
 import apiClient from '../api/apiClient';
+import { useLocation } from 'react-router-dom';
 
 export default function InventoryList() {
     const [page, setPage] = useState(1);
@@ -32,6 +33,8 @@ export default function InventoryList() {
 
     const [globalThreshold, setGlobalThreshold] = useState(5);
 
+    const location = useLocation();
+
     const { data: productsData, isLoading, isError } = useProductsQuery(
         page, 
         10, 
@@ -50,6 +53,7 @@ export default function InventoryList() {
     const products = productsData?.items || [];
     const totalPages = productsData?.totalPages || 1;
     const totalCount = productsData?.totalCount || 0;
+    const totalValue = productsData?.totalValue || 0;
 
     const handleAddClick = () => {
         setSelectedProduct(null);
@@ -112,6 +116,15 @@ export default function InventoryList() {
             .then(res => setGlobalThreshold(Number(res.data.value)))
             .catch(err => console.error("Failed to load global threshold", err));
     }, []);
+
+    useEffect(() => {
+        if (location.state?.triggerLowStock) {
+            setLowStockOnly(true)
+            setPage(1)
+
+            window.history.replaceState({}, document.title)
+        }
+    }, [location.state])
 
     const columns = useMemo<ColumnDef<Product>[]>(() => [
         { header: 'ID', accessor: 'productId', className: 'w-16' },
@@ -176,10 +189,18 @@ export default function InventoryList() {
     return (
         <div className="space-y-4">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
                 <h2 className="text-2xl font-bold text-slate-800">Inventory</h2>
+                
+                {/* Dynamic Total Value KPI */}
+                <div className="w-full sm:w-auto bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg border border-emerald-200 font-semibold shadow-sm flex items-center justify-between sm:justify-start gap-2">
+                    <span className="text-sm font-medium text-emerald-600 uppercase tracking-wider">Total Value:</span>
+                    <span className="text-lg">
+                        {isLoading ? '...' : `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    </span>
+                </div>
             </div>
-
+            
             {/* TWO-TIER ACTION BAR */}
             <div className="bg-white p-3 rounded-lg border border-slate-200 flex flex-col gap-3">
                 
