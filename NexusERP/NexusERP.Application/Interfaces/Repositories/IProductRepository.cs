@@ -19,5 +19,6 @@ namespace NexusERP.Application.Interfaces.Repositories
         Task Delete(int id, int userId);
         Task<DashboardResponse> GetDashboardAggregates(DashboardFilterRequest request);
         Task<List<Product>> GetProductsLowOnStock();
+        Task<bool> IsNegativeInventoryAllowedAsync();
     }
 }

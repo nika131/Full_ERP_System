@@ -241,5 +241,13 @@ namespace NexusERP.Infrastructure.Repositories
                 .Where(p => p.Quantity <= (p.LowStockThreshold ?? globalDefaultThreshold))
                 .ToListAsync();
         }
+
+        public async Task<bool> IsNegativeInventoryAllowedAsync()
+        {
+            var setting = await _context.SystemSettings
+                .FirstOrDefaultAsync(s => s.SettingKey == "AllowNegativeInventory");
+
+            return setting != null && bool.TryParse(setting.SettingValue, out bool parsed) && parsed;
+        }
     }
 }

@@ -103,6 +103,28 @@ namespace NexusERP.Infrastructure.Services
             var store = await _context.Stores.FindAsync(cart.StoreId);
             if (store == null) throw new AppException("Invalid store. ");
 
+            var negativeSetting = await _context.SystemSettings
+                .FirstOrDefaultAsync(s => s.SettingKey == "AllowNegativeInventory");
+            bool allowNegative = negativeSetting != null && bool.TryParse(negativeSetting.SettingValue, out bool parsedVal) && parsedVal;
+
+            var discountSetting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "DiscountPolicy");
+            string discountPolicy = discountSetting?.SettingValue ?? "Enabled";
+
+            bool hasManualDiscounts = cart.CartDiscountAmount > 0 || cart.Items.Any(i => i.ManualItemDiscount > 0);
+
+            if (hasManualDiscounts && discountPolicy != "Enabled")
+            {
+                if (discountPolicy == "Disabled")
+                    throw new AppException("Manual discounts are currently disabled globally by system settings.");
+
+                if (discountPolicy == "AdminOnly")
+                {
+                    var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId);
+                    if (user?.Role?.Name != "Admin")
+                        throw new AppException("System settings currently restrict manual discounts to Administrators only.");
+                }
+            }
+
             var receipt = new Receipt
             {
                 UserId = userId,
@@ -120,7 +142,9 @@ namespace NexusERP.Infrastructure.Services
             {
                 var product = await _context.Products.FindAsync(item.ProductId);
                 if (product == null || !product.IsActive) throw new AppException("Invalid Product in cart");
-                if (product.Quantity < item.Quantity) throw new AppException($"Insufficient stock for {product.Name}.");
+
+                if (!allowNegative && product.Quantity < item.Quantity) 
+                    throw new AppException($"Insufficient stock for {product.Name}.");
 
                 decimal maxAllowedItemDiscount = (product.MaxDiscountPercentage / 100m ) * (product.Price * item.Quantity);
                 if (item.ManualItemDiscount > maxAllowedItemDiscount)

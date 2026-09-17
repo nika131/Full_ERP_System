@@ -38,6 +38,16 @@ namespace NexusERP.Api.Controllers
                 return BadRequest(new { message = "Global Low Stock Threshold must be valid number. " });
             }
 
+            if (key == "AllowNegativeInventory" && !bool.TryParse(dto.Value, out _))
+            {
+                return BadRequest(new { message = "Allow Negative Inventory must be 'true' or 'false'." });
+            }
+
+            if (key == "DiscountPolicy" && dto.Value != "Enabled" && dto.Value != "Disabled" && dto.Value != "AdminOnly")
+            {
+                return BadRequest(new { message = "Discount Policy must be 'Enabled', 'Disabled', or 'AdminOnly'." });
+            }
+
             var oldVal = setting.SettingValue;
             setting.SettingValue = dto.Value;
             setting.UpdatedAt = DateTime.UtcNow;

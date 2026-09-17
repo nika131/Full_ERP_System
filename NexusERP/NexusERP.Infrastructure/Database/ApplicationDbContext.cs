@@ -188,6 +188,22 @@ namespace NexusERP.Infrastructure.Database
                     SettingValue = "5",
                     Description = "The Deafult low Stock alert threshold for products that do not have custom threshold.",
                     UpdatedAt = DateTime.UtcNow
+                },
+
+                new SystemSetting
+                {
+                    SettingKey = "AllowNegativeInventory",
+                    SettingValue = "false",
+                    Description = "Allow stock deductions (loss/damage) to push quantities below zero.",
+                    UpdatedAt = DateTime.UtcNow
+                },
+
+                new SystemSetting
+                {
+                    SettingKey = "DiscountPolicy",
+                    SettingValue = "Enabled", 
+                    Description = "Controls who can apply manual cart or item discounts during checkout.",
+                    UpdatedAt = DateTime.UtcNow
                 }
             );
         }

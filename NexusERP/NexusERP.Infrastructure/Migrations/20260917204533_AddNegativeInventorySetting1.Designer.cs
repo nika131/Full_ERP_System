@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using NexusERP.Infrastructure.Database;
@@ -12,9 +13,11 @@ using NexusERP.Infrastructure.Database;
 namespace NexusERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260917204533_AddNegativeInventorySetting1")]
+    partial class AddNegativeInventorySetting1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -580,21 +583,14 @@ namespace NexusERP.Infrastructure.Migrations
                             SettingKey = "GlobalLowStockThreshold",
                             Description = "The Deafult low Stock alert threshold for products that do not have custom threshold.",
                             SettingValue = "5",
-                            UpdatedAt = new DateTime(2026, 9, 17, 21, 0, 54, 623, DateTimeKind.Utc).AddTicks(913)
+                            UpdatedAt = new DateTime(2026, 9, 17, 20, 45, 32, 597, DateTimeKind.Utc).AddTicks(8839)
                         },
                         new
                         {
                             SettingKey = "AllowNegativeInventory",
                             Description = "Allow stock deductions (loss/damage) to push quantities below zero.",
                             SettingValue = "false",
-                            UpdatedAt = new DateTime(2026, 9, 17, 21, 0, 54, 623, DateTimeKind.Utc).AddTicks(915)
-                        },
-                        new
-                        {
-                            SettingKey = "DiscountPolicy",
-                            Description = "Controls who can apply manual cart or item discounts during checkout.",
-                            SettingValue = "Enabled",
-                            UpdatedAt = new DateTime(2026, 9, 17, 21, 0, 54, 623, DateTimeKind.Utc).AddTicks(917)
+                            UpdatedAt = new DateTime(2026, 9, 17, 20, 45, 32, 597, DateTimeKind.Utc).AddTicks(8841)
                         });
                 });
 

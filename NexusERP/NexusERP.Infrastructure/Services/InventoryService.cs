@@ -34,20 +34,16 @@ namespace NexusERP.Infrastructure.Services
             transaction.UserId = userId;
             transaction.TransactionType = actionEnum;
 
+            bool allowNegative = await _productRepository.IsNegativeInventoryAllowedAsync();
+
             switch (actionEnum)
             {
                 case TransactionAction.Sale:
                     throw new AppException($"Sales must now be processed through the POS Checkout system to generate a valid Receipt.");
 
                 case TransactionAction.Loss:
-                    if (product.Quantity < qty)
-                        throw new AppException($"Cannot deduct {qty}. Only {product.Quantity} available.");
-
-                    product.Quantity -= qty;
-                    break;
-
                 case TransactionAction.Damage:
-                    if (product.Quantity < qty)
+                    if (!allowNegative && product.Quantity < qty)
                         throw new AppException($"Cannot deduct {qty}. Only {product.Quantity} available.");
 
                     product.Quantity -= qty;
