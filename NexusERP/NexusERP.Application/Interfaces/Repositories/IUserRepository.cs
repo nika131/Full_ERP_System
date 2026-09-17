@@ -20,5 +20,6 @@ namespace NexusERP.Application.Interfaces.Repositories
         Task AddSalaryRecordAsync(int userId, SalaryRecord record);
         Task<IEnumerable<SalaryRecord>> GetSalaryHistoryAsync(int userId);
         Task<List<UserLookupDto>> GetLookupUsersAsync();
+        Task<bool> VerifyPosPinAsync(int userId, string pin);
     }
 }

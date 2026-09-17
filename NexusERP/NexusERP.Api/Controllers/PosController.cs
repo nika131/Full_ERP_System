@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
+using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 
 namespace NexusERP.Api.Controllers
@@ -12,10 +13,12 @@ namespace NexusERP.Api.Controllers
     public class PosController : Controller
     {
         private readonly IPosService _posService;
+        private readonly IUserRepository _userRepository;
 
-        public PosController(IPosService posService)
+        public PosController(IPosService posService, IUserRepository userRepository)
         {
             _posService = posService;
+            _userRepository = userRepository;
         }
 
         [HttpPost("shift/open")]
@@ -48,6 +51,23 @@ namespace NexusERP.Api.Controllers
         {
             var receipt = await _posService.ProcessCheckoutAsync(User.GetCurrentUserId(), dto);
             return Ok(new { message = "Checkout successful.", receiptNumber = receipt.ReceiptNumber, total = receipt.FinalTotal });
+        }
+
+        [HttpPost("verify-pin")]
+        [Authorize]
+        public async Task<IActionResult> VerifyPosPin([FromBody] VerifyPinDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Pin) || dto.Pin.Length != 4)
+                return BadRequest(new { message = "PIN must be exactly 4 digits." });
+
+            int currentUserId = User.GetCurrentUserId();
+
+            bool isValid = await _userRepository.VerifyPosPinAsync(currentUserId, dto.Pin);
+
+            if (!isValid)
+                return Unauthorized(new { message = "Invalid POS PIN." });
+
+            return Ok(new { message = "PIN verified. POS unlocked." });
         }
     }
 }

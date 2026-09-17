@@ -22,6 +22,9 @@ namespace NexusERP.Application.DTOs
 
         [Required(ErrorMessage = "Role is required.")]
         public int RoleId { get; set; }
+
+        [Required(ErrorMessage = "Pin is required.")]
+        public string Pin { get; set; } = string.Empty;
     }
 
     public class UserLookupDto

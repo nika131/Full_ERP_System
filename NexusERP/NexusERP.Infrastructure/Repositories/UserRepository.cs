@@ -64,6 +64,7 @@ namespace NexusERP.Infrastructure.Repositories
             existingUser.FullName = user.FullName;
             existingUser.Username = user.Username;
             existingUser.RoleId = user.RoleId;
+            existingUser.PosPin = user.PosPin;
 
             var audit = new SystemAuditLog
             {
@@ -177,6 +178,16 @@ namespace NexusERP.Infrastructure.Repositories
                     Username = u.Username
                 })
                 .ToListAsync();
+        }
+
+        public async Task<bool> VerifyPosPinAsync(int userId, string pin)
+        {
+            var user = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.IsActive)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+
+            return user != null && user.PosPin == pin;
         }
     }
 }

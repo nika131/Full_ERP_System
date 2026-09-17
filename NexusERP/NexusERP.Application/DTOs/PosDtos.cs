@@ -71,4 +71,9 @@ namespace NexusERP.Application.DTOs
         public decimal FinalTotal { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
     }
+
+    public class VerifyPinDto
+    {
+        public string Pin { get; set; } = string.Empty;
+    }
 }
