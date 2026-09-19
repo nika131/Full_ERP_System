@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "pos-app",
+    "slug": "pos-app",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nexuserp.pos"
+    },
+    "android": {
+      "package": "com.nexuserp.pos",
+      "adaptiveIcon": {
+        "backgroundColor": "#f8fafc"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f8fafc"
+        }
+      ]
+    ]
+  }
+}

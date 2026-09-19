@@ -45,4 +45,15 @@ export const productService = {
         await apiClient.post('/products/transaction', payload);
     },
 
+    uploadImage: async (file: File): Promise<string> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await apiClient.post('/products/upload-image', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data.url;
+    },
 };

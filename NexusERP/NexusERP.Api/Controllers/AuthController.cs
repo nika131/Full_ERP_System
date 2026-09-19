@@ -36,9 +36,20 @@ namespace NexusERP.Api.Controllers
         {
             int currentUserId = User.GetCurrentUserId();
 
-            await _authService.Register(request.FullName, request.Username, request.Password, request.RoleId, currentUserId);
+            await _authService.Register(request.FullName, request.Username, request.Password, request.RoleId, currentUserId, request.PosPin);
 
             return Ok(new { message = "User registered successfully." });
+        }
+
+        [HttpPost("pin-login")]
+        [Authorize]
+        public async Task<IActionResult> PinLogin([FromBody] PinLoginDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Pin) || dto.Pin.Length != 4)
+                return BadRequest(new { message = "PIN must be exactly 4 digits." });
+
+            var token = await _authService.LoginWithPin(dto.UserId, dto.Pin);
+            return Ok(new { token = token });
         }
     }
 }

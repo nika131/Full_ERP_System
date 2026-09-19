@@ -7,6 +7,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static NexusERP.Domain.Enums.ProductEnums;
 
 namespace NexusERP.Domain.Entities
 {
@@ -15,10 +16,10 @@ namespace NexusERP.Domain.Entities
         public int ProductId { get; set; }
         public string Name { get; set; } = string.Empty;
 
-        public int CategoryId { get; set; }
+        public int? CategoryId { get; set; }
         public Category? Category { get; set; }
 
-        public int SupplierId { get; set; }
+        public int? SupplierId { get; set; }
         public Supplier? Supplier { get; set; }
 
         [ConcurrencyCheck]
@@ -38,6 +39,8 @@ namespace NexusERP.Domain.Entities
         public ShapeType? ShapeType { get; set; }
         public string? ShapeColor { get; set; }
         public string? ShapeText { get; set; }
+
+        public ProductDisplayMode DisplayMode { get; set; } = ProductDisplayMode.Image;
 
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }

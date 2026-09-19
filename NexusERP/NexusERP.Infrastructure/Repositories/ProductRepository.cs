@@ -26,13 +26,18 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<(PagedResult<Product> Result, decimal totalValue)> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName, bool lowStockOnly = false)
+        public async Task<(PagedResult<Product> Result, decimal totalValue)> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName, bool lowStockOnly = false, List<int>? excludeIds = null)
         {
             var baseQuery = _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
                 .Where(p => p.IsActive)
                 .AsNoTracking();
+
+            if (excludeIds != null && excludeIds.Count > 0)
+            {
+                baseQuery = baseQuery.Where(p => !excludeIds.Contains(p.ProductId));
+            }
 
             if (lowStockOnly)
             {
@@ -45,7 +50,7 @@ namespace NexusERP.Infrastructure.Repositories
             if (!string.IsNullOrEmpty(supplierName))
             {
                 baseQuery = baseQuery.Where(p =>
-                    p.Supplier.ContactName == supplierName
+                    p.Supplier.CompanyName == supplierName
                 );
             }
 
@@ -100,6 +105,20 @@ namespace NexusERP.Infrastructure.Repositories
                 var existing = await _context.Products.FindAsync(product.ProductId);
                 if (existing == null) throw new AppException("Product not Found");
 
+                if (!string.IsNullOrEmpty(existing.ImageUrl) && existing.ImageUrl != product.ImageUrl)
+                {
+                    var oldFilePath = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot",
+                        existing.ImageUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)
+                    );
+
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+
                 existing.Name = product.Name;
                 existing.CategoryId = product.CategoryId;
                 existing.SupplierId = product.SupplierId;
@@ -114,6 +133,7 @@ namespace NexusERP.Infrastructure.Repositories
                 existing.ShapeType = product.ShapeType;
                 existing.ShapeColor = product.ShapeColor;
                 existing.ShapeText = product.ShapeText;
+                existing.DisplayMode = product.DisplayMode;
             }
 
             var audit = new SystemAuditLog
@@ -174,8 +194,10 @@ namespace NexusERP.Infrastructure.Repositories
 
             var productQuery = _context.Products.Where(p => p.IsActive).AsQueryable();
 
-            if (dto.CategoryIds != null && dto.CategoryIds.Any()) productQuery = productQuery.Where(p => dto.CategoryIds.Contains(p.CategoryId));
-            if (dto.SupplierIds != null && dto.SupplierIds.Any()) productQuery = productQuery.Where(p => dto.SupplierIds.Contains(p.SupplierId));
+            if (dto.CategoryIds != null && dto.CategoryIds.Any())
+                productQuery = productQuery.Where(p => p.CategoryId.HasValue && dto.CategoryIds.Contains(p.CategoryId.Value));
+            if (dto.SupplierIds != null && dto.SupplierIds.Any())
+                productQuery = productQuery.Where(p => p.SupplierId.HasValue && dto.SupplierIds.Contains(p.SupplierId.Value));
 
             var inventoryStats = await productQuery
                 .GroupBy(p => 1)
@@ -203,8 +225,10 @@ namespace NexusERP.Infrastructure.Repositories
             if (dto.EndHour.HasValue) salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
 
             if (dto.StoreIds != null && dto.StoreIds.Any()) salesQuery = salesQuery.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));
-            if (dto.CategoryIds != null && dto.CategoryIds.Any()) salesQuery = salesQuery.Where(ri => dto.CategoryIds.Contains(ri.Product!.CategoryId));
-            if (dto.SupplierIds != null && dto.SupplierIds.Any()) salesQuery = salesQuery.Where(ri => dto.SupplierIds.Contains(ri.Product!.SupplierId));
+            if (dto.CategoryIds != null && dto.CategoryIds.Any())
+                salesQuery = salesQuery.Where(ri => ri.Product!.CategoryId.HasValue && dto.CategoryIds.Contains(ri.Product!.CategoryId.Value));
+            if (dto.SupplierIds != null && dto.SupplierIds.Any())
+                salesQuery = salesQuery.Where(ri => ri.Product!.SupplierId.HasValue && dto.SupplierIds.Contains(ri.Product!.SupplierId.Value));
             if (dto.EmployeeIds != null && dto.EmployeeIds.Any()) salesQuery = salesQuery.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
             var totalSalesAmount = await salesQuery.SumAsync(ri => ri.LineTotal);

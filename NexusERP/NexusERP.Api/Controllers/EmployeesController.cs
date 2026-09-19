@@ -42,6 +42,7 @@ namespace NexusERP.Api.Controllers
                 Username = u.Username,
                 RoleId = u.RoleId,
                 RoleName = u.Role?.Name ?? "Unassigned",
+                PosPin = u.PosPin,
                 CreatedAt = u.CreatedAt
             }).ToList();
 
@@ -70,6 +71,7 @@ namespace NexusERP.Api.Controllers
                 FullName = dto.FullName,
                 Username = dto.Username,
                 RoleId = dto.RoleId,
+                PosPin = dto.PosPin,
             };
 
             await _repository.UpdateUser(userToUpdate, currentUserId);

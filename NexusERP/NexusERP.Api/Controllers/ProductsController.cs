@@ -33,11 +33,23 @@ namespace NexusERP.Api.Controllers
                     [FromQuery] string? searchTerm = null,
                     [FromQuery] string? categoryName = null,
                     [FromQuery] string? supplierName = null,
-                    [FromQuery] bool lowStockOnly = false)
+                    [FromQuery] bool lowStockOnly = false,
+                    [FromQuery] string? excludeIds = null)
         {
             if (pageSize > 100) pageSize = 100;
 
-            var (result, totalValue) = await _repository.GetPaged(page, pageSize, searchTerm, categoryName, supplierName, lowStockOnly);
+            List<int>? excludeList = null;
+            if (!string.IsNullOrWhiteSpace(excludeIds))
+            {
+                excludeList = excludeIds
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(s => int.TryParse(s, out var id) ? id : (int?)null)
+                    .Where(id => id.HasValue)
+                    .Select(id => id!.Value)
+                    .ToList();
+            }
+
+            var (result, totalValue) = await _repository.GetPaged(page, pageSize, searchTerm, categoryName, supplierName, lowStockOnly, excludeList);
 
             var responseItems = result.Items.Select(p => new ProductResponseDto
             {
@@ -58,7 +70,8 @@ namespace NexusERP.Api.Controllers
                 ImageUrl = p.ImageUrl,
                 ShapeType = p.ShapeType,
                 ShapeColor = p.ShapeColor,
-                ShapeText = p.ShapeText
+                ShapeText = p.ShapeText,
+                DisplayMode = p.DisplayMode,
             }).ToList();
 
             return Ok(new
@@ -79,8 +92,8 @@ namespace NexusERP.Api.Controllers
             {
                 ProductId = dto.ProductId,
                 Name = dto.Name,
-                CategoryId = dto.CategoryId,
-                SupplierId = dto.SupplierId,
+                CategoryId = dto.CategoryId == 0 ? (int?)null : dto.CategoryId,
+                SupplierId = dto.SupplierId == 0 ? (int?)null : dto.SupplierId,
                 Price = dto.Price,
                 CostPrice = dto.CostPrice,
                 Quantity = dto.Quantity,
@@ -92,7 +105,8 @@ namespace NexusERP.Api.Controllers
                 ImageUrl = dto.ImageUrl,
                 ShapeType = dto.ShapeType,
                 ShapeColor = dto.ShapeColor,
-                ShapeText = dto.ShapeText
+                ShapeText = dto.ShapeText,
+                DisplayMode = dto.DisplayMode,
             }; 
 
             await _repository.Upsert(product, User.GetCurrentUserId());
@@ -145,6 +159,39 @@ namespace NexusERP.Api.Controllers
             var products = await _repository.GetProductsLowOnStock();
 
             return Ok(new { products });
+        }
+
+        [HttpPost("upload-image")]
+        [Authorize(Policy = "RequireProductUpsert")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "No file uploaded." });
+
+            if (file.Length > 5 * 1024 * 1024)
+                return BadRequest(new { message = "Image size cannot exceed 5MB." });
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+                return BadRequest(new { message = "Invalid image format. Only JPG, PNG, and WEBP are allowed." });
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "products");
+
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var fileUrl = $"/uploads/products/{fileName}";
+            return Ok(new { url = fileUrl });
         }
     }
 }

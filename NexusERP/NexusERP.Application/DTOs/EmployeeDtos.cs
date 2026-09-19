@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Azure.Core.Pipeline;
+using System.ComponentModel.DataAnnotations;
 
 namespace NexusERP.Application.DTOs
 {
@@ -9,6 +10,7 @@ namespace NexusERP.Application.DTOs
         public string Username { get; set; } = string.Empty;
         public string RoleName { get; set; } = string.Empty;
         public int RoleId { get; set; }
+        public string? PosPin { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
 
@@ -23,8 +25,9 @@ namespace NexusERP.Application.DTOs
         [Required(ErrorMessage = "Role is required.")]
         public int RoleId { get; set; }
 
-        [Required(ErrorMessage = "Pin is required.")]
-        public string Pin { get; set; } = string.Empty;
+        [Required]
+        [StringLength(4, MinimumLength = 4, ErrorMessage = "PIN must be exactly 4 digits.")]
+        public string PosPin { get; set; } = string.Empty;
     }
 
     public class UserLookupDto

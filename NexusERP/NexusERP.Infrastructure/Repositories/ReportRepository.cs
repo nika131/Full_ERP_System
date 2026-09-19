@@ -163,8 +163,10 @@ namespace NexusERP.Infrastructure.Repositories
             if (dto.StartHour.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay >= dto.StartHour.Value);
             if (dto.EndHour.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
             if (dto.StoreIds != null && dto.StoreIds.Any()) query = query.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));
-            if (dto.CategoryIds != null && dto.CategoryIds.Any()) query = query.Where(ri => dto.CategoryIds.Contains(ri.Product!.CategoryId));
-            if (dto.SupplierIds != null && dto.SupplierIds.Any()) query = query.Where(ri => dto.SupplierIds.Contains(ri.Product!.SupplierId));
+            if (dto.CategoryIds != null && dto.CategoryIds.Any())
+                query = query.Where(ri => ri.Product!.CategoryId.HasValue && dto.CategoryIds.Contains(ri.Product!.CategoryId.Value));
+            if (dto.SupplierIds != null && dto.SupplierIds.Any())
+                query = query.Where(ri => ri.Product!.SupplierId.HasValue && dto.SupplierIds.Contains(ri.Product!.SupplierId.Value));
             if (dto.EmployeeIds != null && dto.EmployeeIds.Any()) query = query.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
             var chartData = new List<RevenueChartData>();
@@ -242,8 +244,10 @@ namespace NexusERP.Infrastructure.Repositories
             if (dto.EndHour.HasValue) query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
 
             if (dto.StoreIds != null && dto.StoreIds.Any()) query = query.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));
-            if (dto.CategoryIds != null && dto.CategoryIds.Any()) query = query.Where(ri => dto.CategoryIds.Contains(ri.Product!.CategoryId));
-            if (dto.SupplierIds != null && dto.SupplierIds.Any()) query = query.Where(ri => dto.SupplierIds.Contains(ri.Product!.SupplierId));
+            if (dto.CategoryIds != null && dto.CategoryIds.Any())
+                query = query.Where(ri => ri.Product!.CategoryId.HasValue && dto.CategoryIds.Contains(ri.Product!.CategoryId.Value));
+            if (dto.SupplierIds != null && dto.SupplierIds.Any())
+                query = query.Where(ri => ri.Product!.SupplierId.HasValue && dto.SupplierIds.Contains(ri.Product!.SupplierId.Value));
             if (dto.EmployeeIds != null && dto.EmployeeIds.Any()) query = query.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
             return await query

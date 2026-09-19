@@ -20,7 +20,10 @@ export const employeeProfileSchema = z.object({
     fullName: z.string().min(2, "Full name must be at least 2 characters.").max(100, "Name is too long."),
     username: z.string().min(3, "Username must be at least 3 characters.").max(50),
     password: z.string().min(6, "Password must be at least 6 characters."),
-    roleId: z.number().positive("You must select a valid system role.")
+    roleId: z.number().positive("You must select a valid system role."),
+    posPin: z.string()
+        .length(4, "PIN must be exactly 4 digits")
+        .regex(/^\d{4}$/, "PIN can only contain numbers"),
 });
 
 export const salaryRecordSchema = z.object({
@@ -41,7 +44,17 @@ export const roleSchema = z.object({
     permissions: z.array(z.string()).min(1, "You must select at least one permission.")
 });
 
+export const employeeUpdateSchema = z.object({
+    fullName: z.string().min(1, "Full name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    roleId: z.number().min(1, "Role is required"),
+    posPin: z.string()
+        .length(4, "PIN must be exactly 4 digits")
+        .regex(/^\d{4}$/, "PIN can only contain numbers"),
+});
+
 export type LeaveRequestFormData = z.infer<typeof leaveRequestSchema>;
 export type EmployeeProfileFormData = z.infer<typeof employeeProfileSchema>;
 export type SalaryRecordFormData = z.infer<typeof salaryRecordSchema>;
 export type RoleFormData = z.infer<typeof roleSchema>;
+export type EmployeeUpdateFormSchema = z.infer<typeof employeeUpdateSchema>;

@@ -189,5 +189,14 @@ namespace NexusERP.Infrastructure.Repositories
 
             return user != null && user.PosPin == pin;
         }
+
+        public async Task<User?> GetUserById(int id)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .AsNoTracking()
+                .Where(u => u.IsActive)
+                .FirstOrDefaultAsync(u => u.UserId == id);
+        }
     }
 }

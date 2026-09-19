@@ -10,8 +10,9 @@ namespace NexusERP.Application.Interfaces.Services
 {
     public interface IAuthService
     {
-        Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId);
+        Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId, string PosPin);
         Task<string> Login(string username, string plaintextpassword);
         string GenerateJwtToken(User user);
+        Task<string> LoginWithPin(int targetUserId, string pin);
     }
 }

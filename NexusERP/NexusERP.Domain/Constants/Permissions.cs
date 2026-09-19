@@ -43,6 +43,7 @@ namespace NexusERP.Domain.Constants
         public const string OpenCloseShift = "Shifts.OpenClose";
         public const string PerformCashMovements = "Shifts.CashMovements";
 
+
         public static List<string> GetAllPermissions()
         {
             return typeof(Permissions)

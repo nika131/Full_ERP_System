@@ -6,6 +6,7 @@ export interface EmployeeResponse {
     roleId: number;
     salary: number | null; 
     createdAt: string;
+    posPin: string;
 }
 
 export interface EmployeeUpdatePayload {

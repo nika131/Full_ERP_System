@@ -1,14 +1,15 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+using NexusERP.Application.Interfaces;
+using NexusERP.Domain.Entities;
+using NexusERP.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using NexusERP.Application.Interfaces;
-using NexusERP.Domain.Entities;
-using NexusERP.Domain.Enums;
-using Microsoft.EntityFrameworkCore.Design;
+using static NexusERP.Domain.Enums.ProductEnums;
 
 namespace NexusERP.Infrastructure.Database
 {
@@ -67,6 +68,14 @@ namespace NexusERP.Infrastructure.Database
                 entity.Property(e => e.VatRate).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.MarketDiscountRate).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.MaxDiscountPercentage).HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.DisplayMode)
+                    .HasConversion(
+                        v => v.ToString().ToLower(),
+                        v => string.IsNullOrEmpty(v) 
+                            ? ProductDisplayMode.Image 
+                            : (ProductDisplayMode)Enum.Parse(typeof(ProductDisplayMode), v, true)
+                    );
             });
 
             // 2. Map Inventory Transactions

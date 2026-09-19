@@ -7,6 +7,7 @@
         public String Address { get; set; } = String.Empty;
         public double Latitude { get; set; }
         public double Longitude { get; set; }
+        public decimal MaxCartDiscountPercentage { get; set; }
         public bool IsActive { get; set; }
     }
     public class CreateStoreDto

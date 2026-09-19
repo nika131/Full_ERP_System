@@ -162,6 +162,10 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DisplayMode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -580,21 +584,21 @@ namespace NexusERP.Infrastructure.Migrations
                             SettingKey = "GlobalLowStockThreshold",
                             Description = "The Deafult low Stock alert threshold for products that do not have custom threshold.",
                             SettingValue = "5",
-                            UpdatedAt = new DateTime(2026, 9, 17, 21, 0, 54, 623, DateTimeKind.Utc).AddTicks(913)
+                            UpdatedAt = new DateTime(2026, 9, 17, 22, 45, 54, 779, DateTimeKind.Utc).AddTicks(719)
                         },
                         new
                         {
                             SettingKey = "AllowNegativeInventory",
                             Description = "Allow stock deductions (loss/damage) to push quantities below zero.",
                             SettingValue = "false",
-                            UpdatedAt = new DateTime(2026, 9, 17, 21, 0, 54, 623, DateTimeKind.Utc).AddTicks(915)
+                            UpdatedAt = new DateTime(2026, 9, 17, 22, 45, 54, 779, DateTimeKind.Utc).AddTicks(722)
                         },
                         new
                         {
                             SettingKey = "DiscountPolicy",
                             Description = "Controls who can apply manual cart or item discounts during checkout.",
                             SettingValue = "Enabled",
-                            UpdatedAt = new DateTime(2026, 9, 17, 21, 0, 54, 623, DateTimeKind.Utc).AddTicks(917)
+                            UpdatedAt = new DateTime(2026, 9, 17, 22, 45, 54, 779, DateTimeKind.Utc).AddTicks(724)
                         });
                 });
 
@@ -618,6 +622,9 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PosPin")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("RoleId")

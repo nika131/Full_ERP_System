@@ -1,6 +1,7 @@
 ﻿using NexusERP.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using static NexusERP.Domain.Enums.ProductEnums;
 
 namespace NexusERP.Application.DTOs
 {
@@ -11,10 +12,8 @@ namespace NexusERP.Application.DTOs
         [Required]
         public string Name { get; set; } = string.Empty;
 
-
-        [Range(1, int.MaxValue, ErrorMessage = "Please select a valid category.")]
-        public int CategoryId { get; set; }
-        public int SupplierId { get; set; }
+        public int? CategoryId { get; set; }
+        public int? SupplierId { get; set; }
 
 
         [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
@@ -34,6 +33,8 @@ namespace NexusERP.Application.DTOs
         public ShapeType? ShapeType { get; set; }
         public string? ShapeColor { get; set; }
         public string? ShapeText { get; set; }
+
+        public ProductDisplayMode DisplayMode { get; set; } = ProductDisplayMode.Image;
     }
 
     public class ProductResponseDto
@@ -41,7 +42,7 @@ namespace NexusERP.Application.DTOs
         public int ProductId { get; set; }
         public string Name { get; set; } = string.Empty;
 
-        public int CategoryId { get; set; }
+        public int? CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
 
         public int? SupplierId { get; set; }
@@ -63,5 +64,8 @@ namespace NexusERP.Application.DTOs
         public ShapeType? ShapeType { get; set; }
         public string? ShapeColor { get; set; }
         public string? ShapeText { get; set; }
+
+        
+        public ProductDisplayMode DisplayMode { get; set; } = ProductDisplayMode.Image;
     }
 }

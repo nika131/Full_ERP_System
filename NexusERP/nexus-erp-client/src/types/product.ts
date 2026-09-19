@@ -9,12 +9,13 @@ export interface Product {
   lowStockThreshold?: number | null;
   price: number;
   costPrice: number;
-  VatRate?: number;
-  MarketDiscountRate?: number; 
-  MaxDiscountPercentage?: number;
-  Barcode?: number;
-  ImageUrl?: string; 
-  ShapeType?: string;
-  ShapeColor?: string;
-  ShapeText?: string;
+  vatRate?: number;
+  marketDiscountRate?: number; 
+  maxDiscountPercentage?: number;
+  barcode?: string;
+  imageUrl?: string; 
+  shapeType?: string;
+  shapeColor?: string;
+  shapeText?: string;
+  displayMode: 'image' | 'shape';
 }

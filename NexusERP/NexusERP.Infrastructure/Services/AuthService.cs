@@ -29,7 +29,7 @@ namespace NexusERP.Infrastructure.Services
             _jwtSecret = config["Jwt:Key"] ?? throw new AppException("JWT Secret missing!");
         }
 
-        public async Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId)
+        public async Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId, string PosPin)
         {
             var existingUser = await _userRepository.GetUserByUsername(username);
             if (existingUser != null)
@@ -42,7 +42,8 @@ namespace NexusERP.Infrastructure.Services
                 FullName = fullname,
                 Username = username,
                 PasswordHash = hashedPassword,
-                RoleId = roleId
+                RoleId = roleId,
+                PosPin = PosPin
             };
 
             await _userRepository.CreateUser(newUser, actorUserId);
@@ -93,6 +94,18 @@ namespace NexusERP.Infrastructure.Services
 
             var token = tokenHandler.CreateToken(tokenDescription);
             return tokenHandler.WriteToken(token);
+        }
+
+        public async Task<string> LoginWithPin(int targetUserId, string pin)
+        {
+            var user = await _userRepository.GetUserById(targetUserId);
+            if (user == null)
+                throw new AppException("User not found.");
+
+            if (string.IsNullOrWhiteSpace(user.PosPin) || user.PosPin != pin)
+                throw new AppException("Invalid PIN.");
+
+            return GenerateJwtToken(user);
         }
     }
 }

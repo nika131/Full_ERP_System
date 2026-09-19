@@ -94,7 +94,8 @@ namespace NexusERP.Infrastructure.Services
                 Name = store.Name,
                 Address = store.Address,
                 Latitude = store.Location.Y,  
-                Longitude = store.Location.X, 
+                Longitude = store.Location.X,
+                MaxCartDiscountPercentage = store.MaxCartDiscountPercentage,
                 IsActive = store.IsActive
             };
         }

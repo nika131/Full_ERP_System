@@ -12,7 +12,7 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IProductRepository
     {
-        Task<(PagedResult<Product> Result, decimal totalValue)> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName, bool lowStockOnly = false);
+        Task<(PagedResult<Product> Result, decimal totalValue)> GetPaged(int pageNumber, int pageSize, string? searchTerm, string? categoryName, string? supplierName, bool lowStockOnly = false, List<int>? excludeIds = null);
         Task Upsert(Product product, int userId);
         Task SaveTransaction(InventoryTransaction transaction, Product product, SystemAuditLog audit);
         Task<Product> GetByIdAsync(int id);

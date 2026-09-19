@@ -22,11 +22,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://localhost:8081"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -159,6 +164,8 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+app.UseStaticFiles();
+
 app.UseRouting();
 
 app.UseMiddleware<ExceptionMiddleware>();
@@ -174,7 +181,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseCors("AllowApp");
 
 app.UseAuthentication();

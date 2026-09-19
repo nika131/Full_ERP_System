@@ -1,24 +1,36 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { EmployeeResponse } from "../../types/employee";
 import { useForm } from "react-hook-form";
-import { employeeProfileSchema, type EmployeeProfileFormData } from "../../schemas/hrSchema";
+import { employeeUpdateSchema, type EmployeeUpdateFormSchema } from "../../schemas/hrSchema";
 import toast from "react-hot-toast";
 import { useRolesQuery, useUpdateEmployeeMutation } from "../../hooks/queries/useHrQueries";
+import { RefreshCw } from "lucide-react";
 
 export const RoleForm = ({ employee, onSuccess }: { employee: EmployeeResponse, onSuccess: () => void }) => {
     const { data: roles = [], isLoading: isLoadingRoles } = useRolesQuery();
     const updateMutation = useUpdateEmployeeMutation();
 
-    const { register, handleSubmit, formState: { errors } } = useForm<EmployeeProfileFormData>({
-        resolver: zodResolver(employeeProfileSchema),
+    const { 
+        register, 
+        handleSubmit, 
+        setValue, 
+        formState: { errors } 
+    } = useForm<EmployeeUpdateFormSchema>({
+        resolver: zodResolver(employeeUpdateSchema),
         defaultValues: {
             fullName: employee.fullName,
             username: employee.username,
-            roleId: employee.roleId
+            roleId: employee.roleId,
+            posPin: employee.posPin ?? '' 
         }
     });
 
-    const onSubmit = async (data: EmployeeProfileFormData) => {
+    const generatePin = () => {
+        const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+        setValue('posPin', randomPin, { shouldValidate: true, shouldDirty: true });
+    };
+
+    const onSubmit = async (data: EmployeeUpdateFormSchema) => {
         try {
             await updateMutation.mutateAsync({
                 userId: employee.userId,
@@ -31,8 +43,12 @@ export const RoleForm = ({ employee, onSuccess }: { employee: EmployeeResponse, 
         }
     };
 
+    const onError = (errors: any) => {
+        console.error("Zod Validation Failed:", errors);
+    };
+
     return (
-        <form id="role-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 flex flex-col h-full">
+        <form id="role-form" onSubmit={handleSubmit(onSubmit, onError)} className="space-y-4 flex flex-col h-full">
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 
                 {/* Form Fields */}
@@ -45,6 +61,7 @@ export const RoleForm = ({ employee, onSuccess }: { employee: EmployeeResponse, 
                     />
                     {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
                 </div>
+                
                 <div>
                     <label className="block text-sm font-medium text-slate-700">Username</label>
                     <input 
@@ -54,6 +71,35 @@ export const RoleForm = ({ employee, onSuccess }: { employee: EmployeeResponse, 
                     />
                     {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>}
                 </div>
+
+                {/* POS PIN Field with Generate Button */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">POS Access PIN</label>
+                    <div className="flex gap-2 mt-1">
+                        <input
+                            type="text"
+                            maxLength={4}
+                            placeholder="e.g. 1234"
+                            {...register('posPin')}
+                            className={`flex-1 p-2 border rounded-md outline-none transition-colors tracking-widest font-mono text-center ${errors.posPin ? 'border-red-500 focus:border-red-500' : 'border-slate-300 focus:border-blue-500'}`}
+                            onKeyPress={(e) => {
+                                if (!/[0-9]/.test(e.key)) {
+                                    e.preventDefault();
+                                }
+                            }}
+                        />
+                        <button
+                            type="button"
+                            onClick={generatePin}
+                            className="px-3 py-2 bg-slate-100 text-slate-600 border border-slate-300 rounded-md hover:bg-slate-200 transition-colors flex items-center justify-center gap-1.5 text-sm font-medium whitespace-nowrap shrink-0"
+                        >
+                            <RefreshCw size={16} className="text-slate-500" />
+                            Generate
+                        </button>
+                    </div>
+                    {errors.posPin && <p className="text-red-500 text-xs mt-1">{errors.posPin.message as string}</p>}
+                </div>
+
                 <div>
                     <label className="block text-sm font-medium text-slate-700">System Role</label>
                     <select 

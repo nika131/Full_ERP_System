@@ -22,7 +22,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("shift/open")]
-        [Authorize(Policy = "RequireOpenCloseShifts")]
+        [Authorize]
         public async Task<IActionResult> OpenShift([FromBody] OpenShiftDto dto)
         {
             var shift = await _posService.OpenShiftAsync(User.GetCurrentUserId(), dto);
@@ -30,7 +30,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("shift/{shiftId}/close")]
-        [Authorize(Policy = "RequireOpenCloseShifts")]
+        [Authorize]
         public async Task<IActionResult> CloseShift(int shiftId, [FromBody] CloseShiftDto dto)
         {
             var shift = await _posService.CloseShiftAsync(shiftId, User.GetCurrentUserId(), dto);
@@ -38,7 +38,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("shift/{shiftId}/cash-movement")]
-        [Authorize(Policy = "RequirePerformCashMovements")]
+        [Authorize]
         public async Task<IActionResult> AddCashMovement(int shiftId, [FromBody] CashMovementDto dto)
         {
             await _posService.AddCashMovementAsync(shiftId, User.GetCurrentUserId(), dto);
@@ -46,7 +46,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("checkout")]
-        [Authorize(Policy = "RequirePerformSales")]
+        [Authorize]
         public async Task<IActionResult> ProcessCheckout([FromBody] CheckoutRequestDto dto)
         {
             var receipt = await _posService.ProcessCheckoutAsync(User.GetCurrentUserId(), dto);
@@ -69,5 +69,51 @@ namespace NexusERP.Api.Controllers
 
             return Ok(new { message = "PIN verified. POS unlocked." });
         }
+
+        [HttpGet("shift/current")]
+        [Authorize]
+        public async Task<IActionResult> GetCurrentShift([FromQuery] int storeId)
+        {
+            var shift = await _posService.GetCurrentShiftAsync(User.GetCurrentUserId(), storeId);
+
+            if (shift == null)
+                return Ok(new { hasOpenShift = false, shift = (object?)null });
+
+            return Ok(new { hasOpenShift = true, shift });
+        }
+
+        [HttpGet("shift/history")]
+        [Authorize]
+        public async Task<IActionResult> GetShiftHistory([FromQuery] int storeId, [FromQuery] int take = 20)
+        {
+            if (take > 50) take = 50;
+            var history = await _posService.GetShiftHistoryAsync(storeId, take);
+            return Ok(history);
+        }
+
+        [HttpGet("shift/{shiftId}/receipts")]
+        [Authorize]
+        public async Task<IActionResult> GetShiftReceipts(int shiftId)
+        {
+            var receipts = await _posService.GetShiftReceiptsAsync(shiftId, User.GetCurrentUserId());
+            return Ok(receipts);
+        }
+
+        [HttpGet("receipts/{receiptId}")]
+        [Authorize]
+        public async Task<IActionResult> GetReceiptDetail(int receiptId)
+        {
+            var detail = await _posService.GetReceiptDetailAsync(receiptId, User.GetCurrentUserId());
+            return Ok(detail);
+        }
+
+        [HttpGet("switchable-users")]
+        [Authorize]
+        public async Task<IActionResult> GetSwitchableUsers()
+        {
+            var users = await _userRepository.GetLookupUsersAsync();
+            return Ok(users);
+        }
+
     }
 }
