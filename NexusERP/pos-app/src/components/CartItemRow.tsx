@@ -21,8 +21,24 @@ export function CartItemRow({
 }: CartItemRowProps) {
   const lastTapRef = useRef<number>(0);
 
+  const baseAmount = round2(
+    item.unitPrice * item.quantity
+  )
+
+  const marketDiscountAmount = round2(
+    baseAmount * (item.marketDiscountPercentage / 100)
+  )
+
+  const manualDiscountAmount = round2(
+    baseAmount * (item.manualItemDiscountPercentage / 100)
+  );
+
+  const totalItemDiscountAmount = round2(
++    marketDiscountAmount + manualDiscountAmount
+  );
+
   const lineTotal = round2(
-    item.unitPrice * item.quantity - item.manualItemDiscount
+    baseAmount - totalItemDiscountAmount
   );
 
   const handlePress = () => {
@@ -59,13 +75,30 @@ export function CartItemRow({
 
           <Text className="mt-0.5 text-xs text-slate-500">
             {item.quantity} × {formatCurrency(item.unitPrice)}
-            {item.manualItemDiscount > 0
-              ? ` − ${formatCurrency(item.manualItemDiscount)}`
-              : ""}
           </Text>
+
+          {item.marketDiscountPercentage > 0 && (
+            <Text className="mt-0.5 text-xs font-medium text-red-600">
+              Market discount: −{item.marketDiscountPercentage}%: −
+              {formatCurrency(marketDiscountAmount)}
+            </Text>
+          )}
+
+          {item.manualItemDiscountPercentage > 0 && (
+            <Text className="mt-0.5 text-xs font-medium text-emerald-600">
+              Manual discount {item.manualItemDiscountPercentage}%: −
+              {formatCurrency(manualDiscountAmount)}
+            </Text>
+          )}
         </View>
 
-        <View className="mr-3">
+        <View className="mr-3 items-end">
+          {totalItemDiscountAmount > 0 && (
+            <Text className="text-xs text-slate-400 line-through">
+              {formatCurrency(baseAmount)}
+            </Text>
+          )}
+
           <Text className="text-sm font-bold text-slate-800">
             {formatCurrency(lineTotal)}
           </Text>

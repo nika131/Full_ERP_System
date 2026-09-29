@@ -60,52 +60,56 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task Upsert(Role role, int userId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            try
+            await strategy.ExecuteAsync(async () =>
             {
-                bool isNew = role.RoleId == 0;
-                string action = isNew ? "Create" : "Edit";
-                string changes = isNew ? $"Created role '{role.Name}'" : $"Updated role '{role.Name}' with {role.Permissions.Count} permissions";
+                await using var transaction = await _context.Database.BeginTransactionAsync();
 
-                if (isNew)
+                try
                 {
-                    role.IsActive = true;
-                    _context.Roles.Add(role);
+                    bool isNew = role.RoleId == 0;
+                    string action = isNew ? "Create" : "Edit";
+                    string changes = isNew ? $"Created role '{role.Name}'" : $"Updated role '{role.Name}' with {role.Permissions.Count} permissions";
+
+                    if (isNew)
+                    {
+                        role.IsActive = true;
+                        _context.Roles.Add(role);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        var existing = await _context.Roles.FindAsync(role.RoleId);
+
+                        if (existing == null || !existing.IsActive)
+                            throw new Exception("Role not found");
+
+                        existing.Name = role.Name;
+                        existing.Permissions = role.Permissions;
+                        await _context.SaveChangesAsync();
+                    }
+
+                    var audit = new SystemAuditLog
+                    {
+                        UserId = userId,
+                        EntityType = "Role",
+                        EntityId = role.RoleId,
+                        Action = action,
+                        ChangesMade = changes
+                    };
+
+
+                    _context.SystemAuditLogs.Add(audit);
                     await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
                 }
-                else
+                catch
                 {
-                    var existing = await _context.Roles.FindAsync(role.RoleId);
-
-                    if (existing == null || !existing.IsActive) 
-                        throw new Exception("Role not found");
-
-                    existing.Name = role.Name;
-                    existing.Permissions = role.Permissions;
-                    await _context.SaveChangesAsync();
+                    await transaction.RollbackAsync();
+                    throw;
                 }
-
-                var audit = new SystemAuditLog
-                {
-                    UserId = userId,
-                    EntityType = "Role",
-                    EntityId = role.RoleId,
-                    Action = action,
-                    ChangesMade = changes
-                };
-
-
-
-                _context.SystemAuditLogs.Add(audit);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+            });
         }
 
         public async Task Delete(int id, int userId)

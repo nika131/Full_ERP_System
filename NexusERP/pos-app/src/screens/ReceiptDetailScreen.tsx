@@ -12,6 +12,29 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
   const { receiptId } = route.params;
   const { data: receipt, isLoading, isError } = useReceiptDetailQuery(receiptId);
 
+  const itemDiscountAmount =
+    receipt?.lines.reduce(
+      (total, line) =>
+        total +
+        line.unitPrice *
+          line.quantity *
+          ((line.marketDiscountPercentage +
+            line.manualItemDiscountPercentage) /
+            100),
+      0
+    ) ?? 0;
+
+  const discountedSubtotal =
+    receipt ? receipt.subTotal - itemDiscountAmount : 0;
+
+  const cartDiscountAmount =
+    receipt
+      ? discountedSubtotal * (receipt.cartDiscountPercentage / 100)
+      : 0;
+
+  const totalDiscountAmount =
+    itemDiscountAmount + cartDiscountAmount;
+
   return (
     <View className="flex-1 bg-slate-50">
       <View className="flex-row items-center justify-between border-b border-slate-200 bg-white p-4">
@@ -62,14 +85,38 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
                     {line.productName}
                   </Text>
 
-                  <Text className="mt-0.5 text-xs text-slate-500">
-                    {line.quantity} × {formatCurrency(line.unitPrice)}
-                    {line.marketDiscountAmount + line.manualItemDiscountAmount > 0
-                      ? ` − ${formatCurrency(
-                          line.marketDiscountAmount + line.manualItemDiscountAmount
-                        )}`
-                      : ""}
-                  </Text>
+                  <View className="mt-1">
+                    <Text className="text-xs text-slate-500">
+                      {line.quantity} × {formatCurrency(line.unitPrice)}
+                    </Text>
+
+                    {line.marketDiscountPercentage > 0 && (
+                      <Text className="text-xs text-red-600">
+                        Market discount: {line.marketDiscountPercentage}%
+                      </Text>
+                    )}
+
+                    {line.manualItemDiscountPercentage > 0 && (
+                      <Text className="text-xs text-red-600">
+                        Manual discount: {line.manualItemDiscountPercentage}%
+                      </Text>
+                    )}
+
+                    {(line.marketDiscountPercentage > 0 ||
+                      line.manualItemDiscountPercentage > 0) && (
+                      <>
+                        <Text className="text-xs text-red-600">
+                          Original:{" "}
+                          {formatCurrency(line.unitPrice * line.quantity)}
+                        </Text>
+
+                        <Text className="text-xs font-semibold text-emerald-600">
+                          After item discounts: {formatCurrency(line.lineTotal)}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+
                 </View>
 
                 <Text className="text-sm font-bold text-slate-800">
@@ -81,26 +128,66 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
             <View className="my-4 h-px bg-slate-200" />
 
             <View className="mb-1 flex-row justify-between">
-              <Text className="text-[13px] text-slate-500">Subtotal</Text>
+              <Text className="text-[13px] text-slate-500">
+                Original subtotal
+              </Text>
+
               <Text className="text-[13px] font-semibold text-slate-700">
                 {formatCurrency(receipt.subTotal)}
               </Text>
             </View>
 
-            {receipt.cartDiscountAmount > 0 && (
+            {itemDiscountAmount > 0 && (
               <View className="mb-1 flex-row justify-between">
                 <Text className="text-[13px] text-slate-500">
-                  Receipt discount
+                  Item discounts
                 </Text>
 
                 <Text className="text-[13px] font-semibold text-red-600">
-                  − {formatCurrency(receipt.cartDiscountAmount)}
+                  − {formatCurrency(itemDiscountAmount)}
+                </Text>
+              </View>
+            )}
+
+            {receipt.cartDiscountPercentage > 0 && (
+              <View className="mb-1 flex-row justify-between">
+                <Text className="text-[13px] text-slate-500">
+                  Receipt discount ({receipt.cartDiscountPercentage}%)
+                </Text>
+
+                <Text className="text-[13px] font-semibold text-red-600">
+                  − {formatCurrency(cartDiscountAmount)}
+                </Text>
+              </View>
+            )}
+
+            {totalDiscountAmount > 0 && (
+              <View className="mb-1 flex-row justify-between">
+                <Text className="text-[13px] font-semibold text-red-600">
+                  Total saved
+                </Text>
+
+                <Text className="text-[13px] font-bold text-red-600">
+                  − {formatCurrency(totalDiscountAmount)}
                 </Text>
               </View>
             )}
 
             <View className="mb-1 flex-row justify-between">
-              <Text className="text-[13px] text-slate-500">VAT</Text>
+              <Text className="text-[13px] text-slate-500">
+                After discounts
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-slate-700">
+                {formatCurrency(discountedSubtotal - cartDiscountAmount)}
+              </Text>
+            </View>
+
+            <View className="mb-1 flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                VAT
+              </Text>
+
               <Text className="text-[13px] font-semibold text-slate-700">
                 {formatCurrency(receipt.totalVatAmount)}
               </Text>
@@ -110,7 +197,7 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
 
             <View className="flex-row justify-between">
               <Text className="text-base font-extrabold text-slate-800">
-                Total
+                Final total
               </Text>
 
               <Text className="text-xl font-extrabold text-emerald-600">

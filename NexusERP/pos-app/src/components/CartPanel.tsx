@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, Pressable, TextInput, Alert } from "react-native";
+import { View, Text, FlatList, Pressable, TextInput } from "react-native";
 import { ShoppingCart, Tag, Minus, Plus } from "lucide-react-native";
 import { useCartStore } from "../store/cartStore";
 import { CartItemRow } from "./CartItemRow";
 import { ModalSheet } from "./ModalSheet";
-import { formatCurrency, round2 } from "../utils/currency";
+import { formatCurrency, round2  } from "../utils/currency";
 import type { CartItem } from "../types";
 import { useTerminalStore } from "@/store/terminalStore";
 
@@ -15,8 +15,44 @@ interface CartPanelProps {
 
 export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
   const items = useCartStore((s) => s.items);
-  const cartDiscountAmount = useCartStore((s) => s.cartDiscountAmount);
+  const cartDiscountPercentage = useCartStore(
+    (s) => s.cartDiscountPercentage
+  );
   const subtotal = useCartStore((s) => s.subtotal());
+
+  const totalDiscount = useCartStore((s) => s.totalDiscount());
+
+  const marketDiscountTotal = items.reduce(
+    (sum, item) =>
+      sum +
+      round2(
+        item.unitPrice *
+          item.quantity *
+          (item.marketDiscountPercentage / 100)
+      ),
+    0
+  );
+
+  const manualItemDiscountTotal = items.reduce(
+    (sum, item) =>
+      sum +
+      round2(
+        item.unitPrice *
+          item.quantity *
+          (item.manualItemDiscountPercentage / 100)
+      ),
+    0
+  );
+
+  const subtotalAfterItemDiscounts = round2(
+    subtotal - marketDiscountTotal - manualItemDiscountTotal
+  );
+
+  const receiptDiscountAmount = round2(
+    subtotalAfterItemDiscounts *
+      (cartDiscountPercentage / 100)
+  );
+
   const total = useCartStore((s) => s.total());
   const incrementQuantity = useCartStore((s) => s.incrementQuantity);
   const setQuantity = useCartStore((s) => s.setQuantity);
@@ -34,6 +70,7 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
     <View className="flex-1 border-l border-slate-200 bg-white">
       <View className="flex-row items-center gap-2 border-b border-slate-100 p-4">
         <ShoppingCart size={18} color="#334155" />
+
         <Text className="text-[15px] font-bold text-slate-800">
           Current Sale
         </Text>
@@ -42,9 +79,11 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
       {items.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-1">
           <ShoppingCart size={36} color="#cbd5e1" />
+
           <Text className="mt-2 font-semibold text-slate-500">
             Cart is empty
           </Text>
+
           <Text className="text-xs text-slate-400">
             Tap a product to add it
           </Text>
@@ -61,7 +100,9 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
               onRemove={() => removeItem(item.productId)}
             />
           )}
-          ItemSeparatorComponent={() => <View className="h-1.5 bg-slate-50" />}
+          ItemSeparatorComponent={() => (
+            <View className="h-1.5 bg-slate-50" />
+          )}
           className="flex-1"
           showsVerticalScrollIndicator={false}
         />
@@ -74,30 +115,71 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
         >
           <View className="flex-row items-center gap-1.5">
             <Tag size={14} color="#059669" />
+
             <Text className="text-[13px] font-semibold text-emerald-700">
               Receipt discount
             </Text>
           </View>
 
           <Text className="text-[13px] font-bold text-emerald-700">
-            {cartDiscountAmount > 0
-              ? `− ${formatCurrency(cartDiscountAmount)}`
+            {cartDiscountPercentage > 0
+              ? `${cartDiscountPercentage}%`
               : "Add"}
           </Text>
         </Pressable>
 
         <View className="gap-1">
           <View className="flex-row justify-between">
-            <Text className="text-[13px] text-slate-500">Subtotal</Text>
+            <Text className="text-[13px] text-slate-500">
+              Subtotal
+            </Text>
+
             <Text className="text-[13px] font-semibold text-slate-700">
               {formatCurrency(subtotal)}
             </Text>
           </View>
 
-          <View className="flex-row justify-between">
+          {marketDiscountTotal > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                market discounts
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-emerald-600">
+                −{formatCurrency(marketDiscountTotal)}
+              </Text>
+            </View>
+          )}
+
+          {manualItemDiscountTotal > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                Manual item discounts
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-emerald-600">
+                −{formatCurrency(manualItemDiscountTotal)}
+               </Text>
+             </View>
+           )}
+
+          {cartDiscountPercentage > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                Receipt discount ({cartDiscountPercentage}%)
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-emerald-600">
+                −{formatCurrency(receiptDiscountAmount)}
+              </Text>
+            </View>
+          )}
+
+          <View className="mt-1 flex-row justify-between border-t border-slate-100 pt-2">
             <Text className="text-base font-bold text-slate-800">
               Total
             </Text>
+
             <Text className="text-xl font-extrabold text-emerald-600">
               {formatCurrency(total)}
             </Text>
@@ -130,8 +212,11 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
             onChangeQuantity={(q) =>
               setQuantity(editingItem.productId, q)
             }
-            onChangeDiscount={(d) =>
-              setItemDiscount(editingItem.productId, d)
+            onChangeDiscount={(percentage) =>
+              setItemDiscount(
+                editingItem.productId,
+                percentage
+              )
             }
             onDone={() => setEditingItem(null)}
           />
@@ -143,11 +228,10 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
         onClose={() => setDiscountModalOpen(false)}
       >
         <CartDiscountEditor
-          value={cartDiscountAmount}
-          maxValue={subtotal}
+          value={cartDiscountPercentage}
           maxDiscountPercentage={maxCartDiscountPercentage}
-          onSave={(v) => {
-            setCartDiscount(v);
+          onSave={(percentage) => {
+            setCartDiscount(percentage);
             setDiscountModalOpen(false);
           }}
         />
@@ -164,28 +248,19 @@ function ItemEditor({
 }: {
   item: CartItem;
   onChangeQuantity: (q: number) => void;
-  onChangeDiscount: (d: number) => void;
+  onChangeDiscount: (percentage: number) => void;
   onDone: () => void;
 }) {
   const [qty, setQty] = useState(item.quantity);
 
-  const currentDiscountPercentage =
-    item.unitPrice * item.quantity > 0
-      ? round2(
-          (item.manualItemDiscount /
-            (item.unitPrice * item.quantity)) *
-            100
-        )
-      : 0;
-
   const [discount, setDiscount] = useState(
-    currentDiscountPercentage > 0
-      ? String(currentDiscountPercentage)
+    item.manualItemDiscountPercentage > 0
+      ? String(item.manualItemDiscountPercentage)
       : ""
   );
 
-  const maxDiscount = round2(
-    (item.maxDiscountPercentage / 100) * item.unitPrice * qty
+  const [discountError, setDiscountError] = useState<string | null>(
+    null
   );
 
   return (
@@ -230,44 +305,51 @@ function ItemEditor({
 
       <TextInput
         value={discount}
-        onChangeText={setDiscount}
+        onChangeText={(value) => {
+          setDiscount(value);
+          setDiscountError(null);
+        }}
         keyboardType="decimal-pad"
         placeholder="0"
         className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px]"
       />
 
+      {discountError && (
+        <Text className="mt-1.5 text-xs font-semibold text-red-600">
+          {discountError}
+        </Text>
+      )}
+
       <Pressable
         className="mt-6 items-center rounded-lg bg-emerald-600 py-3"
         onPress={() => {
           const parsed =
-            discount.trim() === "" ? 0 : parseFloat(discount);
+            discount.trim() === ""
+              ? 0
+              : parseFloat(discount);
 
           if (!Number.isFinite(parsed) || parsed < 0) {
-            Alert.alert(
-              "Invalid discount",
+            setDiscountError(
               "Please enter a valid discount percentage."
             );
             return;
           }
 
           if (parsed > item.maxDiscountPercentage) {
-            Alert.alert(
-              "Discount not allowed",
+            setDiscountError(
               `The maximum discount for this product is ${item.maxDiscountPercentage}%.`
             );
             return;
           }
 
-          const discountAmount = round2(
-            (parsed / 100) * item.unitPrice * qty
-          );
-
           onChangeQuantity(qty);
-          onChangeDiscount(discountAmount);
+          onChangeDiscount(parsed);
           onDone();
         }}
       >
-        <Text className="font-bold text-white">Save</Text>
+        <Text className="font-bold text-white">
+          Save
+        </Text>
       </Pressable>
     </View>
   );
@@ -275,20 +357,19 @@ function ItemEditor({
 
 function CartDiscountEditor({
   value,
-  maxValue,
   maxDiscountPercentage,
   onSave,
 }: {
   value: number;
-  maxValue: number;
   maxDiscountPercentage: number;
-  onSave: (v: number) => void;
+  onSave: (percentage: number) => void;
 }) {
-  const currentPercentage =
-    maxValue > 0 ? round2((value / maxValue) * 100) : 0;
+  const [discount, setDiscount] = useState(
+    value > 0 ? String(value) : ""
+  );
 
-  const [amount, setAmount] = useState(
-    currentPercentage > 0 ? String(currentPercentage) : ""
+  const [discountError, setDiscountError] = useState<string | null>(
+    null
   );
 
   return (
@@ -302,49 +383,56 @@ function CartDiscountEditor({
       </Text>
 
       <TextInput
-        value={amount}
-        onChangeText={setAmount}
+        value={discount}
+        onChangeText={(value) => {
+          setDiscount(value);
+          setDiscountError(null);
+        }}
         keyboardType="decimal-pad"
         placeholder="0"
         autoFocus
         className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px]"
       />
 
+      {discountError && (
+        <Text className="mt-1.5 text-xs font-semibold text-red-600">
+          {discountError}
+        </Text>
+      )}
+
       <Text className="mt-2 text-[11px] text-slate-400">
-        Subject to this store's maximum cart discount — checkout will
-        reject amounts over the allowed limit.
+        Subject to this store's maximum cart discount — checkout
+        will reject percentages over the allowed limit.
       </Text>
 
       <Pressable
         className="mt-6 items-center rounded-lg bg-emerald-600 py-3"
         onPress={() => {
           const parsed =
-            amount.trim() === "" ? 0 : parseFloat(amount);
+            discount.trim() === ""
+              ? 0
+              : parseFloat(discount);
 
           if (!Number.isFinite(parsed) || parsed < 0) {
-            Alert.alert(
-              "Invalid discount",
+            setDiscountError(
               "Please enter a valid discount percentage."
             );
             return;
           }
 
           if (parsed > maxDiscountPercentage) {
-            Alert.alert(
-              "Discount not allowed",
-              `The maximum receipt discount for this store is ${maxDiscountPercentage}%.`
+            setDiscountError(
+              `The maximum cart discount is ${maxDiscountPercentage}%.`
             );
             return;
           }
 
-          const discountAmount = round2(
-            (parsed / 100) * maxValue
-          );
-
-          onSave(discountAmount);
+          onSave(parsed);
         }}
       >
-        <Text className="font-bold text-white">Apply</Text>
+        <Text className="font-bold text-white">
+          Apply
+        </Text>
       </Pressable>
     </View>
   );

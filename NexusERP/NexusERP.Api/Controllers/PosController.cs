@@ -115,5 +115,13 @@ namespace NexusERP.Api.Controllers
             return Ok(users);
         }
 
+        [HttpPost("checkout/quote")]
+        [Authorize]
+        public async Task<IActionResult> GetCheckoutQuote([FromBody] CheckoutRequestDto dto)
+        {
+            var quote = await _posService.GetCheckoutQuoteAsync(User.GetCurrentUserId(), dto);
+            return Ok(quote);
+        }
+
     }
 }

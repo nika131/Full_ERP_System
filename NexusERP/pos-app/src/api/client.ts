@@ -1,16 +1,38 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 
-export const API_BASE_URL = ""
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  "http://192.168.100.3:5116/api";
 
 export const TOKEN_KEY = "pos_auth_token";
 
-async function getStoredToken(): Promise<string | null> {
+let webToken: string | null = null;
+
+export async function getStoredToken(): Promise<string | null> {
   if (typeof window !== "undefined") {
-    return window.localStorage.getItem(TOKEN_KEY);
+    return webToken;
   }
 
   return SecureStore.getItemAsync(TOKEN_KEY);
+}
+
+export async function setStoredToken(token: string): Promise<void> {
+  if (typeof window !== "undefined") {
+    webToken = token;
+    return;
+  }
+
+  await SecureStore.setItemAsync(TOKEN_KEY, token);
+}
+
+export async function deleteStoredToken(): Promise<void> {
+  if (typeof window !== "undefined") {
+    webToken = null;
+    return;
+  }
+
+  await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
 const apiClient = axios.create({

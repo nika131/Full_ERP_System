@@ -319,7 +319,7 @@ namespace NexusERP.Infrastructure.Repositories
                     CashierName = r.User!.Username,
                     CreatedAt = r.CreatedAt,
                     SubTotal = r.SubTotal,
-                    CartDiscountAmount = r.CartDiscountAmount,
+                    CartDiscountPercentage = r.CartDiscountPercentage,
                     TotalVatAmount = r.TotalVatAmount,
                     FinalTotal = r.FinalTotal,
                     PaymentMethod = r.PaymentMethod.ToString(),

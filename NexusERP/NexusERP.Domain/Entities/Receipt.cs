@@ -23,7 +23,7 @@ namespace NexusERP.Domain.Entities
         public User? User { get; set; }
 
         public decimal SubTotal { get; set; }
-        public decimal CartDiscountAmount { get; set; }
+        public decimal CartDiscountPercentage { get; set; }
         public decimal TotalVatAmount { get; set; }
         public decimal FinalTotal { get; set; }
 

@@ -5,6 +5,7 @@ import type {
   CloseShiftPayload,
   CashMovementPayload,
   CheckoutPayload,
+  CheckoutQuotePayload,
 } from "../../api/posService";
 
 export const useCurrentShiftQuery = (storeId: number | null) =>
@@ -83,3 +84,14 @@ export const useCheckoutMutation = () => {
     },
   });
 };
+
+export const useCheckoutQuoteQuery = (
+  payload: CheckoutQuotePayload | null
+) => 
+  useQuery({
+    queryKey: ["pos", "checkoutQuote", payload],
+    queryFn: () => posService.getCheckoutQuote(payload as CheckoutQuotePayload),
+    enabled: payload !== null,
+    staleTime: Infinity,
+    retry: 1,
+  });

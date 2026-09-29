@@ -31,7 +31,7 @@ namespace NexusERP.Application.DTOs
     public class CheckoutRequestDto
     {
         public int StoreId { get; set; }
-        public decimal CartDiscountAmount { get; set; }
+        public decimal CartDiscountPercentage { get; set; }
         public string PaymentMethod { get; set; } = "Cash";
         public List<CheckoutItemDto> Items { get; set; } = new();
     }
@@ -40,7 +40,7 @@ namespace NexusERP.Application.DTOs
     {
         public int ProductId { get; set; }
         public int Quantity { get; set; }
-        public decimal ManualItemDiscount { get; set; }
+        public decimal ManualItemDiscountPercentage { get; set; }
     }
 
     public class ShiftAuditDto
@@ -66,7 +66,7 @@ namespace NexusERP.Application.DTOs
         public string CashierName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public decimal SubTotal { get; set; }
-        public decimal CartDiscountAmount { get; set; }
+        public decimal CartDiscountPercentage { get; set; }
         public decimal TotalVatAmount { get; set; }
         public decimal FinalTotal { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
@@ -127,7 +127,7 @@ namespace NexusERP.Application.DTOs
         public string CashierName { get; set; } = string.Empty;
         public string StoreName { get; set; } = string.Empty;
         public decimal SubTotal { get; set; }
-        public decimal CartDiscountAmount { get; set; }
+        public decimal CartDiscountPercentage { get; set; }
         public decimal TotalVatAmount { get; set; }
         public decimal FinalTotal { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
@@ -139,8 +139,8 @@ namespace NexusERP.Application.DTOs
         public string ProductName { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
-        public decimal MarketDiscountAmount { get; set; }
-        public decimal ManualItemDiscountAmount { get; set; }
+        public decimal MarketDiscountPercentage { get; set; }
+        public decimal ManualItemDiscountPercentage { get; set; }
         public decimal LineTotal { get; set; }
     }
 
@@ -148,5 +148,10 @@ namespace NexusERP.Application.DTOs
     {
         public int UserId { get; set; }
         public string Pin { get; set; } = string.Empty;
+    }
+
+    public class CheckoutQuoteDto
+    {
+        public decimal FinalTotal { get; set; }
     }
 }

@@ -70,50 +70,56 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task Upsert(Supplier supplier, int userId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                if (supplier.SupplierId == 0)
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+
+                try
                 {
-                    _context.Suppliers.Add(supplier);
-                    await _context.SaveChangesAsync(); 
-
-                    var audit = new SystemAuditLog
+                    if (supplier.SupplierId == 0)
                     {
-                        UserId = userId,
-                        EntityType = "Supplier",
-                        EntityId = supplier.SupplierId,
-                        Action = "Create",
-                        ChangesMade = $"Created Supplier '{supplier.CompanyName}'"
-                    };
-                    _context.SystemAuditLogs.Add(audit);
+                        _context.Suppliers.Add(supplier);
+                        await _context.SaveChangesAsync();
+
+                        var audit = new SystemAuditLog
+                        {
+                            UserId = userId,
+                            EntityType = "Supplier",
+                            EntityId = supplier.SupplierId,
+                            Action = "Create",
+                            ChangesMade = $"Created Supplier '{supplier.CompanyName}'"
+                        };
+                        _context.SystemAuditLogs.Add(audit);
+                    }
+                    else
+                    {
+                        var existing = await _context.Suppliers.FindAsync(supplier.SupplierId);
+                        if (existing == null) throw new AppException("Supplier not found");
+
+                        _context.Entry(existing).CurrentValues.SetValues(supplier);
+
+                        var audit = new SystemAuditLog
+                        {
+                            UserId = userId,
+                            EntityType = "Supplier",
+                            EntityId = supplier.SupplierId,
+                            Action = "Delete",
+                            ChangesMade = $"Delete Supplier '{supplier.CompanyName}'"
+                        };
+                        _context.SystemAuditLogs.Add(audit);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
                 }
-                else
+                catch
                 {
-                    var existing = await _context.Suppliers.FindAsync(supplier.SupplierId);
-                    if (existing == null) throw new AppException("Supplier not found");
-
-                    _context.Entry(existing).CurrentValues.SetValues(supplier);
-
-                    var audit = new SystemAuditLog
-                    {
-                        UserId = userId,
-                        EntityType = "Supplier",
-                        EntityId = supplier.SupplierId,
-                        Action = "Delete",
-                        ChangesMade = $"Delete Supplier '{supplier.CompanyName}'"
-                    };
-                    _context.SystemAuditLogs.Add(audit);
+                    await transaction.RollbackAsync();
+                    throw;
                 }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+            });
         }
 
         public async Task Delete(int id, int UserId)

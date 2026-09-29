@@ -52,18 +52,34 @@ export function ReceiptsScreen({ navigation }: Props) {
     isError,
   } = useShiftReceiptsQuery(shiftId);
 
+
   if (!shiftId) {
     return (
-      <View className="flex-1 items-center justify-center gap-1.5 bg-slate-50 p-6">
-        <ReceiptIcon size={40} color="#cbd5e1" />
+      <View className="flex-1 bg-slate-50">
+        <View className="border-b border-slate-200 bg-white px-4 py-3">
+          <MenuButton />
+        </View>
 
-        <Text className="text-[15px] font-bold text-slate-600">
-          No open shift
-        </Text>
+        <View className="flex-1 items-center justify-center gap-1.5 bg-slate-50 p-6">
+          <ReceiptIcon size={40} color="#cbd5e1" />
 
-        <Text className="text-center text-[13px] text-slate-400">
-          Open a shift to see its receipts here.
-        </Text>
+          <Text className="text-[15px] font-bold text-slate-600">
+            No shift is open
+          </Text>
+
+          <Text className="text-center text-[13px] text-slate-400">
+            Open a shift to start selling.
+          </Text>
+
+          <Pressable
+            onPress={() => navigation.getParent()?.navigate("Shift")}
+            className="mt-2 rounded-md bg-emerald-600 px-4 py-2.5"
+          >
+            <Text className="text-sm font-semibold text-white">
+              Go to Shift
+            </Text>
+          </Pressable>
+        </View>
       </View>
     );
   }

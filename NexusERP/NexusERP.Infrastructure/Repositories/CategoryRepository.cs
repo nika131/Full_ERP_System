@@ -59,54 +59,61 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task Upsert(Category category, int UserId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                if (category.CategoryId == 0)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                try
                 {
-                    category.IsActive = true;
-                    await _context.Categories.AddAsync(category);
+                    if (category.CategoryId == 0)
+                    {
+                        category.IsActive = true;
+                        await _context.Categories.AddAsync(category);
+                        await _context.SaveChangesAsync();
+
+                        var audit = new SystemAuditLog
+                        {
+                            UserId = UserId,
+                            EntityType = "Category",
+                            EntityId = category.CategoryId,
+                            Action = "Create",
+                            ChangesMade = $"Created Category '{category.CategoryName}'"
+                        };
+
+                        await _context.SystemAuditLogs.AddAsync(audit);
+                    }
+                    else
+                    {
+                        var existing = await _context.Categories.FindAsync(category.CategoryId);
+                        if (existing == null || !existing.IsActive)
+                            throw new AppException("Category not found or is inactive");
+
+                        existing.CategoryName = category.CategoryName;
+
+                        var audit = new SystemAuditLog
+                        {
+                            UserId = UserId,
+                            EntityType = "Category",
+                            EntityId = category.CategoryId,
+                            Action = "Update",
+                            ChangesMade = $"Updated Category '{category.CategoryName}'"
+                        };
+
+                        await _context.SystemAuditLogs.AddAsync(audit);
+                    }
+
                     await _context.SaveChangesAsync();
-
-                    var audit = new SystemAuditLog
-                    {
-                        UserId = UserId,
-                        EntityType = "Category",
-                        EntityId = category.CategoryId,
-                        Action = "Create",
-                        ChangesMade = $"Created Category '{category.CategoryName}'"
-                    };
-
-                    await _context.SystemAuditLogs.AddAsync(audit);
+                    await transaction.CommitAsync();
                 }
-                else
+                catch
                 {
-                    var existing = await _context.Categories.FindAsync(category.CategoryId);
-                    if (existing == null || !existing.IsActive)
-                        throw new AppException("Category not found or is inactive");
-
-                    existing.CategoryName = category.CategoryName; 
-                    
-                    var audit = new SystemAuditLog
-                    {
-                        UserId = UserId,
-                        EntityType = "Category",
-                        EntityId = category.CategoryId,
-                        Action = "Update",
-                        ChangesMade = $"Updated Category '{category.CategoryName}'"
-                    };
-
-                    await _context.SystemAuditLogs.AddAsync(audit);
+                    await transaction.RollbackAsync();
+                    throw;
                 }
+            });
 
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
         }
 
         public async Task Delete(int id, int UserId)

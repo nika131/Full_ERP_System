@@ -28,32 +28,38 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task CreateUser(User user, int actorUserId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                user.IsActive = true;
-                _context.Users.Add(user);
+                await using var transaction = await _context.Database.BeginTransactionAsync();
 
-                await _context.SaveChangesAsync();
-
-                var audit = new SystemAuditLog
+                try
                 {
-                    UserId = actorUserId,
-                    EntityType = "User",
-                    EntityId = user.UserId,
-                    Action = "Create",
-                    ChangesMade = $"Created User '{user.Username}'"
-                };
+                    user.IsActive = true;
+                    _context.Users.Add(user);
 
-                _context.SystemAuditLogs.Add(audit);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+                    await _context.SaveChangesAsync();
+
+                    var audit = new SystemAuditLog
+                    {
+                        UserId = actorUserId,
+                        EntityType = "User",
+                        EntityId = user.UserId,
+                        Action = "Create",
+                        ChangesMade = $"Created User '{user.Username}'"
+                    };
+
+                    _context.SystemAuditLogs.Add(audit);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
         }
 
         public async Task UpdateUser(User user, int actorUserId)

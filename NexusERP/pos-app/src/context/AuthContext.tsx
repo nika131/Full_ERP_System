@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import * as SecureStore from "expo-secure-store";
 import { authService } from "../api/authService";
-import { TOKEN_KEY } from "../api/client";
+import {
+  getStoredToken,
+  setStoredToken,
+  deleteStoredToken,
+} from "../api/client";
 import { decodeToken, isTokenExpired } from "../utils/jwt";
 import type { AuthUser } from "../types";
 import { useCartStore } from "../store/cartStore";
@@ -17,31 +21,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-async function getStoredToken(): Promise<string | null> {
-  if (typeof window !== "undefined") {
-    return window.localStorage.getItem(TOKEN_KEY);
-  }
-
-  return SecureStore.getItemAsync(TOKEN_KEY);
-}
-
-async function setStoredToken(token: string): Promise<void> {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(TOKEN_KEY, token);
-    return;
-  }
-
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
-}
-
-async function deleteStoredToken(): Promise<void> {
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(TOKEN_KEY);
-    return;
-  }
-
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
-}
 
 async function persistTokenAndSetUser(
   token: string,

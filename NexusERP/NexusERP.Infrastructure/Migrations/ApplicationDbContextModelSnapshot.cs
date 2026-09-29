@@ -153,7 +153,7 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Property<string>("Barcode")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CategoryId")
+                    b.Property<int?>("CategoryId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("CostPrice")
@@ -201,7 +201,7 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Property<int?>("ShapeType")
                         .HasColumnType("int");
 
-                    b.Property<int>("SupplierId")
+                    b.Property<int?>("SupplierId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -227,7 +227,7 @@ namespace NexusERP.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReceiptId"));
 
-                    b.Property<decimal>("CartDiscountAmount")
+                    b.Property<decimal>("CartDiscountPercentage")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
@@ -289,10 +289,10 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Property<decimal>("LineTotal")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("ManualItemDiscountAmount")
+                    b.Property<decimal>("ManualItemDiscountPercentage")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal>("MarketDiscountAmount")
+                    b.Property<decimal>("MarketDiscountPercentage")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
@@ -584,21 +584,21 @@ namespace NexusERP.Infrastructure.Migrations
                             SettingKey = "GlobalLowStockThreshold",
                             Description = "The Deafult low Stock alert threshold for products that do not have custom threshold.",
                             SettingValue = "5",
-                            UpdatedAt = new DateTime(2026, 9, 17, 22, 45, 54, 779, DateTimeKind.Utc).AddTicks(719)
+                            UpdatedAt = new DateTime(2026, 9, 28, 19, 48, 35, 951, DateTimeKind.Utc).AddTicks(5444)
                         },
                         new
                         {
                             SettingKey = "AllowNegativeInventory",
                             Description = "Allow stock deductions (loss/damage) to push quantities below zero.",
                             SettingValue = "false",
-                            UpdatedAt = new DateTime(2026, 9, 17, 22, 45, 54, 779, DateTimeKind.Utc).AddTicks(722)
+                            UpdatedAt = new DateTime(2026, 9, 28, 19, 48, 35, 951, DateTimeKind.Utc).AddTicks(5448)
                         },
                         new
                         {
                             SettingKey = "DiscountPolicy",
                             Description = "Controls who can apply manual cart or item discounts during checkout.",
                             SettingValue = "Enabled",
-                            UpdatedAt = new DateTime(2026, 9, 17, 22, 45, 54, 779, DateTimeKind.Utc).AddTicks(724)
+                            UpdatedAt = new DateTime(2026, 9, 28, 19, 48, 35, 951, DateTimeKind.Utc).AddTicks(5450)
                         });
                 });
 
@@ -750,14 +750,12 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasOne("NexusERP.Domain.Entities.Category", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("NexusERP.Domain.Entities.Supplier", "Supplier")
                         .WithMany()
                         .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Category");
 

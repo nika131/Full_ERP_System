@@ -38,9 +38,18 @@ export function ProductBox({
       onPress={onPress}
       className={[
         "relative flex-1 overflow-hidden border border-slate-200 bg-white",
+        (product?.marketDiscountRate ?? 0) > 0 ? "border-red-300" : "",
         isEditing ? "border-dashed border-emerald-300" : "",
       ].join(" ")}
     >
+      {product && (product.marketDiscountRate ?? 0) > 0 && (
+        <View className="absolute left-2 top-2 z-20 rounded-md bg-red-600 px-2 py-1 shadow-sm">
+          <Text className="text-[11px] font-extrabold text-white">
+            -{product.marketDiscountRate ?? 0}%
+          </Text>
+        </View>
+      )}
+
       {isEditing && (
         <View className="absolute right-2 top-2 z-20 h-7 w-7 items-center justify-center rounded-full bg-emerald-600">
           <Pencil size={12} color="white" />

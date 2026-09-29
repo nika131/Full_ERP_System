@@ -24,7 +24,7 @@ namespace NexusERP.Application.DTOs
         [Range(1, int.MaxValue)]
         public int ProductId { get; set; }
 
-        public int SupplierId { get; set; }
+        public int? SupplierId { get; set; }
         public int Quantity { get; set; }
 
         public decimal ProductPrice { get; set; }

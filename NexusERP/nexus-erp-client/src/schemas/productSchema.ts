@@ -2,12 +2,10 @@ import { z } from 'zod';
 
 export const productSchema = z.object({
     name: z.string().min(1, "Product name is required"),
-    categoryId: z.number().min(1, "Category is required"),
+    categoryId: z.number().optional().nullable(),
     supplierId: z.number().optional().nullable(),
     price: z.number().min(0.01, "Price must be greater than 0"),
     costPrice: z.number().min(0, "Cost price must be positive"),
-    quantity: z.number().min(0, "Quantity cannot be negative"),
-
     lowStockThreshold: z.number().optional().nullable(),
     vatRate: z.number().min(0, "VAT cannot be negative"),
     marketDiscountRate: z.number().min(0, "Market discount cannot be negative"),

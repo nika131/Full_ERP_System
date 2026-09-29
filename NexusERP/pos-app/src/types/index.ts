@@ -55,7 +55,8 @@ export interface CartItem {
   name: string;
   unitPrice: number;
   quantity: number;
-  manualItemDiscount: number;
+  marketDiscountPercentage: number;
+  manualItemDiscountPercentage: number;
   maxDiscountPercentage: number;
 }
 
@@ -102,8 +103,8 @@ export interface ReceiptLine {
   productName: string;
   quantity: number;
   unitPrice: number;
-  marketDiscountAmount: number;
-  manualItemDiscountAmount: number;
+  marketDiscountPercentage: number;
+  manualItemDiscountPercentage: number;
   lineTotal: number;
 }
 
@@ -114,7 +115,7 @@ export interface ReceiptDetail {
   cashierName: string;
   storeName: string;
   subTotal: number;
-  cartDiscountAmount: number;
+  cartDiscountPercentage: number;
   totalVatAmount: number;
   finalTotal: number;
   paymentMethod: "Cash" | "Card" | "Voucher";

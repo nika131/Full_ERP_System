@@ -21,8 +21,8 @@ namespace NexusERP.Domain.Entities
         public decimal CostPrice { get; set; }
 
         public decimal VatRate { get; set; }
-        public decimal MarketDiscountAmount { get; set; }
-        public decimal ManualItemDiscountAmount { get; set; }
+        public decimal MarketDiscountPercentage { get; set; }
+        public decimal ManualItemDiscountPercentage { get; set; }
 
         public decimal LineTotal { get; set; }
     }

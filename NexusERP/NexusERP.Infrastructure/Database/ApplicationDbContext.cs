@@ -172,7 +172,7 @@ namespace NexusERP.Infrastructure.Database
             {
                 entity.HasKey(e => e.ReceiptId);
                 entity.Property(e => e.SubTotal).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.CartDiscountAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CartDiscountPercentage).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalVatAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.FinalTotal).HasColumnType("decimal(18,2)");
             });
@@ -184,8 +184,8 @@ namespace NexusERP.Infrastructure.Database
                 entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.CostPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.VatRate).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.MarketDiscountAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.ManualItemDiscountAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MarketDiscountPercentage).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ManualItemDiscountPercentage).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.LineTotal).HasColumnType("decimal(18,2)");
             });
 

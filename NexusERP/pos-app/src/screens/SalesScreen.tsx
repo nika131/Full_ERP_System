@@ -232,19 +232,6 @@ export function SalesScreen({ navigation }: Props) {
     setPickerSlot(null);
   };
 
-  if (!storeId) {
-    return (
-      <View className="flex-1 items-center justify-center gap-2 bg-slate-50 p-6">
-        <AlertTriangle size={32} color="#d97706" />
-        <Text className="text-center text-base font-bold text-slate-700">
-          No store assigned to this device
-        </Text>
-        <Text className="text-center text-sm text-slate-500">
-          Set this terminal's store from the Shift tab first.
-        </Text>
-      </View>
-    );
-  }
 
   if (isShiftLoading) {
     return (
@@ -256,12 +243,31 @@ export function SalesScreen({ navigation }: Props) {
 
   if (!hasOpenShift) {
     return (
-      <View className="flex-1 items-center justify-center gap-2 bg-slate-50 p-6">
-        <AlertTriangle size={32} color="#d97706" />
-        <Text className="text-center text-base font-bold text-slate-700">No shift is open</Text>
-        <Text className="text-center text-sm text-slate-500">
-          Open a shift from the Shift tab to start selling.
-        </Text>
+      <View className="flex-1 bg-slate-50">
+        <View className="border-b border-slate-200 bg-white px-4 py-3">
+          <MenuButton />
+        </View>
+
+        <View className="flex-1 items-center justify-center gap-2 p-6">
+          <AlertTriangle size={32} color="#d97706" />
+
+          <Text className="text-center text-base font-bold text-slate-700">
+            No shift is open
+          </Text>
+
+          <Text className="text-center text-sm text-slate-500">
+            Open a shift to start selling.
+          </Text>
+
+          <Pressable
+            onPress={() => navigation.getParent()?.navigate("Shift")}
+            className="mt-2 rounded-md bg-emerald-600 px-4 py-2.5"
+          >
+            <Text className="text-sm font-semibold text-white">
+              Go to Shift
+            </Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -425,6 +431,11 @@ export function SalesScreen({ navigation }: Props) {
               <Text className="mt-1 text-sm font-bold text-emerald-600">
                 {formatCurrency(item.price)}
               </Text>
+              {item.marketDiscountRate > 0 && (
+                <Text className="mt-0.5 text-xs font-bold text-red-600">
+                  Market discount: -{item.marketDiscountRate}%
+                </Text>
+              )}
               <Text className="mt-0.5 text-xs text-slate-400">ID: {item.productId}</Text>
             </View>
 

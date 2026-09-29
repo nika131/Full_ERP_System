@@ -28,12 +28,12 @@ export interface CashMovementPayload {
 export interface CheckoutItemPayload {
   productId: number;
   quantity: number;
-  manualItemDiscount: number;
+  manualItemDiscountPercentage: number;
 }
 
 export interface CheckoutPayload {
   storeId: number;
-  cartDiscountAmount: number;
+  cartDiscountPercentage: number;
   paymentMethod: "Cash" | "Card" | "Voucher";
   items: CheckoutItemPayload[];
 }
@@ -42,6 +42,12 @@ export interface CheckoutResult {
   message: string;
   receiptNumber: string;
   total: number;
+}
+
+export type CheckoutQuotePayload = Omit<CheckoutPayload, "paymentMethod">;
+
+export interface CheckoutQuoteResult {
+  finalTotal: number;
 }
 
 export const posService = {
@@ -97,5 +103,12 @@ export const posService = {
       name: s.name,
       maxCartDiscountPercentage: s.maxCartDiscountPercentage,
     }));
+  },
+
+  getCheckoutQuote: async (
+    payload: CheckoutQuotePayload
+  ): Promise<CheckoutQuoteResult> => {
+    const res = await apiClient.post("/pos/checkout/quote", payload);
+    return res.data;
   },
 };

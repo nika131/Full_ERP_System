@@ -1,15 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DocumentFormat.OpenXml.InkML;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Infrastructure.Database;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NexusERP.Infrastructure.Services
 {
@@ -96,32 +93,60 @@ namespace NexusERP.Infrastructure.Services
         public async Task<Receipt> ProcessCheckoutAsync(int userId, CheckoutRequestDto cart)
         {
             var activeShift = await _context.Shifts
-                .FirstOrDefaultAsync(s => s.UserId == userId && s.StoreId == cart.StoreId && s.Status == ShiftStatus.Open);
+                .FirstOrDefaultAsync(s =>
+                    s.UserId == userId &&
+                    s.StoreId == cart.StoreId &&
+                    s.Status == ShiftStatus.Open);
 
-            if (activeShift == null) throw new AppException("You must open shift before processing sales. ");
+            if (activeShift == null)
+                throw new AppException("You must open shift before processing sales.");
 
             var store = await _context.Stores.FindAsync(cart.StoreId);
-            if (store == null) throw new AppException("Invalid store. ");
+
+            if (store == null)
+                throw new AppException("Invalid store.");
+
+            if (cart.CartDiscountPercentage < 0)
+                throw new AppException("Cart discount percentage cannot be negative.");
+
+            if (cart.CartDiscountPercentage > store.MaxCartDiscountPercentage)
+                throw new AppException(
+                    $"Cart discount exceeds the store maximum of {store.MaxCartDiscountPercentage}%");
 
             var negativeSetting = await _context.SystemSettings
                 .FirstOrDefaultAsync(s => s.SettingKey == "AllowNegativeInventory");
-            bool allowNegative = negativeSetting != null && bool.TryParse(negativeSetting.SettingValue, out bool parsedVal) && parsedVal;
 
-            var discountSetting = await _context.SystemSettings.FirstOrDefaultAsync(s => s.SettingKey == "DiscountPolicy");
+            bool allowNegative =
+                negativeSetting != null &&
+                bool.TryParse(
+                    negativeSetting.SettingValue,
+                    out bool parsedVal) &&
+                parsedVal;
+
+            var discountSetting = await _context.SystemSettings
+                .FirstOrDefaultAsync(s => s.SettingKey == "DiscountPolicy");
+
             string discountPolicy = discountSetting?.SettingValue ?? "Enabled";
 
-            bool hasManualDiscounts = cart.CartDiscountAmount > 0 || cart.Items.Any(i => i.ManualItemDiscount > 0);
+            bool hasManualDiscounts =
+                cart.CartDiscountPercentage > 0 ||
+                cart.Items.Any(i => i.ManualItemDiscountPercentage > 0);
 
             if (hasManualDiscounts && discountPolicy != "Enabled")
             {
                 if (discountPolicy == "Disabled")
-                    throw new AppException("Manual discounts are currently disabled globally by system settings.");
+                    throw new AppException(
+                        "Manual discounts are currently disabled globally by system settings.");
 
                 if (discountPolicy == "AdminOnly")
                 {
-                    var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId);
+                    var user = await _context.Users
+                        .Include(u => u.Role)
+                        .FirstOrDefaultAsync(u => u.UserId == userId);
+
                     if (user?.Role?.Name != "Admin")
-                        throw new AppException("System settings currently restrict manual discounts to Administrators only.");
+                        throw new AppException(
+                            "System settings currently restrict manual discounts to Administrators only.");
                 }
             }
 
@@ -130,7 +155,7 @@ namespace NexusERP.Infrastructure.Services
                 UserId = userId,
                 StoreId = cart.StoreId,
                 ShiftId = activeShift.ShiftId,
-                CartDiscountAmount = cart.CartDiscountAmount,
+                CartDiscountPercentage = cart.CartDiscountPercentage,
                 PaymentMethod = Enum.Parse<PaymentMethod>(cart.PaymentMethod),
                 CreatedAt = DateTime.UtcNow,
             };
@@ -141,17 +166,26 @@ namespace NexusERP.Infrastructure.Services
             foreach (var item in cart.Items)
             {
                 var product = await _context.Products.FindAsync(item.ProductId);
-                if (product == null || !product.IsActive) throw new AppException("Invalid Product in cart");
 
-                if (!allowNegative && product.Quantity < item.Quantity) 
+                if (product == null || !product.IsActive)
+                    throw new AppException("Invalid Product in cart");
+
+                if (item.Quantity <= 0)
+                    throw new AppException($"Invalid quantity for {product.Name}.");
+
+                if (!allowNegative && product.Quantity < item.Quantity)
                     throw new AppException($"Insufficient stock for {product.Name}.");
 
-                decimal maxAllowedItemDiscount = (product.MaxDiscountPercentage / 100m ) * (product.Price * item.Quantity);
-                if (item.ManualItemDiscount > maxAllowedItemDiscount)
-                    throw new AppException($"Discount for {product.Name} exceeds the maximum allowed {product.MaxDiscountPercentage}%.");
+                if (item.ManualItemDiscountPercentage < 0)
+                    throw new AppException(
+                        $"Discount for {product.Name} cannot be negative.");
 
+                if (item.ManualItemDiscountPercentage > product.MaxDiscountPercentage)
+                    throw new AppException(
+                        $"Discount for {product.Name} exceeds the maximum allowed {product.MaxDiscountPercentage}%.");
 
                 product.Quantity -= item.Quantity;
+
                 _context.InventoryTransactions.Add(new InventoryTransaction
                 {
                     ProductId = product.ProductId,
@@ -163,12 +197,22 @@ namespace NexusERP.Infrastructure.Services
                 });
 
                 decimal itemSubtotal = product.Price * item.Quantity;
-                decimal marketDiscount = (product.MarketDiscountRate / 100m) * itemSubtotal;
-                decimal lineTotal = itemSubtotal - marketDiscount - item.ManualItemDiscount;
+
+                decimal marketDiscountAmount =
+                    itemSubtotal * (product.MarketDiscountRate / 100m);
+
+                decimal manualItemDiscountAmount =
+                    itemSubtotal * (item.ManualItemDiscountPercentage / 100m);
+
+                decimal lineTotal =
+                    itemSubtotal -
+                    marketDiscountAmount -
+                    manualItemDiscountAmount;
 
                 calculatedSubtotal += itemSubtotal;
-                receipt.TotalVatAmount += lineTotal * (product.VatRate / 100m);
-                totalCostForProfit += (product.CostPrice * item.Quantity);
+
+                totalCostForProfit +=
+                    product.CostPrice * item.Quantity;
 
                 receipt.Lines.Add(new ReceiptItem
                 {
@@ -177,29 +221,51 @@ namespace NexusERP.Infrastructure.Services
                     UnitPrice = product.Price,
                     CostPrice = product.CostPrice,
                     VatRate = product.VatRate,
-                    MarketDiscountAmount = marketDiscount,
-                    ManualItemDiscountAmount = item.ManualItemDiscount,
+                    MarketDiscountPercentage = product.MarketDiscountRate,
+                    ManualItemDiscountPercentage = item.ManualItemDiscountPercentage,
                     LineTotal = lineTotal,
                 });
             }
 
             receipt.SubTotal = calculatedSubtotal;
 
-            decimal maxAllowedCartDiscount = (store.MaxCartDiscountPercentage / 100m) * receipt.SubTotal;
-            if (cart.CartDiscountAmount > maxAllowedCartDiscount)
-                throw new AppException($"Cart discount exceeds the store maximum of {store.MaxCartDiscountPercentage}%");
+            decimal discountedSubtotal =
+                receipt.Lines.Sum(l => l.LineTotal);
 
-            receipt.FinalTotal = receipt.SubTotal - receipt.CartDiscountAmount - receipt.Lines.Sum(l => l.MarketDiscountAmount + l.ManualItemDiscountAmount);
+            decimal cartDiscountAmount =
+                discountedSubtotal *
+                (receipt.CartDiscountPercentage / 100m);
+
+            receipt.FinalTotal =
+                discountedSubtotal -
+                cartDiscountAmount;
+
+            receipt.TotalVatAmount =
+                receipt.Lines.Sum(l =>
+                {
+                    decimal lineAfterItemDiscounts =
+                        l.LineTotal;
+
+                    decimal lineAfterCartDiscount =
+                        lineAfterItemDiscounts *
+                        (1m - receipt.CartDiscountPercentage / 100m);
+
+                    return lineAfterCartDiscount *
+                        (l.VatRate / (100m + l.VatRate));
+                });
 
             activeShift.TotalSales += receipt.FinalTotal;
-            activeShift.TotalProfit += (receipt.FinalTotal - totalCostForProfit);
+
+            activeShift.TotalProfit +=
+                receipt.FinalTotal - totalCostForProfit;
 
             if (receipt.PaymentMethod == PaymentMethod.Cash)
             {
                 activeShift.ExpectedEndingCash += receipt.FinalTotal;
             }
 
-            _context.Receipts.Add( receipt );
+            _context.Receipts.Add(receipt);
+
             await _context.SaveChangesAsync();
 
             return receipt;
@@ -313,7 +379,7 @@ namespace NexusERP.Infrastructure.Services
                 CashierName = receipt.User?.FullName ?? "Unknown",
                 StoreName = receipt.Store?.Name ?? string.Empty,
                 SubTotal = receipt.SubTotal,
-                CartDiscountAmount = receipt.CartDiscountAmount,
+                CartDiscountPercentage = receipt.CartDiscountPercentage,
                 TotalVatAmount = receipt.TotalVatAmount,
                 FinalTotal = receipt.FinalTotal,
                 PaymentMethod = receipt.PaymentMethod.ToString(),
@@ -322,11 +388,120 @@ namespace NexusERP.Infrastructure.Services
                     ProductName = l.Product?.Name ?? "Unknown Product",
                     Quantity = l.Quantity,
                     UnitPrice = l.UnitPrice,
-                    MarketDiscountAmount = l.MarketDiscountAmount,
-                    ManualItemDiscountAmount = l.ManualItemDiscountAmount,
+                    MarketDiscountPercentage = l.MarketDiscountPercentage,
+                    ManualItemDiscountPercentage = l.ManualItemDiscountPercentage,
                     LineTotal = l.LineTotal
                 }).ToList()
             };
+        }
+
+
+        public async Task<CheckoutQuoteDto> GetCheckoutQuoteAsync(int userId, CheckoutRequestDto cart)
+        {
+            var activeShift = await _context.Shifts
+                .FirstOrDefaultAsync(s =>
+                    s.UserId == userId &&
+                    s.StoreId == cart.StoreId &&
+                    s.Status == ShiftStatus.Open);
+
+            if (activeShift == null)
+                throw new AppException("You must open shift before processing sales.");
+
+            var store = await _context.Stores.FindAsync(cart.StoreId);
+
+            if (store == null)
+                throw new AppException("Invalid store.");
+
+            if (cart.CartDiscountPercentage< 0)
+                throw new AppException("Cart discount percentage cannot be negative.");
+
+            if (cart.CartDiscountPercentage > store.MaxCartDiscountPercentage)
+                throw new AppException(
+                    $"Cart discount exceeds the store maximum of {store.MaxCartDiscountPercentage}%");
+
+            var negativeSetting = await _context.SystemSettings
+                .FirstOrDefaultAsync(s => s.SettingKey == "AllowNegativeInventory");
+
+            bool allowNegative =
+                negativeSetting != null &&
+                bool.TryParse(negativeSetting.SettingValue, out bool parsedVal) &&
+                parsedVal;
+
+            var discountSetting = await _context.SystemSettings
+                .FirstOrDefaultAsync(s => s.SettingKey == "DiscountPolicy");
+
+            string discountPolicy = discountSetting?.SettingValue ?? "Enabled";
+
+            bool hasManualDiscounts =
+                cart.CartDiscountPercentage > 0 ||
+                cart.Items.Any(i => i.ManualItemDiscountPercentage > 0);
+
+            if (hasManualDiscounts && discountPolicy != "Enabled")
+            {
+                if (discountPolicy == "Disabled")
+                    throw new AppException(
+                        "Manual discounts are currently disabled globally by system settings.");
+
+                if (discountPolicy == "AdminOnly")
+                {
+                    var user = await _context.Users
+                        .Include(u => u.Role)
+                        .FirstOrDefaultAsync(u => u.UserId == userId);
+
+                    if (user?.Role?.Name != "Admin")
+                        throw new AppException(
+                            "System settings currently restrict manual discounts to Administrators only.");
+                }
+            }
+
+            decimal discountedSubtotal = 0;
+
+            foreach (var item in cart.Items)
+            {
+                var product = await _context.Products.FindAsync(item.ProductId);
+    
+                if (product == null || !product.IsActive)
+                    throw new AppException("Invalid Product in cart");
+    
+                if (item.Quantity <= 0)
+                    throw new AppException($"Invalid quantity for {product.Name}.");
+    
+                if (!allowNegative && product.Quantity < item.Quantity)
+                    throw new AppException($"Insufficient stock for {product.Name}.");
+    
+                if (item.ManualItemDiscountPercentage < 0)
+                    throw new AppException(
+                        $"Discount for {product.Name} cannot be negative.");
+    
+                if (item.ManualItemDiscountPercentage > product.MaxDiscountPercentage)
+                    throw new AppException(
+                        $"Discount for {product.Name} exceeds the maximum allowed {product.MaxDiscountPercentage}%.");
+    
+                decimal itemSubtotal = product.Price * item.Quantity;
+    
+                decimal marketDiscountAmount =
+                    itemSubtotal * (product.MarketDiscountRate / 100m);
+    
+                decimal manualItemDiscountAmount =
+                    itemSubtotal * (item.ManualItemDiscountPercentage / 100m);
+
+                decimal lineTotal =
+                    itemSubtotal -
+                    marketDiscountAmount -
+                    manualItemDiscountAmount;
+
+
+                discountedSubtotal += lineTotal; 
+            }
+
+            decimal cartDiscountAmount =
+                discountedSubtotal * (cart.CartDiscountPercentage / 100m);
+
+            return new CheckoutQuoteDto
+            {
+                FinalTotal = discountedSubtotal - cartDiscountAmount
+            }
+;
         }
     }
 }
