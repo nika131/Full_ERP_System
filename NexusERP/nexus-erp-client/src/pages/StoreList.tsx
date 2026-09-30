@@ -3,7 +3,7 @@ import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import { SlideOver } from '../components/Ui/SlideOver';
 import { StoreForm } from '../components/forms/StoreForm';
 import { StoreMapCanvas } from '../components/maps/StoreMapCanvas';
-import { useAllStoresQuery, useCreateStoreMutation, useLookupStoresQuery, usePagedStoresQuery, useUpdateStoreMutation } from '../hooks/queries/useStoreQueries';
+import { useCreateStoreMutation, useLookupStoresQuery, usePagedStoresQuery, useUpdateStoreMutation } from '../hooks/queries/useStoreQueries';
 import type { StoreResponse } from '../api/storeService';
 import type { StoreFormData } from '../schemas/storeSchema';
 
