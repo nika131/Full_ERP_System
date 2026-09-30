@@ -26,7 +26,10 @@ builder.Services.AddCors(options =>
             .WithOrigins(
                 "http://localhost:5173",
                 "http://localhost:8081",
-                "http://192.168.100.3:5116"
+                "http://192.168.100.3:5116",
+                "https://www.tenexerp.com",
+                "https://tenexerp.com",
+                "https://white-mushroom-0c070b10f.6.azurestaticapps.net"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -179,10 +182,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseCors("AllowApp");
+
 app.UseMiddleware<ExceptionMiddleware>();
-
 app.UseMiddleware<IpBanningMiddleware>();
-
 app.UseRateLimiter();
 
 
@@ -191,9 +194,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-//app.UseHttpsRedirection();
-app.UseCors("AllowApp");
 
 app.UseAuthentication();
 app.UseAuthorization();

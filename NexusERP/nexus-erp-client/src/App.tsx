@@ -15,6 +15,8 @@ import EmployeeList from './pages/EmployeeList';
 import PendingLeaves from './pages/PendingLeaves';
 import StoreList from './pages/StoreList';
 import ShiftAuditList from './pages/ShiftAuditList';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 
 
 function App() {
@@ -24,6 +26,9 @@ return (
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
 
           <Route element={<ProtectedRoute />}>
 

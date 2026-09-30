@@ -149,6 +149,26 @@ export default function MainLayout() {
 
             <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
                 <Outlet />
+
+                <footer className="mt-8 border-t border-gray-200 pt-5 pb-2 text-sm text-gray-500">
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                        <span>
+                            © {new Date().getFullYear()} TenexERP
+                        </span>
+
+                        <Link to="/privacy-policy" className="hover:text-emerald-600">
+                            Privacy Policy
+                        </Link>
+
+                        <Link to="/terms-of-service" className="hover:text-emerald-600">
+                            Terms of Service
+                        </Link>
+
+                        <a href="mailto:support@tenexerp.com" className="hover:text-emerald-600">
+                            Support
+                        </a>
+                    </div>
+                </footer>
             </main>
       </div>
     </div>

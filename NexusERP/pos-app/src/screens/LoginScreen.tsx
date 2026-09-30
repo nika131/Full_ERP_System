@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, Linking } from "react-native";
 import { LogIn, Lock, User as UserIcon } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 import { getErrorMessage } from "../api/client";
@@ -28,6 +28,18 @@ export function LoginScreen() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const openPrivacyPolicy = () => {
+    Linking.openURL("https://tenexerp.com/privacy-policy");
+  };
+
+  const openTermsOfService = () => {
+    Linking.openURL("https://tenexerp.com/terms-of-service");
+  };
+
+  const openSupportEmail = () => {
+    Linking.openURL("mailto:support@tenexerp.com");
   };
 
   return (
@@ -91,12 +103,37 @@ export function LoginScreen() {
           ) : (
             <>
               <LogIn size={16} color="#ffffff" />
+
               <Text className="text-[15px] font-bold text-white">
                 Sign In
               </Text>
             </>
           )}
         </Pressable>
+
+        <View className="mt-6 w-full flex-row flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <Pressable onPress={openPrivacyPolicy}>
+            <Text className="text-xs font-medium text-slate-500">
+              Privacy Policy
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={openTermsOfService}>
+            <Text className="text-xs font-medium text-slate-500">
+              Terms of Service
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={openSupportEmail}>
+            <Text className="text-xs font-medium text-slate-500">
+              Support
+            </Text>
+          </Pressable>
+        </View>
+
+        <Text className="mt-4 text-[11px] text-slate-400">
+          © {new Date().getFullYear()} TenexERP
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );

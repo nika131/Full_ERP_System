@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, FlatList } from "react-native";
 import type { DrawerContentComponentProps } from "@react-navigation/drawer";
-import { ShoppingBag, Receipt as ReceiptIcon, Clock, Users, LogOut, X } from "lucide-react-native";
+import { ShoppingBag, Receipt as ReceiptIcon, Clock, Users, LogOut, X, LifeBuoy } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 import { useSwitchableUsersQuery } from "../hooks/queries/useProductQueries";
 import { ModalSheet } from "../components/ModalSheet";
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { name: "Sales", label: "Sales", icon: ShoppingBag },
   { name: "Receipts", label: "Receipts", icon: ReceiptIcon },
   { name: "Shift", label: "Shift", icon: Clock },
+  { name: "Support", label: "Support", icon: LifeBuoy },
 ];
 
 export function DrawerContent(props: DrawerContentComponentProps) {

@@ -16,4 +16,5 @@ export type DrawerParamList = {
   Sales: undefined;
   Receipts: undefined;
   Shift: undefined;
+  Support: undefined;
 };

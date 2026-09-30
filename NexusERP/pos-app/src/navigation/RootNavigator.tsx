@@ -10,9 +10,10 @@ import { ReceiptsScreen } from "../screens/ReceiptsScreen";
 import { ReceiptDetailScreen } from "../screens/ReceiptDetailScreen";
 import { ShiftScreen } from "../screens/ShiftScreen";
 import { colors } from "../theme/colors";
-import { WIDE_BREAKPOINT } from "@/hooks/seIsWideLayout";
+import { WIDE_BREAKPOINT } from "@/hooks/seIsWideLayout"; 
 
 import type { SalesStackParamList, ReceiptsStackParamList } from "./types";
+import { SupportScreen } from "@/screens/SupportScreen";
 
 const Drawer = createDrawerNavigator();
 const SalesStack = createNativeStackNavigator<SalesStackParamList>();
@@ -69,6 +70,7 @@ export function RootNavigator() {
       <Drawer.Screen name="Sales" component={SalesStackNavigator} />
       <Drawer.Screen name="Receipts" component={ReceiptsStackNavigator} />
       <Drawer.Screen name="Shift" component={ShiftScreen} />
+      <Drawer.Screen name="Support" component={SupportScreen} />
     </Drawer.Navigator>
   );
 }
