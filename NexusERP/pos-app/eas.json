@@ -1,0 +1,27 @@
+{
+  "cli": {
+    "version": ">= 24.8.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://tenexerp-api-d0dqdzguecf8d5dq.polandcentral-01.azurewebsites.net/api"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, Linking, ScrollView } from "react-native";
-import { Mail, Shield, FileText, Globe, ExternalLink } from "lucide-react-native";
+import { Mail, Shield, FileText, Globe, ExternalLink, Info } from "lucide-react-native";
+import { MenuButton } from "@/components/MenuButton";
 
 const PRIVACY_POLICY_URL = "https://tenexerp.com/privacy-policy";
 const TERMS_OF_SERVICE_URL = "https://tenexerp.com/terms-of-service";
@@ -11,9 +12,13 @@ export function SupportScreen() {
   return (
     <ScrollView className="flex-1 bg-slate-50" contentContainerClassName="p-6">
       <View className="mx-auto w-full max-w-[700px]">
-        <Text className="text-2xl font-extrabold text-slate-800">
-          Support
-        </Text>
+        <View className="mb-5 flex-row items-center gap-3">
+          <MenuButton />
+
+          <Text className="text-2xl font-extrabold text-slate-800">
+            Support
+          </Text>
+        </View>
 
         <Text className="mb-6 mt-1 text-sm text-slate-500">
           Help, legal information, and TenexERP links.
@@ -109,6 +114,36 @@ export function SupportScreen() {
           © {new Date().getFullYear()} TenexERP
         </Text>
       </View>
+
+              <View className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+          <View className="flex-row items-start gap-3">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-emerald-50">
+              <Info size={18} color="#059669" />
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-slate-800">
+                Account deletion
+              </Text>
+
+              <Text className="mt-2 text-xs leading-5 text-slate-500">
+                If you created your TenexERP account yourself, you can delete
+                your account directly from the TenexERP website.
+              </Text>
+
+              <Text className="mt-2 text-xs leading-5 text-slate-500">
+                If your account was created by your supervisor, you can ask
+                your supervisor to delete it, or you can delete the account
+                yourself from the website.
+              </Text>
+
+              <Text className="mt-2 text-xs leading-5 text-slate-500">
+                In any case, if you have any problems or need assistance,
+                you can contact TenexERP Support to request account deletion.
+              </Text>
+            </View>
+          </View>
+        </View>
     </ScrollView>
   );
 }

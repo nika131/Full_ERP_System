@@ -1,0 +1,5439 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: **/Migrations/**, node_modules/**, android/**, .expo/**, NexusPOS/**
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+
+================================================================
+Directory Structure
+================================================================
+assets/
+  adaptive-icon.png
+  icon.png
+src/
+  api/
+    authService.ts
+    client.ts
+    posService.ts
+    productService.ts
+  components/
+    CartItemRow.tsx
+    CartPanel.tsx
+    MenuButton.tsx
+    ModalSheet.tsx
+    PinPad.tsx
+    ProductBox.tsx
+    ProductPickerModal.tsx
+    ShapeIcon.tsx
+  context/
+    AuthContext.tsx
+  hooks/
+    queries/
+      usePosQueries.ts
+      useProductQueries.ts
+    seIsWideLayout.ts
+  navigation/
+    DrawerContent.tsx
+    RootNavigator.tsx
+    types.ts
+  screens/
+    CheckoutScreen.tsx
+    LoginScreen.tsx
+    ReceiptDetailScreen.tsx
+    ReceiptsScreen.tsx
+    SalesScreen.tsx
+    ShiftScreen.tsx
+    SupportScreen.tsx
+  store/
+    cartStore.ts
+    posLayoutStore.ts
+    terminalStore.ts
+  theme/
+    colors.ts
+  types/
+    index.ts
+  utils/
+    currency.ts
+    jwt.ts
+.gitignore
+app.json
+App.tsx
+babel.config.js
+eas.json
+global.css
+global.d.ts
+metro.config.js
+nativewind-env.d.ts
+package.json
+README.md
+tailwind.config.js
+tsconfig.json
+
+================================================================
+Files
+================================================================
+
+================
+File: src/api/authService.ts
+================
+import apiClient from "./client";
+import type { UserLookup } from "../types";
+
+export const authService = {
+  login: async (username: string, password: string): Promise<string> => {
+    const res = await apiClient.post("/auth/login", { username, password });
+    return res.data.token as string;
+  },
+
+  pinLogin: async (userId: number, pin: string): Promise<string> => {
+    const res = await apiClient.post("/auth/pin-login", { userId, pin });
+    return res.data.token as string;
+  },
+
+  verifyPin: async (pin: string): Promise<void> => {
+    await apiClient.post("/pos/verify-pin", { pin });
+  },
+
+  getSwitchableUsers: async (): Promise<UserLookup[]> => {
+    const res = await apiClient.get("/pos/switchable-users");
+    return res.data;
+  },
+};
+
+================
+File: src/api/client.ts
+================
+import axios from "axios";
+import * as SecureStore from "expo-secure-store";
+
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  "http://192.168.100.3:5116/api";
+
+export const TOKEN_KEY = "pos_auth_token";
+
+let webToken: string | null = null;
+
+export async function getStoredToken(): Promise<string | null> {
+  if (typeof window !== "undefined") {
+    return webToken;
+  }
+
+  return SecureStore.getItemAsync(TOKEN_KEY);
+}
+
+export async function setStoredToken(token: string): Promise<void> {
+  if (typeof window !== "undefined") {
+    webToken = token;
+    return;
+  }
+
+  await SecureStore.setItemAsync(TOKEN_KEY, token);
+}
+
+export async function deleteStoredToken(): Promise<void> {
+  if (typeof window !== "undefined") {
+    webToken = null;
+    return;
+  }
+
+  await SecureStore.deleteItemAsync(TOKEN_KEY);
+}
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 15000,
+});
+
+apiClient.interceptors.request.use(async (config) => {
+  const token = await getStoredToken();
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+export function getErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as any;
+
+    if (typeof data === "string" && data.trim()) {
+      return data;
+    }
+
+    if (data?.Message) {
+      return String(data.Message);
+    }
+
+    if (data?.error) {
+      return String(data.error);
+    }
+
+    if (data?.title) {
+      return String(data.title);
+    }
+
+    if (data?.errors && typeof data.errors === "object") {
+      const messages = Object.values(data.errors)
+        .flat()
+        .filter(Boolean)
+        .map(String);
+
+      if (messages.length > 0) {
+        return messages.join("\n");
+      }
+    }
+
+    if (err.message) {
+      return err.message;
+    }
+  }
+
+  if (err instanceof Error) {
+    return err.message;
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
+export default apiClient;
+
+================
+File: src/api/posService.ts
+================
+import apiClient from "./client";
+import type {
+  CurrentShift,
+  ShiftHistoryItem,
+  ShiftReceiptSummary,
+  ReceiptDetail,
+  StoreLookup,
+} from "../types";
+
+export interface OpenShiftPayload {
+  storeId: number;
+  startingCash: number;
+  note?: string;
+}
+
+export interface CloseShiftPayload {
+  actualEndingCash: number;
+  note?: string;
+}
+
+export interface CashMovementPayload {
+  storeId: number;
+  movementType: "PayIn" | "PayOut";
+  amount: number;
+  reason?: string;
+}
+
+export interface CheckoutItemPayload {
+  productId: number;
+  quantity: number;
+  manualItemDiscountPercentage: number;
+}
+
+export interface CheckoutPayload {
+  storeId: number;
+  cartDiscountPercentage: number;
+  paymentMethod: "Cash" | "Card" | "Voucher";
+  items: CheckoutItemPayload[];
+}
+
+export interface CheckoutResult {
+  message: string;
+  receiptNumber: string;
+  total: number;
+}
+
+export type CheckoutQuotePayload = Omit<CheckoutPayload, "paymentMethod">;
+
+export interface CheckoutQuoteResult {
+  finalTotal: number;
+}
+
+export const posService = {
+  getCurrentShift: async (
+    storeId: number
+  ): Promise<{ hasOpenShift: boolean; shift: CurrentShift | null }> => {
+    const res = await apiClient.get("/pos/shift/current", { params: { storeId } });
+    return res.data;
+  },
+
+  openShift: async (payload: OpenShiftPayload): Promise<{ shiftId: number }> => {
+    const res = await apiClient.post("/pos/shift/open", payload);
+    return res.data;
+  },
+
+  closeShift: async (
+    shiftId: number,
+    payload: CloseShiftPayload
+  ): Promise<{ variance: number }> => {
+    const res = await apiClient.post(`/pos/shift/${shiftId}/close`, payload);
+    return res.data;
+  },
+
+  addCashMovement: async (shiftId: number, payload: CashMovementPayload) => {
+    const res = await apiClient.post(`/pos/shift/${shiftId}/cash-movement`, payload);
+    return res.data;
+  },
+
+  checkout: async (payload: CheckoutPayload): Promise<CheckoutResult> => {
+    const res = await apiClient.post("/pos/checkout", payload);
+    return res.data;
+  },
+
+  getShiftHistory: async (storeId: number): Promise<ShiftHistoryItem[]> => {
+    const res = await apiClient.get("/pos/shift/history", { params: { storeId } });
+    return res.data;
+  },
+
+  getShiftReceipts: async (shiftId: number): Promise<ShiftReceiptSummary[]> => {
+    const res = await apiClient.get(`/pos/shift/${shiftId}/receipts`);
+    return res.data;
+  },
+
+  getReceiptDetail: async (receiptId: number): Promise<ReceiptDetail> => {
+    const res = await apiClient.get(`/pos/receipts/${receiptId}`);
+    return res.data;
+  },
+
+  getStores: async (): Promise<StoreLookup[]> => {
+    const res = await apiClient.get("/stores");
+    return (res.data as any[]).map((s) => ({        
+      storeId: s.storeId, 
+      name: s.name,
+      maxCartDiscountPercentage: s.maxCartDiscountPercentage,
+    }));
+  },
+
+  getCheckoutQuote: async (
+    payload: CheckoutQuotePayload
+  ): Promise<CheckoutQuoteResult> => {
+    const res = await apiClient.post("/pos/checkout/quote", payload);
+    return res.data;
+  },
+};
+
+================
+File: src/api/productService.ts
+================
+import apiClient from "./client";
+import type { Product } from "../types";
+
+export interface ProductsPage {
+  items: Product[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+}
+
+export const productService = {
+  search: async (
+    searchTerm: string,
+    pageSize = 30,
+    excludeIds: number[] = []
+  ): Promise<Product[]> => {
+    const res = await apiClient.get("/products", {
+      params: {
+        page: 1,
+        pageSize,
+        searchTerm,
+        excludeIds: excludeIds.length > 0 ? excludeIds.join(",") : undefined,
+      },
+    });
+    return (res.data as ProductsPage).items;
+  },
+
+  getByIds: async (ids: number[]): Promise<Product[]> => {
+    if (ids.length === 0) return [];
+    const res = await apiClient.get("/products", { params: { page: 1, pageSize: 100 } });
+    const all = (res.data as ProductsPage).items;
+    return all.filter((p) => ids.includes(p.productId));
+  },
+};
+
+================
+File: src/components/CartItemRow.tsx
+================
+import React, { useRef } from "react";
+import { View, Text, Pressable } from "react-native";
+import { Trash2 } from "lucide-react-native";
+import { formatCurrency, round2 } from "../utils/currency";
+import type { CartItem } from "../types";
+
+interface CartItemRowProps {
+  item: CartItem;
+  onPress: () => void;
+  onIncrement: () => void;
+  onRemove: () => void;
+}
+
+const DOUBLE_TAP_MS = 280;
+
+export function CartItemRow({
+  item,
+  onPress,
+  onIncrement,
+  onRemove,
+}: CartItemRowProps) {
+  const lastTapRef = useRef<number>(0);
+
+  const baseAmount = round2(
+    item.unitPrice * item.quantity
+  )
+
+  const marketDiscountAmount = round2(
+    baseAmount * (item.marketDiscountPercentage / 100)
+  )
+
+  const manualDiscountAmount = round2(
+    baseAmount * (item.manualItemDiscountPercentage / 100)
+  );
+
+  const totalItemDiscountAmount = round2(
++    marketDiscountAmount + manualDiscountAmount
+  );
+
+  const lineTotal = round2(
+    baseAmount - totalItemDiscountAmount
+  );
+
+  const handlePress = () => {
+    const now = Date.now();
+
+    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+      onIncrement();
+      lastTapRef.current = 0;
+      return;
+    }
+
+    lastTapRef.current = now;
+
+    setTimeout(() => {
+      if (Date.now() - lastTapRef.current >= DOUBLE_TAP_MS - 20) {
+        onPress();
+      }
+    }, DOUBLE_TAP_MS);
+  };
+
+  return (
+    <View className="flex-row items-center border-b border-slate-100 bg-white">
+      <Pressable
+        onPress={handlePress}
+        className="flex-1 flex-row items-center justify-between py-3 pl-3"
+      >
+        <View className="flex-1 pr-2">
+          <Text
+            className="text-sm font-semibold text-slate-800"
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+
+          <Text className="mt-0.5 text-xs text-slate-500">
+            {item.quantity} × {formatCurrency(item.unitPrice)}
+          </Text>
+
+          {item.marketDiscountPercentage > 0 && (
+            <Text className="mt-0.5 text-xs font-medium text-red-600">
+              Market discount: −{item.marketDiscountPercentage}%: −
+              {formatCurrency(marketDiscountAmount)}
+            </Text>
+          )}
+
+          {item.manualItemDiscountPercentage > 0 && (
+            <Text className="mt-0.5 text-xs font-medium text-emerald-600">
+              Manual discount {item.manualItemDiscountPercentage}%: −
+              {formatCurrency(manualDiscountAmount)}
+            </Text>
+          )}
+        </View>
+
+        <View className="mr-3 items-end">
+          {totalItemDiscountAmount > 0 && (
+            <Text className="text-xs text-slate-400 line-through">
+              {formatCurrency(baseAmount)}
+            </Text>
+          )}
+
+          <Text className="text-sm font-bold text-slate-800">
+            {formatCurrency(lineTotal)}
+          </Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        onPress={onRemove}
+        hitSlop={8}
+        className="mr-1 h-12 w-12 items-center justify-center rounded-lg bg-red-50"
+      >
+        <Trash2 size={18} color="#dc2626" />
+      </Pressable>
+    </View>
+  );
+}
+
+================
+File: src/components/CartPanel.tsx
+================
+import React, { useState } from "react";
+import { View, Text, FlatList, Pressable, TextInput } from "react-native";
+import { ShoppingCart, Tag, Minus, Plus } from "lucide-react-native";
+import { useCartStore } from "../store/cartStore";
+import { CartItemRow } from "./CartItemRow";
+import { ModalSheet } from "./ModalSheet";
+import { formatCurrency, round2  } from "../utils/currency";
+import type { CartItem } from "../types";
+import { useTerminalStore } from "@/store/terminalStore";
+
+interface CartPanelProps {
+  onCheckout: () => void;
+  disabled?: boolean;
+}
+
+export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
+  const items = useCartStore((s) => s.items);
+  const cartDiscountPercentage = useCartStore(
+    (s) => s.cartDiscountPercentage
+  );
+  const subtotal = useCartStore((s) => s.subtotal());
+
+  const totalDiscount = useCartStore((s) => s.totalDiscount());
+
+  const marketDiscountTotal = items.reduce(
+    (sum, item) =>
+      sum +
+      round2(
+        item.unitPrice *
+          item.quantity *
+          (item.marketDiscountPercentage / 100)
+      ),
+    0
+  );
+
+  const manualItemDiscountTotal = items.reduce(
+    (sum, item) =>
+      sum +
+      round2(
+        item.unitPrice *
+          item.quantity *
+          (item.manualItemDiscountPercentage / 100)
+      ),
+    0
+  );
+
+  const subtotalAfterItemDiscounts = round2(
+    subtotal - marketDiscountTotal - manualItemDiscountTotal
+  );
+
+  const receiptDiscountAmount = round2(
+    subtotalAfterItemDiscounts *
+      (cartDiscountPercentage / 100)
+  );
+
+  const total = useCartStore((s) => s.total());
+  const incrementQuantity = useCartStore((s) => s.incrementQuantity);
+  const setQuantity = useCartStore((s) => s.setQuantity);
+  const setItemDiscount = useCartStore((s) => s.setItemDiscount);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const setCartDiscount = useCartStore((s) => s.setCartDiscount);
+  const maxCartDiscountPercentage = useTerminalStore(
+    (s) => s.maxCartDiscountPercentage
+  );
+
+  const [editingItem, setEditingItem] = useState<CartItem | null>(null);
+  const [discountModalOpen, setDiscountModalOpen] = useState(false);
+
+  return (
+    <View className="flex-1 border-l border-slate-200 bg-white">
+      <View className="flex-row items-center gap-2 border-b border-slate-100 p-4">
+        <ShoppingCart size={18} color="#334155" />
+
+        <Text className="text-[15px] font-bold text-slate-800">
+          Current Sale
+        </Text>
+      </View>
+
+      {items.length === 0 ? (
+        <View className="flex-1 items-center justify-center gap-1">
+          <ShoppingCart size={36} color="#cbd5e1" />
+
+          <Text className="mt-2 font-semibold text-slate-500">
+            Cart is empty
+          </Text>
+
+          <Text className="text-xs text-slate-400">
+            Tap a product to add it
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(i) => String(i.productId)}
+          renderItem={({ item }) => (
+            <CartItemRow
+              item={item}
+              onPress={() => setEditingItem(item)}
+              onIncrement={() => incrementQuantity(item.productId)}
+              onRemove={() => removeItem(item.productId)}
+            />
+          )}
+          ItemSeparatorComponent={() => (
+            <View className="h-1.5 bg-slate-50" />
+          )}
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      <View className="gap-3 border-t border-slate-200 p-4">
+        <Pressable
+          className="flex-row items-center justify-between rounded-lg bg-emerald-50 p-3"
+          onPress={() => setDiscountModalOpen(true)}
+        >
+          <View className="flex-row items-center gap-1.5">
+            <Tag size={14} color="#059669" />
+
+            <Text className="text-[13px] font-semibold text-emerald-700">
+              Receipt discount
+            </Text>
+          </View>
+
+          <Text className="text-[13px] font-bold text-emerald-700">
+            {cartDiscountPercentage > 0
+              ? `${cartDiscountPercentage}%`
+              : "Add"}
+          </Text>
+        </Pressable>
+
+        <View className="gap-1">
+          <View className="flex-row justify-between">
+            <Text className="text-[13px] text-slate-500">
+              Subtotal
+            </Text>
+
+            <Text className="text-[13px] font-semibold text-slate-700">
+              {formatCurrency(subtotal)}
+            </Text>
+          </View>
+
+          {marketDiscountTotal > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                market discounts
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-emerald-600">
+                −{formatCurrency(marketDiscountTotal)}
+              </Text>
+            </View>
+          )}
+
+          {manualItemDiscountTotal > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                Manual item discounts
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-emerald-600">
+                −{formatCurrency(manualItemDiscountTotal)}
+               </Text>
+             </View>
+           )}
+
+          {cartDiscountPercentage > 0 && (
+            <View className="flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                Receipt discount ({cartDiscountPercentage}%)
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-emerald-600">
+                −{formatCurrency(receiptDiscountAmount)}
+              </Text>
+            </View>
+          )}
+
+          <View className="mt-1 flex-row justify-between border-t border-slate-100 pt-2">
+            <Text className="text-base font-bold text-slate-800">
+              Total
+            </Text>
+
+            <Text className="text-xl font-extrabold text-emerald-600">
+              {formatCurrency(total)}
+            </Text>
+          </View>
+        </View>
+
+        <Pressable
+          disabled={disabled || items.length === 0}
+          onPress={onCheckout}
+          className={[
+            "items-center rounded-xl py-3.5",
+            disabled || items.length === 0
+              ? "bg-slate-300"
+              : "bg-emerald-600",
+          ].join(" ")}
+        >
+          <Text className="text-[15px] font-bold text-white">
+            Checkout
+          </Text>
+        </Pressable>
+      </View>
+
+      <ModalSheet
+        visible={!!editingItem}
+        onClose={() => setEditingItem(null)}
+      >
+        {editingItem && (
+          <ItemEditor
+            item={editingItem}
+            onChangeQuantity={(q) =>
+              setQuantity(editingItem.productId, q)
+            }
+            onChangeDiscount={(percentage) =>
+              setItemDiscount(
+                editingItem.productId,
+                percentage
+              )
+            }
+            onDone={() => setEditingItem(null)}
+          />
+        )}
+      </ModalSheet>
+
+      <ModalSheet
+        visible={discountModalOpen}
+        onClose={() => setDiscountModalOpen(false)}
+      >
+        <CartDiscountEditor
+          value={cartDiscountPercentage}
+          maxDiscountPercentage={maxCartDiscountPercentage}
+          onSave={(percentage) => {
+            setCartDiscount(percentage);
+            setDiscountModalOpen(false);
+          }}
+        />
+      </ModalSheet>
+    </View>
+  );
+}
+
+function ItemEditor({
+  item,
+  onChangeQuantity,
+  onChangeDiscount,
+  onDone,
+}: {
+  item: CartItem;
+  onChangeQuantity: (q: number) => void;
+  onChangeDiscount: (percentage: number) => void;
+  onDone: () => void;
+}) {
+  const [qty, setQty] = useState(item.quantity);
+
+  const [discount, setDiscount] = useState(
+    item.manualItemDiscountPercentage > 0
+      ? String(item.manualItemDiscountPercentage)
+      : ""
+  );
+
+  const [discountError, setDiscountError] = useState<string | null>(
+    null
+  );
+
+  return (
+    <View>
+      <Text
+        className="mb-4 text-base font-bold text-slate-800"
+        numberOfLines={2}
+      >
+        {item.name}
+      </Text>
+
+      <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500">
+        Quantity
+      </Text>
+
+      <View className="flex-row items-center gap-4">
+        <Pressable
+          className="h-10 w-10 items-center justify-center rounded-lg bg-slate-100"
+          onPress={() => setQty((q) => Math.max(1, q - 1))}
+        >
+          <Minus size={18} color="#334155" />
+        </Pressable>
+
+        <Text className="min-w-8 text-center text-lg font-bold text-slate-800">
+          {qty}
+        </Text>
+
+        <Pressable
+          className="h-10 w-10 items-center justify-center rounded-lg bg-slate-100"
+          onPress={() => setQty((q) => q + 1)}
+        >
+          <Plus size={18} color="#334155" />
+        </Pressable>
+      </View>
+
+      <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500">
+        Discount %{" "}
+        {item.maxDiscountPercentage > 0
+          ? `(max ${item.maxDiscountPercentage}%)`
+          : ""}
+      </Text>
+
+      <TextInput
+        value={discount}
+        onChangeText={(value) => {
+          setDiscount(value);
+          setDiscountError(null);
+        }}
+        keyboardType="decimal-pad"
+        placeholder="0"
+        className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px]"
+      />
+
+      {discountError && (
+        <Text className="mt-1.5 text-xs font-semibold text-red-600">
+          {discountError}
+        </Text>
+      )}
+
+      <Pressable
+        className="mt-6 items-center rounded-lg bg-emerald-600 py-3"
+        onPress={() => {
+          const parsed =
+            discount.trim() === ""
+              ? 0
+              : parseFloat(discount);
+
+          if (!Number.isFinite(parsed) || parsed < 0) {
+            setDiscountError(
+              "Please enter a valid discount percentage."
+            );
+            return;
+          }
+
+          if (parsed > item.maxDiscountPercentage) {
+            setDiscountError(
+              `The maximum discount for this product is ${item.maxDiscountPercentage}%.`
+            );
+            return;
+          }
+
+          onChangeQuantity(qty);
+          onChangeDiscount(parsed);
+          onDone();
+        }}
+      >
+        <Text className="font-bold text-white">
+          Save
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function CartDiscountEditor({
+  value,
+  maxDiscountPercentage,
+  onSave,
+}: {
+  value: number;
+  maxDiscountPercentage: number;
+  onSave: (percentage: number) => void;
+}) {
+  const [discount, setDiscount] = useState(
+    value > 0 ? String(value) : ""
+  );
+
+  const [discountError, setDiscountError] = useState<string | null>(
+    null
+  );
+
+  return (
+    <View>
+      <Text className="mb-4 text-base font-bold text-slate-800">
+        Whole-receipt discount
+      </Text>
+
+      <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500">
+        Discount % (max {maxDiscountPercentage}%)
+      </Text>
+
+      <TextInput
+        value={discount}
+        onChangeText={(value) => {
+          setDiscount(value);
+          setDiscountError(null);
+        }}
+        keyboardType="decimal-pad"
+        placeholder="0"
+        autoFocus
+        className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px]"
+      />
+
+      {discountError && (
+        <Text className="mt-1.5 text-xs font-semibold text-red-600">
+          {discountError}
+        </Text>
+      )}
+
+      <Text className="mt-2 text-[11px] text-slate-400">
+        Subject to this store's maximum cart discount — checkout
+        will reject percentages over the allowed limit.
+      </Text>
+
+      <Pressable
+        className="mt-6 items-center rounded-lg bg-emerald-600 py-3"
+        onPress={() => {
+          const parsed =
+            discount.trim() === ""
+              ? 0
+              : parseFloat(discount);
+
+          if (!Number.isFinite(parsed) || parsed < 0) {
+            setDiscountError(
+              "Please enter a valid discount percentage."
+            );
+            return;
+          }
+
+          if (parsed > maxDiscountPercentage) {
+            setDiscountError(
+              `The maximum cart discount is ${maxDiscountPercentage}%.`
+            );
+            return;
+          }
+
+          onSave(parsed);
+        }}
+      >
+        <Text className="font-bold text-white">
+          Apply
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+================
+File: src/components/MenuButton.tsx
+================
+import React from "react";
+import { Pressable } from "react-native";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { Menu } from "lucide-react-native";
+import { useIsWideLayout } from "@/hooks/seIsWideLayout";
+
+interface MenuButtonProps {
+  className?: string;
+}
+
+export function MenuButton({ className }: MenuButtonProps) {
+  const navigation = useNavigation();
+  const isWide = useIsWideLayout();
+
+  if (isWide) return null;
+
+  return (
+    <Pressable
+      onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+      hitSlop={8}
+      className={
+        className ?? "h-9 w-9 items-center justify-center rounded-lg bg-slate-100"
+      }
+    >
+      <Menu size={20} color="#334155" />
+    </Pressable>
+  );
+}
+
+================
+File: src/components/ModalSheet.tsx
+================
+import React from "react";
+import { Modal, View, Pressable, KeyboardAvoidingView, Platform } from "react-native";
+
+interface ModalSheetProps {
+  visible: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxWidth?: number;
+}
+
+export function ModalSheet({
+  visible,
+  onClose,
+  children,
+  maxWidth = 420,
+}: ModalSheetProps) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable
+        className="flex-1 items-center justify-center bg-slate-900/45 p-4"
+        onPress={onClose}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          className="w-full items-center"
+        >
+          <Pressable
+            className="w-full rounded-2xl bg-white p-6 shadow-md"
+            style={{ maxWidth }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {children}
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
+  );
+}
+
+================
+File: src/components/PinPad.tsx
+================
+import React, { useState } from "react";
+import { View, Text, Pressable } from "react-native";
+import { Delete } from "lucide-react-native";
+
+interface PinPadProps {
+  label: string;
+  onSubmit: (pin: string) => void;
+  error?: string | null;
+  isSubmitting?: boolean;
+}
+
+const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"];
+
+export function PinPad({ label, onSubmit, error, isSubmitting }: PinPadProps) {
+  const [pin, setPin] = useState("");
+
+  const handleKey = (key: string) => {
+    if (isSubmitting) return;
+
+    if (key === "del") {
+      setPin((p) => p.slice(0, -1));
+      return;
+    }
+
+    if (key === "") return;
+
+    const next = (pin + key).slice(0, 4);
+    setPin(next);
+
+    if (next.length === 4) {
+      onSubmit(next);
+      setPin("");
+    }
+  };
+
+  return (
+    <View className="items-center">
+      <Text className="mb-3 text-sm text-slate-500">
+        {label}
+      </Text>
+
+      <View className="mb-2 flex-row gap-3">
+        {[0, 1, 2, 3].map((i) => (
+          <View
+            key={i}
+            className={[
+              "h-3.5 w-3.5 rounded-full border-[1.5px] border-slate-300",
+              i < pin.length ? "border-emerald-600 bg-emerald-600" : "",
+            ].join(" ")}
+          />
+        ))}
+      </View>
+
+      {error ? (
+        <Text className="mb-1 mt-2 text-[13px] text-red-600">
+          {error}
+        </Text>
+      ) : null}
+
+      <View className="mt-4 w-[240px] flex-row flex-wrap justify-center gap-2">
+        {KEYS.map((key, idx) => (
+          <Pressable
+            key={idx}
+            disabled={key === "" || isSubmitting}
+            onPress={() => handleKey(key)}
+            className={[
+              "h-14 w-[68px] items-center justify-center rounded-lg bg-slate-50",
+              key === "" ? "bg-transparent" : "",
+              "active:bg-slate-100",
+            ].join(" ")}
+          >
+            {key === "del" ? (
+              <Delete size={20} color="#475569" />
+            ) : (
+              <Text className="text-xl font-semibold text-slate-800">
+                {key}
+              </Text>
+            )}
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+================
+File: src/components/ProductBox.tsx
+================
+import React from "react";
+import { View, Text, Pressable, Image } from "react-native";
+import { Pencil, Plus, Trash2 } from "lucide-react-native";
+import { ShapeIcon } from "./ShapeIcon";
+import { API_BASE_URL } from "../api/client";
+import { formatCurrency } from "../utils/currency";
+import type { Product } from "../types";
+
+interface ProductBoxProps {
+  product: Product | null;
+  isEditing: boolean;
+  onPress: () => void;
+  onDelete: () => void;
+}
+
+function resolveImageUrl(path: string) {
+  const origin = API_BASE_URL.replace(/\/api$/, "");
+  return `${origin}${path}`;
+}
+
+export function ProductBox({
+  product,
+  isEditing,
+  onPress,
+  onDelete,
+}: ProductBoxProps) {
+  const isImageMode =
+    product?.displayMode === "Image" && !!product.imageUrl;
+
+  const isShapeMode =
+    product?.displayMode === "Shape" && !!product.shapeType;
+
+  const isNormalMode =
+    !!product && !isImageMode && !isShapeMode;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className={[
+        "relative flex-1 overflow-hidden border border-slate-200 bg-white",
+        (product?.marketDiscountRate ?? 0) > 0 ? "border-red-300" : "",
+        isEditing ? "border-dashed border-emerald-300" : "",
+      ].join(" ")}
+    >
+      {product && (product.marketDiscountRate ?? 0) > 0 && (
+        <View className="absolute left-2 top-2 z-20 rounded-md bg-red-600 px-2 py-1 shadow-sm">
+          <Text className="text-[11px] font-extrabold text-white">
+            -{product.marketDiscountRate ?? 0}%
+          </Text>
+        </View>
+      )}
+
+      {isEditing && (
+        <View className="absolute right-2 top-2 z-20 h-7 w-7 items-center justify-center rounded-full bg-emerald-600">
+          <Pencil size={12} color="white" />
+        </View>
+      )}
+
+      {product ? (
+        <>
+          {isImageMode && (
+            <Image
+              source={{ uri: resolveImageUrl(product.imageUrl!) }}
+              className="absolute inset-0 h-full w-full"
+              resizeMode="cover"
+            />
+          )}
+
+          {isShapeMode && (
+            <View className="absolute inset-0 items-center justify-center bg-white">
+              <ShapeIcon
+                shapeType={product.shapeType!}
+                color={product.shapeColor || "#ffffff"}
+                text={product.shapeText}
+                size={220}
+              />
+            </View>
+          )}
+
+          {isNormalMode && (
+            <View className="absolute inset-0 items-center justify-center bg-white">
+              <Text
+                className="px-4 text-center text-lg font-semibold text-slate-700"
+                numberOfLines={3}
+              >
+                {product.name}
+              </Text>
+
+              <Text className="mt-2 text-base font-bold text-emerald-600">
+                {formatCurrency(product.price)}
+              </Text>
+            </View>
+          )}
+
+          {isEditing && (
+            <Pressable
+              onPress={(event) => {
+                event.stopPropagation();
+                onDelete();
+              }}
+              hitSlop={8}
+              className="absolute right-2 top-11 z-20 h-9 w-9 items-center justify-center rounded-full bg-red-600"
+            >
+              <Trash2 size={17} color="white" />
+            </Pressable>
+          )}
+        </>
+      ) : (
+        <View className="flex-1 items-center justify-center bg-white">
+          <Plus size={22} color="#cbd5e1" />
+
+          {isEditing && (
+            <Text className="mt-1 text-xs text-slate-400">
+              Add product
+            </Text>
+          )}
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+================
+File: src/components/ProductPickerModal.tsx
+================
+import React, { useState } from "react";
+import { View, Text, TextInput, FlatList, Pressable, ActivityIndicator } from "react-native";
+import { Search, X } from "lucide-react-native";
+import { ModalSheet } from "./ModalSheet";
+import { useProductSearchQuery } from "../hooks/queries/useProductQueries";
+import { formatCurrency } from "../utils/currency";
+import type { Product } from "../types";
+
+interface ProductPickerModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (product: Product) => void;
+  onClearSlot: () => void;
+  hasExistingProduct: boolean;
+  excludeIds?: number[];
+}
+
+export function ProductPickerModal({
+  visible,
+  onClose,
+  onSelect,
+  onClearSlot,
+  hasExistingProduct,
+  excludeIds = [],
+}: ProductPickerModalProps) {
+  const [search, setSearch] = useState("");
+  // The backend now excludes these before paging, so what comes back is
+  // already a correctly-filled page — no filtering needed here anymore.
+  const { data: results, isFetching } = useProductSearchQuery(search, excludeIds);
+
+  return (
+    <ModalSheet visible={visible} onClose={onClose} maxWidth={520}>
+      <View className="mb-4 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-slate-800">Choose a product</Text>
+
+        <Pressable onPress={onClose}>
+          <X size={20} color="#64748b" />
+        </Pressable>
+      </View>
+
+      <View className="flex-row items-center gap-2 rounded-lg border border-slate-300 px-3 py-2.5">
+        <Search size={16} color="#94a3b8" />
+
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search by name or ID..."
+          className="flex-1 text-[15px]"
+          autoFocus
+        />
+      </View>
+
+      {hasExistingProduct && (
+        <Pressable className="mt-3 items-center rounded-lg bg-red-50 py-2.5" onPress={onClearSlot}>
+          <Text className="text-[13px] font-semibold text-red-600">Clear this box</Text>
+        </Pressable>
+      )}
+
+      <View className="mt-3">
+        {isFetching ? (
+          <ActivityIndicator color="#059669" className="mt-6" />
+        ) : (
+          <FlatList
+            data={results || []}
+            keyExtractor={(p) => String(p.productId)}
+            className="max-h-[340px]"
+            ListEmptyComponent={
+              <Text className="py-6 text-center text-slate-400">
+                {search.trim().length === 0 ? "No products available" : "No products found"}
+              </Text>
+            }
+            renderItem={({ item }) => (
+              <Pressable
+                className="flex-row items-center border-b border-slate-100 py-3"
+                onPress={() => onSelect(item)}
+              >
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-slate-800" numberOfLines={1}>
+                    {item.name}
+                  </Text>
+
+                  <Text className="mt-0.5 text-xs text-slate-500">{item.categoryName}</Text>
+                </View>
+
+                <Text className="text-sm font-bold text-emerald-600">
+                  {formatCurrency(item.price)}
+                </Text>
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
+    </ModalSheet>
+  );
+}
+
+================
+File: src/components/ShapeIcon.tsx
+================
+import React from "react";
+import { View, Text } from "react-native";
+import Svg, { Rect, Circle, Polygon, Path } from "react-native-svg";
+import type { ShapeType } from "../types";
+
+interface ShapeIconProps {
+  shapeType: ShapeType;
+  color: string;
+  text: string | null;
+  size?: number;
+}
+
+function starPoints(cx: number, cy: number, outerR: number, innerR: number, points = 5) {
+  const step = Math.PI / points;
+  let path = "";
+  for (let i = 0; i < 2 * points; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = i * step - Math.PI / 2;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    path += `${x},${y} `;
+  }
+  return path.trim();
+}
+
+function regularPolygonPoints(cx: number, cy: number, r: number, sides: number, rotationDeg = -90) {
+  const rotation = (rotationDeg * Math.PI) / 180;
+  let path = "";
+  for (let i = 0; i < sides; i++) {
+    const angle = rotation + (i * 2 * Math.PI) / sides;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    path += `${x},${y} `;
+  }
+  return path.trim();
+}
+
+export function ShapeIcon({ shapeType, color, text, size = 64 }: ShapeIconProps) {
+  const center = size / 2;
+  const r = size * 0.42;
+
+  return (
+    <View
+      className="items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {shapeType === "square" && (
+          <Rect
+            x={size * 0.1}
+            y={size * 0.1}
+            width={size * 0.8}
+            height={size * 0.8}
+            rx={size * 0.08}
+            fill={color}
+          />
+        )}
+
+        {shapeType === "Circle" && (
+          <Circle cx={center} cy={center} r={r} fill={color} />
+        )}
+
+        {shapeType === "Triangle" && (
+          <Polygon
+            points={`${center},${size * 0.14} ${size * 0.9},${size * 0.84} ${size * 0.1},${size * 0.84}`}
+            fill={color}
+          />
+        )}
+
+        {shapeType === "Pentagon" && (
+          <Polygon
+            points={regularPolygonPoints(center, center, r, 5, -90)}
+            fill={color}
+          />
+        )}
+
+        {shapeType === "Diamond" && (
+          <Polygon
+            points={regularPolygonPoints(center, center, r, 4, -90)}
+            fill={color}
+          />
+        )}
+
+        {shapeType === "Star" && (
+          <Polygon
+            points={starPoints(center, center, r, r * 0.45)}
+            fill={color}
+          />
+        )}
+
+        {shapeType === "Heart" && (
+          <Polygon
+            points=""
+            fill="none"
+          />
+        )}
+      </Svg>
+
+      {shapeType === "Heart" && (
+        <HeartShape color={color} size={size} />
+      )}
+
+      {text ? (
+        <View
+          className="absolute px-1"
+          pointerEvents="none"
+        >
+          <Text
+            className="font-bold text-white"
+            style={{
+              fontSize: Math.max(9, size * 0.16),
+              textShadowColor: "rgba(0,0,0,0.35)",
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 2,
+            }}
+            numberOfLines={1}
+          >
+            {text}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function HeartShape({ color, size }: { color: string; size: number }) {
+  const s = size;
+
+  return (
+    <Svg
+      width={s}
+      height={s}
+      viewBox={`0 0 ${s} ${s}`}
+      style={{ position: "absolute", left: 0, top: 0 }}
+    >
+      <Path
+        d={`
+          M ${s * 0.5} ${s * 0.88}
+          C ${s * 0.42} ${s * 0.81}, ${s * 0.10} ${s * 0.63}, ${s * 0.10} ${s * 0.38}
+          C ${s * 0.10} ${s * 0.22}, ${s * 0.24} ${s * 0.15}, ${s * 0.37} ${s * 0.15}
+          C ${s * 0.44} ${s * 0.15}, ${s * 0.48} ${s * 0.19}, ${s * 0.5} ${s * 0.25}
+          C ${s * 0.52} ${s * 0.19}, ${s * 0.56} ${s * 0.15}, ${s * 0.63} ${s * 0.15}
+          C ${s * 0.76} ${s * 0.15}, ${s * 0.90} ${s * 0.22}, ${s * 0.90} ${s * 0.38}
+          C ${s * 0.90} ${s * 0.63}, ${s * 0.58} ${s * 0.81}, ${s * 0.5} ${s * 0.88}
+          Z
+        `}
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+================
+File: src/context/AuthContext.tsx
+================
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import * as SecureStore from "expo-secure-store";
+import { authService } from "../api/authService";
+import {
+  getStoredToken,
+  setStoredToken,
+  deleteStoredToken,
+} from "../api/client";
+import { decodeToken, isTokenExpired } from "../utils/jwt";
+import type { AuthUser } from "../types";
+import { useCartStore } from "../store/cartStore";
+
+interface AuthContextValue {
+  user: AuthUser | null;
+  isLoading: boolean;
+  login: (username: string, password: string) => Promise<void>;
+  switchUser: (userId: number, pin: string) => Promise<void>;
+  logout: () => Promise<void>;
+  hasPermission: (permission: string) => boolean;
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+
+async function persistTokenAndSetUser(
+  token: string,
+  setUser: (u: AuthUser | null) => void
+) {
+  await setStoredToken(token);
+  setUser(decodeToken(token));
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const clearCart = useCartStore((s) => s.clear);
+
+  useEffect(() => {
+    (async () => {
+      const token = await getStoredToken();
+
+      if (token && !isTokenExpired(token)) {
+        setUser(decodeToken(token));
+      } else if (token) {
+        await deleteStoredToken();
+      }
+
+      setIsLoading(false);
+    })();
+  }, []);
+
+  const login = useCallback(async (username: string, password: string) => {
+    const token = await authService.login(username, password);
+    await persistTokenAndSetUser(token, setUser);
+  }, []);
+
+  // Switching users mid-session: the previous cashier's cart shouldn't leak
+  // into the next cashier's session, so we clear it here.
+  const switchUser = useCallback(
+    async (userId: number, pin: string) => {
+      const token = await authService.pinLogin(userId, pin);
+      await persistTokenAndSetUser(token, setUser);
+      clearCart();
+    },
+    [clearCart]
+  );
+
+  const logout = useCallback(async () => {
+    await deleteStoredToken();
+    setUser(null);
+    clearCart();
+  }, [clearCart]);
+
+  const hasPermission = useCallback(
+    (permission: string) => user?.permissions.includes(permission) ?? false,
+    [user]
+  );
+
+  return (
+    <AuthContext.Provider
+      value={{ user, isLoading, login, switchUser, logout, hasPermission }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}
+
+================
+File: src/hooks/queries/usePosQueries.ts
+================
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { posService } from "../../api/posService";
+import type {
+  OpenShiftPayload,
+  CloseShiftPayload,
+  CashMovementPayload,
+  CheckoutPayload,
+  CheckoutQuotePayload,
+} from "../../api/posService";
+
+export const useCurrentShiftQuery = (storeId: number | null) =>
+  useQuery({
+    queryKey: ["pos", "currentShift", storeId],
+    queryFn: () => posService.getCurrentShift(storeId as number),
+    enabled: storeId !== null,
+    refetchInterval: 30_000,
+  });
+
+export const useShiftHistoryQuery = (storeId: number | null, enabled: boolean) =>
+  useQuery({
+    queryKey: ["pos", "shiftHistory", storeId],
+    queryFn: () => posService.getShiftHistory(storeId as number),
+    enabled: enabled && storeId !== null,
+  });
+
+export const useShiftReceiptsQuery = (shiftId: number | null) =>
+  useQuery({
+    queryKey: ["pos", "shiftReceipts", shiftId],
+    queryFn: () => posService.getShiftReceipts(shiftId as number),
+    enabled: shiftId !== null,
+  });
+
+export const useReceiptDetailQuery = (receiptId: number | null) =>
+  useQuery({
+    queryKey: ["pos", "receiptDetail", receiptId],
+    queryFn: () => posService.getReceiptDetail(receiptId as number),
+    enabled: receiptId !== null,
+  });
+
+export const useStoresQuery = () =>
+  useQuery({
+    queryKey: ["pos", "stores"],
+    queryFn: () => posService.getStores(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const useOpenShiftMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: OpenShiftPayload) => posService.openShift(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pos", "currentShift"] }),
+  });
+};
+
+export const useCloseShiftMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ shiftId, payload }: { shiftId: number; payload: CloseShiftPayload }) =>
+      posService.closeShift(shiftId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pos", "currentShift"] });
+      qc.invalidateQueries({ queryKey: ["pos", "shiftHistory"] });
+    },
+  });
+};
+
+export const useCashMovementMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ shiftId, payload }: { shiftId: number; payload: CashMovementPayload }) =>
+      posService.addCashMovement(shiftId, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pos", "currentShift"] }),
+  });
+};
+
+export const useCheckoutMutation = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CheckoutPayload) => posService.checkout(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pos", "currentShift"] });
+      qc.invalidateQueries({ queryKey: ["pos", "shiftReceipts"] });
+    },
+  });
+};
+
+export const useCheckoutQuoteQuery = (
+  payload: CheckoutQuotePayload | null
+) => 
+  useQuery({
+    queryKey: ["pos", "checkoutQuote", payload],
+    queryFn: () => posService.getCheckoutQuote(payload as CheckoutQuotePayload),
+    enabled: payload !== null,
+    staleTime: Infinity,
+    retry: 1,
+  });
+
+================
+File: src/hooks/queries/useProductQueries.ts
+================
+import { useQuery } from "@tanstack/react-query";
+import { productService } from "../../api/productService";
+import { authService } from "../../api/authService";
+
+export const useProductSearchQuery = (searchTerm: string, excludeIds: number[] = []) => {
+  const excludeKey = [...excludeIds].sort((a, b) => a - b);
+ 
+  return useQuery({
+    queryKey: ["products", "search", searchTerm, excludeKey],
+    queryFn: () =>
+      productService.search(searchTerm, searchTerm.trim().length === 0 ? 10 : 30, excludeIds),
+  });
+};
+
+export const useProductsByIdsQuery = (ids: number[]) =>
+  useQuery({
+    queryKey: ["products", "byIds", [...ids].sort()],
+    queryFn: () => productService.getByIds(ids),
+    enabled: ids.length > 0,
+  });
+
+export const useSwitchableUsersQuery = (enabled: boolean) =>
+  useQuery({
+    queryKey: ["auth", "switchableUsers"],
+    queryFn: () => authService.getSwitchableUsers(),
+    enabled,
+  });
+
+================
+File: src/hooks/seIsWideLayout.ts
+================
+import { useWindowDimensions } from "react-native";
+
+export const WIDE_BREAKPOINT = 1650;
+
+export function useIsWideLayout(): boolean {
+  const { width } = useWindowDimensions();
+  return width >= WIDE_BREAKPOINT;
+}
+
+================
+File: src/navigation/DrawerContent.tsx
+================
+import React, { useState } from "react";
+import { View, Text, Pressable, FlatList } from "react-native";
+import type { DrawerContentComponentProps } from "@react-navigation/drawer";
+import { ShoppingBag, Receipt as ReceiptIcon, Clock, Users, LogOut, X, LifeBuoy } from "lucide-react-native";
+import { useAuth } from "../context/AuthContext";
+import { useSwitchableUsersQuery } from "../hooks/queries/useProductQueries";
+import { ModalSheet } from "../components/ModalSheet";
+import { PinPad } from "../components/PinPad";
+import { getErrorMessage } from "../api/client";
+import { APP_NAME } from "../theme/colors";
+import type { UserLookup } from "../types";
+
+const NAV_ITEMS = [
+  { name: "Sales", label: "Sales", icon: ShoppingBag },
+  { name: "Receipts", label: "Receipts", icon: ReceiptIcon },
+  { name: "Shift", label: "Shift", icon: Clock },
+  { name: "Support", label: "Support", icon: LifeBuoy },
+];
+
+export function DrawerContent(props: DrawerContentComponentProps) {
+  const { user, logout } = useAuth();
+  const [switchOpen, setSwitchOpen] = useState(false);
+
+  const initials =
+    user?.fullName
+      ?.split(" ")
+      .map((p) => p[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?";
+
+  return (
+    <View className="flex-1 bg-white px-4 pt-8">
+      <View className="mb-3 flex-row items-center gap-3">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-emerald-600">
+          <Text className="text-[15px] font-extrabold text-white">
+            {initials}
+          </Text>
+        </View>
+
+        <View className="flex-1">
+          <Text className="text-[15px] font-bold text-slate-800" numberOfLines={1}>
+            {user?.fullName}
+          </Text>
+
+          <Text className="mt-px text-xs text-slate-500">
+            {user?.role}
+          </Text>
+        </View>
+      </View>
+
+      <Pressable
+        className="mb-6 flex-row items-center justify-center gap-1.5 rounded-lg bg-emerald-50 py-2.5"
+        onPress={() => setSwitchOpen(true)}
+      >
+        <Users size={15} color="#047857" />
+        <Text className="text-[13px] font-bold text-emerald-700">
+          Switch User
+        </Text>
+      </Pressable>
+
+      <View className="flex-1 gap-1">
+        {NAV_ITEMS.map((item) => {
+          const isFocused =
+            props.state.routeNames[props.state.index] === item.name;
+
+          const Icon = item.icon;
+
+          return (
+            <Pressable
+              key={item.name}
+              className={`flex-row items-center gap-3 rounded-lg px-3 py-3 ${
+                isFocused ? "bg-emerald-50" : ""
+              }`}
+              onPress={() => props.navigation.navigate(item.name)}
+            >
+              <Icon
+                size={18}
+                color={isFocused ? "#047857" : "#64748b"}
+              />
+
+              <Text
+                className={`text-sm font-semibold ${
+                  isFocused ? "text-emerald-700" : "text-slate-500"
+                }`}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View className="gap-3 border-t border-slate-100 py-4">
+        <Text className="text-center text-[11px] text-slate-300">
+          {APP_NAME} Register
+        </Text>
+
+        <Pressable
+          className="flex-row items-center justify-center gap-1.5"
+          onPress={logout}
+        >
+          <LogOut size={15} color="#dc2626" />
+
+          <Text className="text-[13px] font-semibold text-red-600">
+            Log Out
+          </Text>
+        </Pressable>
+      </View>
+
+      <SwitchUserModal
+        visible={switchOpen}
+        onClose={() => setSwitchOpen(false)}
+      />
+    </View>
+  );
+}
+
+function SwitchUserModal({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const { switchUser } = useAuth();
+  const { data: users, isLoading } = useSwitchableUsersQuery(visible);
+  const [selectedUser, setSelectedUser] = useState<UserLookup | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleClose = () => {
+    setSelectedUser(null);
+    setError(null);
+    onClose();
+  };
+
+  const handlePin = async (pin: string) => {
+    if (!selectedUser) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await switchUser(selectedUser.userId, pin);
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <ModalSheet visible={visible} onClose={handleClose} maxWidth={400}>
+      <View className="mb-3 flex-row items-center justify-between">
+        <Text className="text-base font-bold text-slate-800">
+          {selectedUser ? selectedUser.fullName : "Switch User"}
+        </Text>
+
+        <Pressable onPress={handleClose}>
+          <X size={20} color="#64748b" />
+        </Pressable>
+      </View>
+
+      {selectedUser ? (
+        <View className="items-center pt-4">
+          <PinPad
+            label="Enter PIN"
+            onSubmit={handlePin}
+            error={error}
+            isSubmitting={isSubmitting}
+          />
+
+          <Pressable
+            onPress={() => setSelectedUser(null)}
+            className="mt-4"
+          >
+            <Text className="text-[13px] font-semibold text-emerald-600">
+              Choose a different user
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <FlatList
+          data={users || []}
+          keyExtractor={(u) => String(u.userId)}
+          className="max-h-[360px]"
+          renderItem={({ item }) => (
+            <Pressable
+              className="flex-row items-center gap-3 border-b border-slate-100 py-3"
+              onPress={() => setSelectedUser(item)}
+            >
+              <View className="h-9 w-9 items-center justify-center rounded-full bg-slate-100">
+                <Text className="text-xs font-bold text-slate-600">
+                  {item.fullName
+                    .split(" ")
+                    .map((p) => p[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </Text>
+              </View>
+
+              <Text className="text-sm font-semibold text-slate-700">
+                {item.fullName}
+              </Text>
+            </Pressable>
+          )}
+        />
+      )}
+    </ModalSheet>
+  );
+}
+
+================
+File: src/navigation/RootNavigator.tsx
+================
+import React from "react";
+import { createDrawerNavigator } from "@react-navigation/drawer";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useWindowDimensions } from "react-native";
+
+import { DrawerContent } from "./DrawerContent";
+import { SalesScreen } from "../screens/SalesScreen";
+import { CheckoutScreen } from "../screens/CheckoutScreen";
+import { ReceiptsScreen } from "../screens/ReceiptsScreen";
+import { ReceiptDetailScreen } from "../screens/ReceiptDetailScreen";
+import { ShiftScreen } from "../screens/ShiftScreen";
+import { colors } from "../theme/colors";
+import { WIDE_BREAKPOINT } from "@/hooks/seIsWideLayout"; 
+
+import type { SalesStackParamList, ReceiptsStackParamList } from "./types";
+import { SupportScreen } from "@/screens/SupportScreen";
+
+const Drawer = createDrawerNavigator();
+const SalesStack = createNativeStackNavigator<SalesStackParamList>();
+const ReceiptsStack = createNativeStackNavigator<ReceiptsStackParamList>();
+
+function SalesStackNavigator() {
+  return (
+    <SalesStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: colors.slate50,
+        },
+      }}
+    >
+      <SalesStack.Screen name="SalesHome" component={SalesScreen} />
+      <SalesStack.Screen name="Checkout" component={CheckoutScreen} />
+    </SalesStack.Navigator>
+  );
+}
+
+function ReceiptsStackNavigator() {
+  return (
+    <ReceiptsStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: colors.slate50,
+        },
+      }}
+    >
+      <ReceiptsStack.Screen name="ReceiptsHome" component={ReceiptsScreen} />
+      <ReceiptsStack.Screen name="ReceiptDetail" component={ReceiptDetailScreen} />
+    </ReceiptsStack.Navigator>
+  );
+}
+
+export function RootNavigator() {
+  const { width } = useWindowDimensions();
+  const isWide = width >= WIDE_BREAKPOINT;
+
+  return (
+    <Drawer.Navigator
+      screenOptions={{
+        headerShown: false,
+        drawerType: isWide ? "permanent" : "front",
+        drawerStyle: {
+          width: 280,
+        },
+        overlayColor: "rgba(15, 23, 42, 0.4)",
+      }}
+      drawerContent={(props) => <DrawerContent {...props} />}
+    >
+      <Drawer.Screen name="Sales" component={SalesStackNavigator} />
+      <Drawer.Screen name="Receipts" component={ReceiptsStackNavigator} />
+      <Drawer.Screen name="Shift" component={ShiftScreen} />
+      <Drawer.Screen name="Support" component={SupportScreen} />
+    </Drawer.Navigator>
+  );
+}
+
+================
+File: src/navigation/types.ts
+================
+export type SalesStackParamList = {
+  SalesHome: undefined;
+  Checkout: undefined;
+};
+
+export type ReceiptsStackParamList = {
+  ReceiptsHome: undefined;
+  ReceiptDetail: { receiptId: number };
+};
+
+export type ShiftStackParamList = {
+  ShiftHome: undefined;
+};
+
+export type DrawerParamList = {
+  Sales: undefined;
+  Receipts: undefined;
+  Shift: undefined;
+  Support: undefined;
+};
+
+================
+File: src/screens/CheckoutScreen.tsx
+================
+import React, { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  TextInput,
+  FlatList,
+  ActivityIndicator,
+} from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import {
+  ArrowLeft,
+  CreditCard,
+  Banknote,
+  CheckCircle2,
+} from "lucide-react-native";
+import { useCartStore } from "../store/cartStore";
+import { useTerminalStore } from "../store/terminalStore";
+import { useCheckoutMutation, useCheckoutQuoteQuery } from "../hooks/queries/usePosQueries";
+import { getErrorMessage } from "../api/client";
+import { formatCurrency, round2 } from "../utils/currency";
+import type { SalesStackParamList } from "../navigation/types";
+
+type Props = NativeStackScreenProps<SalesStackParamList, "Checkout">;
+
+type PaymentMethod = "Cash" | "Card";
+
+export function CheckoutScreen({ navigation }: Props) {
+  const items = useCartStore((s) => s.items);
+  const cartDiscountPercentage = useCartStore(
+    (s) => s.cartDiscountPercentage
+  );
+  const subtotal = useCartStore((s) => s.subtotal());
+  const clearCart = useCartStore((s) => s.clear);
+  const { storeId } = useTerminalStore();
+
+  const [paymentMethod, setPaymentMethod] =
+    useState<PaymentMethod>("Cash");
+
+  const [amountTendered, setAmountTendered] = useState("");
+  const [successReceipt, setSuccessReceipt] =
+    useState<string | null>(null);
+
+  const [checkoutError, setCheckoutError] =
+    useState<string | null>(null);
+
+  const checkoutMutation = useCheckoutMutation();
+
+  const quotePayload = useMemo(
+    () =>
+      storeId == null || items.length === 0
+        ? null
+        : {
+            storeId,
+            cartDiscountPercentage,
+            items: items.map((i) => ({
+              productId: i.productId,
+              quantity: i.quantity,
+              manualItemDiscountPercentage:
+                i.manualItemDiscountPercentage,
+            })),
+          },
+    [storeId, cartDiscountPercentage, items]
+  );
+
+  const {
+    data: checkoutQuote,
+    isLoading: isQuoteLoading,
+    isError: isQuoteError,
+    error: quoteError,
+  } = useCheckoutQuoteQuery(quotePayload);
+
+  const backendTotal = checkoutQuote?.finalTotal ?? null;
+
+  const tendered = parseFloat(amountTendered) || 0;
+
+  const change = useMemo(
+    () => backendTotal == null
+      ? 0
+      : round2(Math.max(0, tendered - backendTotal)),
+    [tendered, backendTotal]
+  );
+
+  const hasCashAmount = amountTendered.trim().length > 0;
+
+  const cashPaymentValid =
+    paymentMethod === "Card" ||
+    !hasCashAmount ||
+    (backendTotal != null && tendered >= backendTotal)
+
+  const canConfirm =
+    items.length > 0 &&
+    storeId != null &&
+    backendTotal != null &&
+    !isQuoteLoading &&
+    !isQuoteError &&
+    cashPaymentValid &&
+    !checkoutMutation.isPending;
+
+  const handleConfirm = async () => {
+    if (!storeId) return;
+
+    setCheckoutError(null);
+
+    try {
+      const result = await checkoutMutation.mutateAsync({
+        storeId,
+        cartDiscountPercentage,
+        paymentMethod,
+        items: items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          manualItemDiscountPercentage:
+            i.manualItemDiscountPercentage,
+        })),
+      });
+
+      setSuccessReceipt(result.receiptNumber);
+      clearCart();
+    } catch (err) {
+      setCheckoutError(getErrorMessage(err));
+    }
+  };
+
+  if (successReceipt) {
+    return (
+      <View className="flex-1 items-center justify-center gap-2 bg-white">
+        <CheckCircle2 size={64} color="#059669" />
+
+        <Text className="mt-3 text-[22px] font-extrabold text-slate-800">
+          Sale complete
+        </Text>
+
+        <Text className="mb-6 text-sm text-slate-500">
+          Receipt #{successReceipt}
+        </Text>
+
+        <Pressable
+          className="rounded-xl bg-emerald-600 px-8 py-3.5"
+          onPress={() => navigation.navigate("SalesHome")}
+        >
+          <Text className="text-[15px] font-bold text-white">
+            New Sale
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-slate-50">
+      <View className="flex-row items-center justify-between border-b border-slate-200 bg-white p-4">
+        <Pressable
+          onPress={() => navigation.goBack()}
+          className="p-1"
+        >
+          <ArrowLeft size={20} color="#334155" />
+        </Pressable>
+
+        <Text className="text-base font-bold text-slate-800">
+          Checkout
+        </Text>
+
+        <View className="w-8" />
+      </View>
+
+      <FlatList
+        data={items}
+        keyExtractor={(i) => String(i.productId)}
+        className="flex-1"
+        contentContainerClassName="p-4"
+        renderItem={({ item }) => {
+          const marketDiscountAmount = round2(
+            item.unitPrice *
+              item.quantity *
+              (item.marketDiscountPercentage / 100)
+          );
+
+          const manualDiscountAmount = round2(
+            item.unitPrice *
+              item.quantity *
+              (item.manualItemDiscountPercentage / 100)
+          );
+
+          const itemDiscountAmount = round2(
+            manualDiscountAmount + marketDiscountAmount
+          );
+
+          const lineTotal = round2(
+            item.unitPrice * item.quantity -
+              itemDiscountAmount
+          );
+
+          return (
+            <View className="flex-row justify-between border-b border-slate-100 py-2">
+              <View className="flex-1">
+                <Text
+                  className="text-sm font-semibold text-slate-800"
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+
+                <Text className="mt-0.5 text-xs text-slate-500">
+                  {item.quantity} ×{" "}
+                  {formatCurrency(item.unitPrice)}
+                </Text>
+
+                {item.marketDiscountPercentage > 0 && (
+                  <Text className="text-xs text-red-600">
+                    Market discount: −{item.marketDiscountPercentage}%: - {formatCurrency(marketDiscountAmount)}
+                  </Text>
+                )}
+
+                {item.manualItemDiscountPercentage > 0 && (
+                  <Text className="text-xs text-emerald-600">
+                    Manual discount: −{item.manualItemDiscountPercentage}%: - {formatCurrency(manualDiscountAmount)}
+                  </Text>
+                )}
+              </View>
+
+              <Text className="text-sm font-bold text-slate-800">
+                {formatCurrency(lineTotal)}
+              </Text>
+            </View>
+          );
+        }}
+        ListFooterComponent={
+          <View className="mt-4 gap-1 border-t border-slate-200 pt-4">
+            <View className="flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                Subtotal
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-slate-700">
+                {formatCurrency(subtotal)}
+              </Text>
+            </View>
+
+            {cartDiscountPercentage > 0 && (
+              <View className="flex-row justify-between">
+                <Text className="text-[13px] text-slate-500">
+                  Receipt discount
+                </Text>
+
+                <Text className="text-[13px] font-semibold text-red-600">
+                  − {cartDiscountPercentage}%
+                </Text>
+              </View>
+            )}
+
+            <View className="mt-2 flex-row justify-between">
+              <Text className="text-[17px] font-extrabold text-slate-800">
+                Total
+              </Text>
+
+              <Text className="text-[22px] font-extrabold text-emerald-600">
+                {backendTotal != null
+                  ? formatCurrency(backendTotal)
+                  : "-"}
+              </Text>
+            </View>
+          </View>
+        }
+      />
+
+      <View className="gap-3 border-t border-slate-200 bg-white p-4 shadow-md">
+        <View className="flex-row gap-2">
+          <Pressable
+            className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-3 ${
+              paymentMethod === "Cash"
+                ? "bg-emerald-600"
+                : "bg-slate-100"
+            }`}
+            onPress={() => setPaymentMethod("Cash")}
+          >
+            <Banknote
+              size={16}
+              color={
+                paymentMethod === "Cash"
+                  ? "#ffffff"
+                  : "#475569"
+              }
+            />
+
+            <Text
+              className={`text-sm font-semibold ${
+                paymentMethod === "Cash"
+                  ? "text-white"
+                  : "text-slate-600"
+              }`}
+            >
+              Cash
+            </Text>
+          </Pressable>
+
+          <Pressable
+            className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-3 ${
+              paymentMethod === "Card"
+                ? "bg-emerald-600"
+                : "bg-slate-100"
+            }`}
+            onPress={() => setPaymentMethod("Card")}
+          >
+            <CreditCard
+              size={16}
+              color={
+                paymentMethod === "Card"
+                  ? "#ffffff"
+                  : "#475569"
+              }
+            />
+
+            <Text
+              className={`text-sm font-semibold ${
+                paymentMethod === "Card"
+                  ? "text-white"
+                  : "text-slate-600"
+              }`}
+            >
+              Card
+            </Text>
+          </Pressable>
+        </View>
+
+        {paymentMethod === "Cash" && (
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <Text className="mb-1.5 text-[11px] font-semibold text-slate-500">
+                Amount received
+              </Text>
+
+              <TextInput
+                value={amountTendered}
+                onChangeText={setAmountTendered}
+                keyboardType="decimal-pad"
+                placeholder={
+                  backendTotal == null
+                  ? "-"
+                  : formatCurrency(backendTotal)
+                }
+                className="rounded-lg border border-slate-300 px-3 py-2.5 text-base font-semibold"
+              />
+            </View>
+
+            <View className="flex-1 items-end">
+              <Text className="mb-1.5 text-[11px] font-semibold text-slate-500">
+                Change due
+              </Text>
+
+              <Text className="text-[22px] font-extrabold text-emerald-600">
+                {formatCurrency(change)}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {checkoutError && (
+          <View className="rounded-xl border border-red-200 bg-red-50 p-3">
+            <Text className="text-sm font-semibold text-red-700">
+              {checkoutError}
+            </Text>
+          </View>
+        )}
+
+        {isQuoteError && (
+          <View className="rounded-xl border border-red-200 bg-red-50 p-3">
+            <Text className="text-sm font-semibold text-red-700">
+              {getErrorMessage(quoteError)}
+            </Text>
+          </View>
+        )}
+
+        {isQuoteLoading && (
+          <View className="flex-row items-center justify-center gap-2 py-1">
+            <ActivityIndicator size="small" color="#059669" />
+            <Text className="text-xs font-semibold text-slate-500">
+              Verifying final amount…
+            </Text>
+          </View>
+        )}
+
+        <Pressable
+          className={`items-center rounded-xl py-4 ${
+            canConfirm
+              ? "bg-emerald-600"
+              : "bg-slate-300"
+          }`}
+          disabled={!canConfirm}
+          onPress={handleConfirm}
+        >
+          {checkoutMutation.isPending ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text className="text-base font-bold text-white">
+              Confirm {backendTotal == null ? "-" : formatCurrency (backendTotal)}
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+================
+File: src/screens/LoginScreen.tsx
+================
+import React, { useState } from "react";
+import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, Linking } from "react-native";
+import { LogIn, Lock, User as UserIcon } from "lucide-react-native";
+import { useAuth } from "../context/AuthContext";
+import { getErrorMessage } from "../api/client";
+import { APP_NAME } from "../theme/colors";
+
+export function LoginScreen() {
+  const { login } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!username || !password) {
+      setError("Enter your username and password.");
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      await login(username, password);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openPrivacyPolicy = () => {
+    Linking.openURL("https://tenexerp.com/privacy-policy");
+  };
+
+  const openTermsOfService = () => {
+    Linking.openURL("https://tenexerp.com/terms-of-service");
+  };
+
+  const openSupportEmail = () => {
+    Linking.openURL("mailto:support@tenexerp.com");
+  };
+
+  return (
+    <KeyboardAvoidingView
+      className="flex-1 items-center justify-center bg-slate-50 p-6"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View className="w-full max-w-[380px] items-center rounded-2xl bg-white p-8 shadow-md">
+        <View className="mb-4 h-14 w-14 items-center justify-center rounded-full bg-emerald-600">
+          <Text className="text-2xl font-extrabold text-white">
+            {APP_NAME.charAt(0)}
+          </Text>
+        </View>
+
+        <Text className="text-xl font-extrabold text-slate-800">
+          {APP_NAME} Register
+        </Text>
+
+        <Text className="mb-6 mt-1 text-[13px] text-slate-500">
+          Sign in to start your shift
+        </Text>
+
+        <View className="mb-3 w-full flex-row items-center gap-2 rounded-lg border border-slate-300 px-3 py-3">
+          <UserIcon size={16} color="#94a3b8" />
+
+          <TextInput
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Username"
+            autoCapitalize="none"
+            className="flex-1 text-[15px]"
+          />
+        </View>
+
+        <View className="mb-3 w-full flex-row items-center gap-2 rounded-lg border border-slate-300 px-3 py-3">
+          <Lock size={16} color="#94a3b8" />
+
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            secureTextEntry
+            className="flex-1 text-[15px]"
+            onSubmitEditing={handleSubmit}
+          />
+        </View>
+
+        {error ? (
+          <Text className="mb-3 self-start text-[13px] text-red-600">
+            {error}
+          </Text>
+        ) : null}
+
+        <Pressable
+          className="mt-2 w-full flex-row items-center justify-center gap-2 rounded-lg bg-emerald-600 py-3.5"
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <>
+              <LogIn size={16} color="#ffffff" />
+
+              <Text className="text-[15px] font-bold text-white">
+                Sign In
+              </Text>
+            </>
+          )}
+        </Pressable>
+
+        <View className="mt-6 w-full flex-row flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <Pressable onPress={openPrivacyPolicy}>
+            <Text className="text-xs font-medium text-slate-500">
+              Privacy Policy
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={openTermsOfService}>
+            <Text className="text-xs font-medium text-slate-500">
+              Terms of Service
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={openSupportEmail}>
+            <Text className="text-xs font-medium text-slate-500">
+              Support
+            </Text>
+          </Pressable>
+        </View>
+
+        <Text className="mt-4 text-[11px] text-slate-400">
+          © {new Date().getFullYear()} TenexERP
+        </Text>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+================
+File: src/screens/ReceiptDetailScreen.tsx
+================
+import React from "react";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { ArrowLeft } from "lucide-react-native";
+import { useReceiptDetailQuery } from "../hooks/queries/usePosQueries";
+import { formatCurrency } from "../utils/currency";
+import type { ReceiptsStackParamList } from "../navigation/types";
+
+type Props = NativeStackScreenProps<ReceiptsStackParamList, "ReceiptDetail">;
+
+export function ReceiptDetailScreen({ navigation, route }: Props) {
+  const { receiptId } = route.params;
+  const { data: receipt, isLoading, isError } = useReceiptDetailQuery(receiptId);
+
+  const itemDiscountAmount =
+    receipt?.lines.reduce(
+      (total, line) =>
+        total +
+        line.unitPrice *
+          line.quantity *
+          ((line.marketDiscountPercentage +
+            line.manualItemDiscountPercentage) /
+            100),
+      0
+    ) ?? 0;
+
+  const discountedSubtotal =
+    receipt ? receipt.subTotal - itemDiscountAmount : 0;
+
+  const cartDiscountAmount =
+    receipt
+      ? discountedSubtotal * (receipt.cartDiscountPercentage / 100)
+      : 0;
+
+  const totalDiscountAmount =
+    itemDiscountAmount + cartDiscountAmount;
+
+  return (
+    <View className="flex-1 bg-slate-50">
+      <View className="flex-row items-center justify-between border-b border-slate-200 bg-white p-4">
+        <Pressable onPress={() => navigation.goBack()} className="p-1">
+          <ArrowLeft size={20} color="#334155" />
+        </Pressable>
+
+        <Text className="text-base font-bold text-slate-800">Receipt</Text>
+
+        <View className="w-8" />
+      </View>
+
+      {isLoading && (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#059669" />
+        </View>
+      )}
+
+      {isError && (
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-sm text-red-600">Failed to load receipt.</Text>
+        </View>
+      )}
+
+      {receipt && (
+        <ScrollView
+          contentContainerClassName="items-center p-4"
+        >
+          <View className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-md">
+            <Text className="text-center text-lg font-extrabold text-slate-800">
+              {receipt.storeName}
+            </Text>
+
+            <Text className="mt-0.5 text-center text-[13px] text-slate-500">
+              #{receipt.receiptNumber}
+            </Text>
+
+            <Text className="mt-1 text-center text-xs text-slate-400">
+              {new Date(receipt.createdAt).toLocaleString()} · {receipt.cashierName}
+            </Text>
+
+            <View className="my-4 h-px bg-slate-200" />
+
+            {receipt.lines.map((line, idx) => (
+              <View key={idx} className="mb-2 flex-row justify-between">
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-slate-800">
+                    {line.productName}
+                  </Text>
+
+                  <View className="mt-1">
+                    <Text className="text-xs text-slate-500">
+                      {line.quantity} × {formatCurrency(line.unitPrice)}
+                    </Text>
+
+                    {line.marketDiscountPercentage > 0 && (
+                      <Text className="text-xs text-red-600">
+                        Market discount: {line.marketDiscountPercentage}%
+                      </Text>
+                    )}
+
+                    {line.manualItemDiscountPercentage > 0 && (
+                      <Text className="text-xs text-red-600">
+                        Manual discount: {line.manualItemDiscountPercentage}%
+                      </Text>
+                    )}
+
+                    {(line.marketDiscountPercentage > 0 ||
+                      line.manualItemDiscountPercentage > 0) && (
+                      <>
+                        <Text className="text-xs text-red-600">
+                          Original:{" "}
+                          {formatCurrency(line.unitPrice * line.quantity)}
+                        </Text>
+
+                        <Text className="text-xs font-semibold text-emerald-600">
+                          After item discounts: {formatCurrency(line.lineTotal)}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+
+                </View>
+
+                <Text className="text-sm font-bold text-slate-800">
+                  {formatCurrency(line.lineTotal)}
+                </Text>
+              </View>
+            ))}
+
+            <View className="my-4 h-px bg-slate-200" />
+
+            <View className="mb-1 flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                Original subtotal
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-slate-700">
+                {formatCurrency(receipt.subTotal)}
+              </Text>
+            </View>
+
+            {itemDiscountAmount > 0 && (
+              <View className="mb-1 flex-row justify-between">
+                <Text className="text-[13px] text-slate-500">
+                  Item discounts
+                </Text>
+
+                <Text className="text-[13px] font-semibold text-red-600">
+                  − {formatCurrency(itemDiscountAmount)}
+                </Text>
+              </View>
+            )}
+
+            {receipt.cartDiscountPercentage > 0 && (
+              <View className="mb-1 flex-row justify-between">
+                <Text className="text-[13px] text-slate-500">
+                  Receipt discount ({receipt.cartDiscountPercentage}%)
+                </Text>
+
+                <Text className="text-[13px] font-semibold text-red-600">
+                  − {formatCurrency(cartDiscountAmount)}
+                </Text>
+              </View>
+            )}
+
+            {totalDiscountAmount > 0 && (
+              <View className="mb-1 flex-row justify-between">
+                <Text className="text-[13px] font-semibold text-red-600">
+                  Total saved
+                </Text>
+
+                <Text className="text-[13px] font-bold text-red-600">
+                  − {formatCurrency(totalDiscountAmount)}
+                </Text>
+              </View>
+            )}
+
+            <View className="mb-1 flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                After discounts
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-slate-700">
+                {formatCurrency(discountedSubtotal - cartDiscountAmount)}
+              </Text>
+            </View>
+
+            <View className="mb-1 flex-row justify-between">
+              <Text className="text-[13px] text-slate-500">
+                VAT
+              </Text>
+
+              <Text className="text-[13px] font-semibold text-slate-700">
+                {formatCurrency(receipt.totalVatAmount)}
+              </Text>
+            </View>
+
+            <View className="my-4 h-px bg-slate-200" />
+
+            <View className="flex-row justify-between">
+              <Text className="text-base font-extrabold text-slate-800">
+                Final total
+              </Text>
+
+              <Text className="text-xl font-extrabold text-emerald-600">
+                {formatCurrency(receipt.finalTotal)}
+              </Text>
+            </View>
+
+            <View className="mt-4 self-center rounded-full bg-emerald-50 px-4 py-1.5">
+              <Text className="text-xs font-bold text-emerald-700">
+                Paid by {receipt.paymentMethod}
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+================
+File: src/screens/ReceiptsScreen.tsx
+================
+import React from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import {
+  Receipt as ReceiptIcon,
+  ChevronRight,
+  Banknote,
+  CreditCard,
+  Ticket,
+} from "lucide-react-native";
+import { useTerminalStore } from "../store/terminalStore";
+import {
+  useCurrentShiftQuery,
+  useShiftReceiptsQuery,
+} from "../hooks/queries/usePosQueries";
+import { formatCurrency } from "../utils/currency";
+import type { ReceiptsStackParamList } from "../navigation/types";
+import type { ShiftReceiptSummary } from "../types";
+import { MenuButton } from "@/components/MenuButton";
+
+type Props = NativeStackScreenProps<
+  ReceiptsStackParamList,
+  "ReceiptsHome"
+>;
+
+function paymentIcon(method: ShiftReceiptSummary["paymentMethod"]) {
+  if (method === "Cash") {
+    return <Banknote size={16} color="#059669" />;
+  }
+
+  if (method === "Card") {
+    return <CreditCard size={16} color="#2563eb" />;
+  }
+
+  return <Ticket size={16} color="#d97706" />;
+}
+
+export function ReceiptsScreen({ navigation }: Props) {
+  const { storeId } = useTerminalStore();
+  const { data: shiftData } = useCurrentShiftQuery(storeId);
+  const shiftId = shiftData?.shift?.shiftId ?? null;
+
+  const {
+    data: receipts,
+    isLoading,
+    isError,
+  } = useShiftReceiptsQuery(shiftId);
+
+
+  if (!shiftId) {
+    return (
+      <View className="flex-1 bg-slate-50">
+        <View className="border-b border-slate-200 bg-white px-4 py-3">
+          <MenuButton />
+        </View>
+
+        <View className="flex-1 items-center justify-center gap-1.5 bg-slate-50 p-6">
+          <ReceiptIcon size={40} color="#cbd5e1" />
+
+          <Text className="text-[15px] font-bold text-slate-600">
+            No shift is open
+          </Text>
+
+          <Text className="text-center text-[13px] text-slate-400">
+            Open a shift to start selling.
+          </Text>
+
+          <Pressable
+            onPress={() => navigation.getParent()?.navigate("Shift")}
+            className="mt-2 rounded-md bg-emerald-600 px-4 py-2.5"
+          >
+            <Text className="text-sm font-semibold text-white">
+              Go to Shift
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-slate-50">
+        <ActivityIndicator color="#059669" />
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View className="flex-1 items-center justify-center bg-slate-50">
+        <Text className="text-red-600">
+          Failed to load receipts.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-slate-50">
+      <View className="flex-row items-center border-b border-slate-200 bg-white p-4">
+        <View className="flex-row items-center gap-3 border-b border-slate-200 bg-white p-4">
+          <MenuButton />
+          <View>
+            <Text className="text-[17px] font-extrabold text-slate-800">Current Shift Receipts</Text>
+            <Text className="mt-0.5 text-xs text-slate-500">{receipts?.length ?? 0} sales</Text>
+          </View>
+        </View>
+      </View>
+      <FlatList
+        data={receipts || []}
+        keyExtractor={(r) => String(r.receiptId)}
+        contentContainerClassName="p-4"
+        ListEmptyComponent={
+          <View className="flex-1 items-center justify-center gap-1.5 p-6">
+            <ReceiptIcon size={40} color="#cbd5e1" />
+
+            <Text className="text-[15px] font-bold text-slate-600">
+              No sales yet
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <Pressable
+            className="mb-2 flex-row items-center gap-3 rounded-xl border border-slate-200 bg-white p-3"
+            onPress={() =>
+              navigation.navigate("ReceiptDetail", {
+                receiptId: item.receiptId,
+              })
+            }
+          >
+            <View className="h-9 w-9 items-center justify-center rounded-lg bg-slate-50">
+              {paymentIcon(item.paymentMethod)}
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-slate-800">
+                #{item.receiptNumber}
+              </Text>
+
+              <Text className="mt-0.5 text-xs text-slate-500">
+                {new Date(item.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                · {item.itemCount} item
+                {item.itemCount === 1 ? "" : "s"}
+              </Text>
+            </View>
+
+            <Text className="mr-1 text-[15px] font-extrabold text-emerald-600">
+              {formatCurrency(item.finalTotal)}
+            </Text>
+
+            <ChevronRight size={18} color="#cbd5e1" />
+          </Pressable>
+        )}
+      />
+    </View>
+  );
+}
+
+================
+File: src/screens/SalesScreen.tsx
+================
+import React, { useEffect, useMemo, useState } from "react";
+import {View, Text, Pressable,TextInput, FlatList, Modal, Image, ActivityIndicator, useWindowDimensions, } from "react-native";
+import { Pencil, Check, ChevronLeft, ChevronRight, ShoppingCart, AlertTriangle, Search, SlidersHorizontal, X, Plus, Trash2, } from "lucide-react-native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+
+import { ProductBox } from "../components/ProductBox";
+import { CartPanel } from "../components/CartPanel";
+import { ProductPickerModal } from "../components/ProductPickerModal";
+import { ShapeIcon } from "../components/ShapeIcon";
+
+import { usePosLayoutStore } from "../store/posLayoutStore";
+import { useCartStore } from "../store/cartStore";
+import { useTerminalStore } from "../store/terminalStore";
+
+import { useProductsByIdsQuery } from "../hooks/queries/useProductQueries";
+import { useCurrentShiftQuery } from "../hooks/queries/usePosQueries";
+``
+import { API_BASE_URL } from "../api/client";
+import { formatCurrency } from "../utils/currency";
+
+import type { Product } from "../types";
+import type { SalesStackParamList } from "../navigation/types";
+import { MenuButton } from "@/components/MenuButton";
+
+type Props = NativeStackScreenProps<SalesStackParamList, "SalesHome">;
+
+const APPEND_SLOT = -1;
+
+function useGridConfig() {
+  const { width } = useWindowDimensions();
+
+  return useMemo(() => {
+    if (width < 600) {
+      return {
+        columns: 1,
+        rows: 1,
+        isPhone: true,
+        cartWidth: 0,
+      };
+    }
+
+    if (width < 1000) {
+      return {
+        columns: 4,
+        rows: 3,
+        isPhone: false,
+        cartWidth: 320,
+      };
+    }
+
+    return {
+      columns: 5,
+      rows: 5,
+      isPhone: false,
+      cartWidth: 360,
+    };
+  }, [width]);
+}
+
+function resolveImageUrl(path: string) {
+  const origin = API_BASE_URL.replace(/\/api$/, "");
+  return `${origin}${path}`;
+}
+
+function PhoneProductPreview({ product }: { product: Product }) {
+  const isImage = product.displayMode === "Image" && !!product.imageUrl;
+  const isShape = product.displayMode === "Shape" && !!product.shapeType;
+
+  return (
+    <View className="h-16 w-16 overflow-hidden rounded-full bg-slate-100">
+      {isImage ? (
+        <Image
+          source={{ uri: resolveImageUrl(product.imageUrl!) }}
+          className="h-full w-full"
+          resizeMode="cover"
+        />
+      ) : isShape ? (
+        <View className="h-full w-full items-center justify-center">
+          <ShapeIcon
+            shapeType={product.shapeType!}
+            color={product.shapeColor || "#ffffff"}
+            text={product.shapeText}
+            size={52}
+          />
+        </View>
+      ) : (
+        <View className="h-full w-full items-center justify-center bg-white">
+          <Text
+            className="px-1 text-center text-[10px] font-semibold text-slate-600"
+            numberOfLines={3}
+          >
+            {product.name}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+export function SalesScreen({ navigation }: Props) {
+  const grid = useGridConfig();
+  const slotsPerPage = grid.columns * grid.rows;
+
+  const { storeId } = useTerminalStore();
+
+  const { data: shiftData, isLoading: isShiftLoading } = useCurrentShiftQuery(storeId);
+  const hasOpenShift = shiftData?.hasOpenShift ?? false;
+
+  const { slots, isLoaded, load, assignProduct, appendProduct, getProductIdAt } =
+    usePosLayoutStore();
+
+  useEffect(() => {
+    if (!isLoaded) {
+      load();
+    }
+  }, [isLoaded, load]);
+
+  const [page, setPage] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [pickerSlot, setPickerSlot] = useState<number | null>(null);
+
+  const [searchText, setSearchText] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const [cartOpen, setCartOpen] = useState(false);
+
+  const addProduct = useCartStore((s) => s.addProduct);
+  const itemCount = useCartStore((s) => s.itemCount());
+
+  const assignedIds = useMemo(
+    () => slots.map((s) => s.productId).filter((id): id is number => id !== null),
+    [slots]
+  );
+
+  const { data: hydratedProducts } = useProductsByIdsQuery(assignedIds);
+
+  const productById = useMemo(() => {
+    const map = new Map<number, Product>();
+    (hydratedProducts || []).forEach((product) => {
+      map.set(product.productId, product);
+    });
+    return map;
+  }, [hydratedProducts]);
+
+  const phoneProducts = useMemo(() => {
+    const products = [...productById.values()];
+    const search = searchText.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchesSearch =
+        !search ||
+        product.name.toLowerCase().includes(search) ||
+        String(product.productId).includes(search);
+
+      const categoryName =
+        "categoryName" in product
+          ? String((product as Product & { categoryName?: string }).categoryName ?? "")
+          : "";
+
+      const matchesCategory = !selectedCategory || categoryName === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [productById, searchText, selectedCategory]);
+
+  const categories = useMemo(() => {
+    const values = new Set<string>();
+    productById.forEach((product) => {
+      if ("categoryName" in product) {
+        const categoryName = (product as Product & { categoryName?: string }).categoryName;
+        if (categoryName) {
+          values.add(categoryName);
+        }
+      }
+    });
+    return Array.from(values).sort();
+  }, [productById]);
+
+  const pageSlotIndexes = useMemo(
+    () => Array.from({ length: slotsPerPage }, (_, i) => page * slotsPerPage + i),
+    [page, slotsPerPage]
+  );
+
+  const handleBoxPress = (slotIndex: number) => {
+    if (isEditing) {
+      setPickerSlot(slotIndex);
+      return;
+    }
+
+    const productId = getProductIdAt(slotIndex);
+    if (productId === null) return;
+
+    const product = productById.get(productId);
+    if (product) {
+      addProduct(product);
+    }
+  };
+
+  const handlePhoneProductPress = (product: Product) => {
+    addProduct(product);
+  };
+
+  const handlePhoneProductDelete = (productId: number) => {
+    const slotIndex = slots.findIndex(
+      (slot) => slot.productId === productId
+    );
+
+    if (slotIndex !== -1) {
+      assignProduct(slotIndex, null);
+    }
+  };
+
+  const handleOpenAppendPicker = () => {
+    setPickerSlot(APPEND_SLOT);
+  };
+
+  const handlePickerSelect = (product: Product) => {
+    if (pickerSlot === APPEND_SLOT) {
+      if (!assignedIds.includes(product.productId)) {
+        appendProduct(product.productId);
+      }
+    } else if (pickerSlot !== null) {
+      assignProduct(pickerSlot, product.productId);
+    }
+    setPickerSlot(null);
+  };
+
+  const handlePickerClearSlot = () => {
+    if (pickerSlot !== null && pickerSlot !== APPEND_SLOT) {
+      assignProduct(pickerSlot, null);
+    }
+    setPickerSlot(null);
+  };
+
+
+  if (isShiftLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-slate-50">
+        <ActivityIndicator color="#059669" />
+      </View>
+    );
+  }
+
+  if (!hasOpenShift) {
+    return (
+      <View className="flex-1 bg-slate-50">
+        <View className="border-b border-slate-200 bg-white px-4 py-3">
+          <MenuButton />
+        </View>
+
+        <View className="flex-1 items-center justify-center gap-2 p-6">
+          <AlertTriangle size={32} color="#d97706" />
+
+          <Text className="text-center text-base font-bold text-slate-700">
+            No shift is open
+          </Text>
+
+          <Text className="text-center text-sm text-slate-500">
+            Open a shift to start selling.
+          </Text>
+
+          <Pressable
+            onPress={() => navigation.getParent()?.navigate("Shift")}
+            className="mt-2 rounded-md bg-emerald-600 px-4 py-2.5"
+          >
+            <Text className="text-sm font-semibold text-white">
+              Go to Shift
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  /*
+   * DESKTOP / IPAD GRID
+   */
+  const productGrid = (
+    <View className="flex-1 p-0">
+      <View className="flex-row items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+        <View className="flex-row items-center gap-2">
+          <MenuButton />
+          <Pressable
+            disabled={page === 0}
+            onPress={() => setPage((current) => Math.max(0, current - 1))}
+            className={`h-9 w-9 items-center justify-center rounded-md border border-slate-200 ${
+              page === 0 ? "opacity-40" : ""
+            }`}
+          >
+            <ChevronLeft size={18} color="#475569" />
+          </Pressable>
+
+          <Text className="px-2 text-sm font-semibold text-slate-600">Page {page + 1}</Text>
+
+          <Pressable
+            onPress={() => setPage((current) => current + 1)}
+            className="h-9 w-9 items-center justify-center rounded-md border border-slate-200"
+          >
+            <ChevronRight size={18} color="#475569" />
+          </Pressable>
+        </View>
+
+        <Pressable
+          onPress={() => setIsEditing((current) => !current)}
+          className={`flex-row items-center gap-1.5 rounded-md border px-3 py-2 ${
+            isEditing ? "border-emerald-600 bg-emerald-600" : "border-slate-200 bg-white"
+          }`}
+        >
+          {isEditing ? <Check size={16} color="white" /> : <Pencil size={16} color="#475569" />}
+          <Text className={`text-sm font-semibold ${isEditing ? "text-white" : "text-slate-600"}`}>
+            {isEditing ? "Done" : "Edit Layout"}
+          </Text>
+        </Pressable>
+      </View>
+
+      <View className="flex-1">
+        {Array.from({ length: grid.rows }, (_, rowIndex) => (
+          <View key={rowIndex} className="flex-1 flex-row">
+            {pageSlotIndexes
+              .slice(rowIndex * grid.columns, rowIndex * grid.columns + grid.columns)
+              .map((slotIndex) => {
+                const productId = getProductIdAt(slotIndex);
+                const product = productId !== null ? productById.get(productId) ?? null : null;
+
+                return (
+                  <ProductBox
+                    key={slotIndex}
+                    product={product}
+                    isEditing={isEditing}
+                    onPress={() => handleBoxPress(slotIndex)}
+                    onDelete={() => assignProduct(slotIndex, null)}
+                  />
+                );
+              })}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  /*
+   * PHONE PRODUCT LIST
+   */
+  const phoneProductList = (
+    <View className="flex-1 bg-slate-50">
+      {/* Search + Add */}
+      <View className="border-b border-slate-200 bg-white px-3 pb-2 pt-3">
+        <View className="flex-row items-center gap-2">
+           <MenuButton />
+          <View className="h-11 flex-1 flex-row items-center rounded-lg border border-slate-200 bg-slate-50 px-3">
+            <Search size={18} color="#64748b" />
+
+            <TextInput
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Search product or ID..."
+              placeholderTextColor="#94a3b8"
+              className="ml-2 flex-1 text-sm text-slate-700"
+            />
+            {searchText.length > 0 && (
+              <Pressable onPress={() => setSearchText("")}>
+                <X size={18} color="#64748b" />
+              </Pressable>
+            )}
+          </View>
+
+          <Pressable
+            onPress={() => setIsEditing((current) => !current)}
+            className={`h-11 flex-row items-center gap-1.5 rounded-lg border px-3 ${
+              isEditing
+                ? "border-emerald-600 bg-emerald-600"
+                : "border-slate-200 bg-white"
+            }`}
+          >
+            {isEditing ? (
+              <Check size={16} color="white" />
+            ) : (
+              <Pencil size={16} color="#475569" />
+            )}
+
+            <Text
+              className={`text-sm font-semibold ${
+                isEditing ? "text-white" : "text-slate-600"
+              }`}
+            >
+              {isEditing ? "Done" : "Edit Layout"}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Categories */}
+        <View className="mt-2 flex-row items-center">
+          <SlidersHorizontal size={16} color="#64748b" />
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="ml-2"
+            contentContainerClassName="gap-2"
+            data={["All", ...categories]}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => {
+              const active = item === "All" ? selectedCategory === null : selectedCategory === item;
+              return (
+                <Pressable
+                  onPress={() => setSelectedCategory(item === "All" ? null : item)}
+                  className={`rounded-full px-3 py-1.5 ${active ? "bg-emerald-600" : "bg-slate-100"}`}
+                >
+                  <Text className={`text-xs font-semibold ${active ? "text-white" : "text-slate-600"}`}>
+                    {item}
+                  </Text>
+                </Pressable>
+              );
+            }}
+          />
+        </View>
+      </View>
+
+      {/* Product list */}
+      <FlatList
+        data={phoneProducts}
+        keyExtractor={(item) => String(item.productId)}
+        contentContainerClassName="pb-28"
+        renderItem={({ item }) => (
+          <View className="flex-row items-center border-b border-slate-200 bg-white px-4 py-3">
+            <PhoneProductPreview product={item} />
+
+            <View className="ml-3 flex-1">
+              <Text className="text-base font-semibold text-slate-700" numberOfLines={2}>
+                {item.name}
+              </Text>
+              <Text className="mt-1 text-sm font-bold text-emerald-600">
+                {formatCurrency(item.price)}
+              </Text>
+              {item.marketDiscountRate > 0 && (
+                <Text className="mt-0.5 text-xs font-bold text-red-600">
+                  Market discount: -{item.marketDiscountRate}%
+                </Text>
+              )}
+              <Text className="mt-0.5 text-xs text-slate-400">ID: {item.productId}</Text>
+            </View>
+
+            {isEditing ? (
+              <Pressable
+                onPress={() => handlePhoneProductDelete(item.productId)}
+                hitSlop={8}
+                className="ml-2 h-12 w-12 items-center justify-center rounded-full bg-red-50"
+              >
+                <Trash2
+                  size={22}
+                  color="#dc2626"
+                  strokeWidth={2.5}
+                />
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => handlePhoneProductPress(item)}
+                hitSlop={8}
+                className="ml-2 h-12 w-12 items-center justify-center rounded-full bg-emerald-600 active:bg-emerald-700"
+              >
+                <Plus size={24} color="white" strokeWidth={2.5} />
+              </Pressable>
+            )}
+          </View>
+        )}
+        ListEmptyComponent={
+          <View className="items-center justify-center px-6 py-16 gap-2">
+            <Text className="text-sm text-slate-400">No products on your list yet.</Text>
+            <Pressable
+              onPress={handleOpenAppendPicker}
+              className="mt-2 flex-row items-center gap-1.5 rounded-md bg-emerald-600 px-4 py-2"
+            >
+              <Plus size={16} color="white" />
+              <Text className="text-sm font-semibold text-white">Add a product</Text>
+            </Pressable>
+          </View>
+        }
+      />
+
+      {/* Floating cart */}
+      <Pressable
+        onPress={() => setCartOpen(true)}
+        className="absolute bottom-5 right-5 h-14 w-14 items-center justify-center rounded-full bg-emerald-600 shadow-lg"
+      >
+        <ShoppingCart size={23} color="white" />
+        {itemCount > 0 && (
+          <View className="absolute -right-1 -top-1 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5">
+            <Text className="text-[10px] font-bold text-white">{itemCount}</Text>
+          </View>
+        )}
+      </Pressable>
+
+      {isEditing && (
+        <Pressable
+          onPress={handleOpenAppendPicker}
+          hitSlop={8}
+          className="absolute bottom-5 left-5 h-14 w-14 items-center justify-center rounded-full bg-emerald-600 shadow-lg"
+        >
+          <Plus size={24} color="white" strokeWidth={2.5} />
+        </Pressable>
+      )}
+          </View>
+        );
+
+  /*
+   * PHONE CART OVERLAY
+   */
+  const phoneCartOverlay = (
+    <Modal visible={cartOpen} transparent animationType="slide" onRequestClose={() => setCartOpen(false)}>
+      <View className="flex-1 justify-end bg-black/40">
+        <View className="h-[85%] overflow-hidden rounded-t-2xl bg-white">
+          <View className="flex-row items-center justify-between border-b border-slate-200 px-4 py-3">
+            <Text className="text-base font-bold text-slate-700">Cart</Text>
+            <Pressable
+              onPress={() => setCartOpen(false)}
+              className="h-9 w-9 items-center justify-center rounded-full bg-slate-100"
+            >
+              <X size={18} color="#475569" />
+            </Pressable>
+          </View>
+
+          <View className="flex-1">
+            <CartPanel
+              onCheckout={() => {
+                setCartOpen(false);
+                navigation.navigate("Checkout");
+              }}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const sharedPickerModal = (
+    <ProductPickerModal
+      visible={pickerSlot !== null}
+      onClose={() => setPickerSlot(null)}
+      onSelect={handlePickerSelect}
+      onClearSlot={handlePickerClearSlot}
+      hasExistingProduct={
+        pickerSlot !== null && pickerSlot !== APPEND_SLOT && getProductIdAt(pickerSlot) !== null
+      }
+      excludeIds={assignedIds}
+    />
+  );
+
+  /*
+   * PHONE
+   */
+  if (grid.isPhone) {
+    return (
+      <View className="flex-1 bg-slate-50">
+        {phoneProductList}
+        {phoneCartOverlay}
+        {sharedPickerModal}
+      </View>
+    );
+  }
+
+  /*
+   * IPAD / DESKTOP
+   */
+  return (
+    <View className="flex-1 bg-slate-50">
+      <View className="flex-1 flex-row">
+        <View className="flex-1">{productGrid}</View>
+
+        <View style={{ width: grid.cartWidth }} className="border-l border-slate-200 bg-white">
+          <CartPanel onCheckout={() => navigation.navigate("Checkout")} />
+        </View>
+      </View>
+
+      {sharedPickerModal}
+    </View>
+  );
+}
+
+================
+File: src/screens/ShiftScreen.tsx
+================
+import React, { useState } from "react";
+import { View, Text, Pressable, TextInput, ScrollView, ActivityIndicator, FlatList, Alert, useWindowDimensions } from "react-native";
+import { History, ArrowDownCircle, ArrowUpCircle, Store, X } from "lucide-react-native";
+import { useTerminalStore } from "../store/terminalStore";
+import { useCurrentShiftQuery, useOpenShiftMutation, useCloseShiftMutation, useCashMovementMutation, useShiftHistoryQuery, useStoresQuery } from "../hooks/queries/usePosQueries";
+import { ModalSheet } from "../components/ModalSheet";
+import { getErrorMessage } from "../api/client";
+import { formatCurrency } from "../utils/currency";
+import type { StoreLookup } from "../types";
+import { MenuButton } from "@/components/MenuButton";
+
+export function ShiftScreen() {
+  const { storeId, storeName, setStore } = useTerminalStore();
+  const [storePickerOpen, setStorePickerOpen] = useState(!storeId);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [cashModal, setCashModal] = useState<"in" | "out" | null>(null);
+  const [closeModalOpen, setCloseModalOpen] = useState(false);
+
+  const { data: shiftData, isLoading } = useCurrentShiftQuery(storeId);
+  const shift = shiftData?.shift ?? null;
+
+  if (storePickerOpen || !storeId) {
+    return (
+      <StorePickerScreen
+        onPicked={(s) => {
+          setStore(s.storeId, s.name, s.maxCartDiscountPercentage);
+          setStorePickerOpen(false);
+        }}
+      />
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-slate-50">
+      <View className="flex-row items-center justify-between border-b border-slate-200 bg-white p-4">
+        <View className="flex-row items-center gap-3">
+          <MenuButton />
+          <View className="flex-row items-center gap-1.5">
+            <Store size={18} color="#64748b" />
+            <Text className="text-sm font-bold text-slate-700 md:text-base">{storeName}</Text>
+          </View>
+        </View>
+
+        <Pressable
+          onPress={() => setHistoryOpen(true)}
+          className="h-9 w-9 items-center justify-center rounded-lg bg-slate-50"
+        >
+          <History size={20} color="#475569" />
+        </Pressable>
+      </View>
+
+      <View className="w-full max-w-5xl flex-1 self-center">
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator color="#059669" />
+          </View>
+        ) : shift ? (
+          <ActiveShiftView
+            shift={shift}
+            onCashIn={() => setCashModal("in")}
+            onCashOut={() => setCashModal("out")}
+            onClose={() => setCloseModalOpen(true)}
+          />
+        ) : (
+          <OpenShiftForm storeId={storeId} />
+        )}
+
+        <ModalSheet
+          visible={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          maxWidth={480}
+        >
+          <ShiftHistoryList
+            storeId={storeId}
+            onClose={() => setHistoryOpen(false)}
+          />
+        </ModalSheet>
+
+        <ModalSheet
+          visible={cashModal !== null}
+          onClose={() => setCashModal(null)}
+        >
+          {cashModal && shift && (
+            <CashMovementForm
+              type={cashModal}
+              storeId={storeId}
+              shiftId={shift.shiftId}
+              onDone={() => setCashModal(null)}
+            />
+          )}
+        </ModalSheet>
+
+        <ModalSheet
+          visible={closeModalOpen}
+          onClose={() => setCloseModalOpen(false)}
+        >
+          {shift && (
+            <CloseShiftForm
+              shiftId={shift.shiftId}
+              onDone={() => setCloseModalOpen(false)}
+            />
+          )}
+        </ModalSheet>
+      </View>
+    </View>
+  );
+}
+
+function StorePickerScreen({
+  onPicked,
+}: {
+  onPicked: (s: StoreLookup) => void;
+}) {
+  const { data: stores, isLoading } = useStoresQuery();
+
+  return (
+    <View className="flex-1 bg-slate-50">
+      <View className="flex-1 items-center justify-center gap-1.5 p-6">
+        <Store size={36} color="#cbd5e1" />
+
+        <Text className="mt-3 text-[17px] font-bold text-slate-700 md:text-xl">
+          Which store is this device in?
+        </Text>
+
+        <Text className="text-center text-[13px] text-slate-400 md:text-sm">
+          This is remembered on this device going forward.
+        </Text>
+
+        {isLoading ? (
+          <ActivityIndicator
+            color="#059669"
+            className="mt-4"
+          />
+        ) : (
+          <View className="mt-6 w-full max-w-[340px] gap-2">
+            {(stores || []).map((s) => (
+              <Pressable
+                key={s.storeId}
+                onPress={() => onPicked(s)}
+                className="items-center rounded-lg border border-slate-200 bg-white p-3 md:p-4"
+              >
+                <Text className="font-semibold text-slate-700 md:text-base">
+                  {s.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function ActiveShiftView({
+  shift,
+  onCashIn,
+  onCashOut,
+  onClose,
+}: {
+  shift: NonNullable<ReturnType<typeof useCurrentShiftQuery>["data"]>["shift"];
+  onCashIn: () => void;
+  onCashOut: () => void;
+  onClose: () => void;
+}) {
+  if (!shift) return null;
+
+  return (
+    <ScrollView
+      contentContainerClassName="gap-4 p-4 md:gap-5 md:p-6"
+    >
+      <View className="flex-row gap-3 md:gap-4">
+        <Pressable
+          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-4 md:py-5"
+          onPress={onCashIn}
+        >
+          <ArrowDownCircle size={22} color="#047857" />
+
+          <Text className="text-sm font-bold text-emerald-700 md:text-base">
+            Cash In
+          </Text>
+        </Pressable>
+
+        <Pressable
+          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-4 md:py-5"
+          onPress={onCashOut}
+        >
+          <ArrowUpCircle size={22} color="#b91c1c" />
+
+          <Text className="text-sm font-bold text-red-700 md:text-base">
+            Cash Out
+          </Text>
+        </Pressable>
+      </View>
+
+      <View className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
+        <Text className="mb-3 text-lg font-extrabold text-slate-800 md:text-xl">
+          Shift Summary
+        </Text>
+
+        <StatRow
+          label="Started"
+          value={new Date(shift.startDate).toLocaleString()}
+        />
+
+        <StatRow
+          label="Starting cash"
+          value={formatCurrency(shift.startingCash)}
+        />
+
+        <StatRow
+          label="Expected cash now"
+          value={formatCurrency(shift.expectedEndingCash)}
+          highlight
+        />
+
+        <View className="my-2 h-px bg-slate-100" />
+
+        <StatRow
+          label="Total sales"
+          value={formatCurrency(shift.totalSales)}
+        />
+
+        <StatRow
+          label="Total profit"
+          value={formatCurrency(shift.totalProfit)}
+        />
+
+        <View className="my-2 h-px bg-slate-100" />
+
+        <StatRow
+          label="Cash sales"
+          value={formatCurrency(shift.cashSales)}
+        />
+
+        <StatRow
+          label="Card sales"
+          value={formatCurrency(shift.cardSales)}
+        />
+
+        {shift.voucherSales > 0 && (
+          <StatRow
+            label="Voucher sales"
+            value={formatCurrency(shift.voucherSales)}
+          />
+        )}
+
+        <View className="my-2 h-px bg-slate-100" />
+
+        <StatRow
+          label="Pay-ins"
+          value={formatCurrency(shift.totalPayIns)}
+        />
+
+        <StatRow
+          label="Pay-outs"
+          value={formatCurrency(shift.totalPayOuts)}
+        />
+
+        <StatRow
+          label="Receipts"
+          value={String(shift.receiptCount)}
+        />
+      </View>
+
+      <Pressable
+        className="items-center rounded-xl bg-red-600 py-3.5 md:py-4"
+        onPress={onClose}
+      >
+        <Text className="text-sm font-bold text-white md:text-base">
+          Close Shift
+        </Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
+function StatRow({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <View className="flex-row justify-between py-1.5 md:py-2">
+      <Text className="text-sm text-slate-500 md:text-base">
+        {label}
+      </Text>
+
+      <Text
+        className={`text-sm font-semibold md:text-base ${
+          highlight
+            ? "text-lg font-extrabold text-emerald-600 md:text-xl"
+            : "text-slate-700"
+        }`}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function OpenShiftForm({ storeId }: { storeId: number }) {
+  const [startingCash, setStartingCash] = useState("");
+  const [note, setNote] = useState("");
+  const openShiftMutation = useOpenShiftMutation();
+
+  const handleOpen = async () => {
+    const parsed = parseFloat(startingCash);
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      Alert.alert(
+        "Invalid amount",
+        "Enter a valid starting cash amount."
+      );
+      return;
+    }
+
+    try {
+      await openShiftMutation.mutateAsync({
+        storeId,
+        startingCash: parsed,
+        note,
+      });
+    } catch (err) {
+      Alert.alert("Could not open shift", getErrorMessage(err));
+    }
+  };
+
+  return (
+    <View className="flex-1 items-center justify-center p-6">
+      <View className="w-full max-w-[360px] rounded-2xl bg-white p-6 shadow-md md:max-w-[420px] md:p-8">
+        <Text className="mb-4 text-base font-extrabold text-slate-800 md:text-xl">
+          Open Shift
+        </Text>
+
+        <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500 md:text-sm">
+          Starting cash
+        </Text>
+
+        <TextInput
+          value={startingCash}
+          onChangeText={setStartingCash}
+          keyboardType="decimal-pad"
+          placeholder="0.00"
+          className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px] md:text-base"
+        />
+
+        <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500 md:text-sm">
+          Note (optional)
+        </Text>
+
+        <TextInput
+          value={note}
+          onChangeText={setNote}
+          placeholder="e.g. Morning shift"
+          className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px] md:text-base"
+        />
+
+        <Pressable
+          className="mt-6 items-center rounded-lg bg-emerald-600 py-3 md:py-3.5"
+          onPress={handleOpen}
+          disabled={openShiftMutation.isPending}
+        >
+          {openShiftMutation.isPending ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text className="font-bold text-white md:text-base">
+              Open Shift
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function CashMovementForm({
+  type,
+  storeId,
+  shiftId,
+  onDone,
+}: {
+  type: "in" | "out";
+  storeId: number;
+  shiftId: number;
+  onDone: () => void;
+}) {
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const mutation = useCashMovementMutation();
+
+  const handleSubmit = async () => {
+    const parsed = parseFloat(amount);
+
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      Alert.alert(
+        "Invalid amount",
+        "Enter an amount greater than zero."
+      );
+      return;
+    }
+
+    try {
+      await mutation.mutateAsync({
+        shiftId,
+        payload: {
+          storeId,
+          movementType: type === "in" ? "PayIn" : "PayOut",
+          amount: parsed,
+          reason,
+        },
+      });
+
+      onDone();
+    } catch (err) {
+      Alert.alert("Failed", getErrorMessage(err));
+    }
+  };
+
+  return (
+    <View>
+      <Text className="mb-4 text-base font-extrabold text-slate-800 md:text-xl">
+        {type === "in" ? "Cash In" : "Cash Out"}
+      </Text>
+
+      <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500 md:text-sm">
+        Amount
+      </Text>
+
+      <TextInput
+        value={amount}
+        onChangeText={setAmount}
+        keyboardType="decimal-pad"
+        placeholder="0.00"
+        autoFocus
+        className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px] md:text-base"
+      />
+
+      <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500 md:text-sm">
+        Comment
+      </Text>
+
+      <TextInput
+        value={reason}
+        onChangeText={setReason}
+        placeholder={
+          type === "in"
+            ? "e.g. Change float top-up"
+            : "e.g. Petty cash purchase"
+        }
+        className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px] md:text-base"
+      />
+
+      <Pressable
+        className="mt-6 items-center rounded-lg bg-emerald-600 py-3 md:py-3.5"
+        onPress={handleSubmit}
+        disabled={mutation.isPending}
+      >
+        {mutation.isPending ? (
+          <ActivityIndicator color="#ffffff" />
+        ) : (
+          <Text className="font-bold text-white md:text-base">
+            Confirm
+          </Text>
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
+function CloseShiftForm({
+  shiftId,
+  onDone,
+}: {
+  shiftId: number;
+  onDone: () => void;
+}) {
+  const [actualCash, setActualCash] = useState("");
+  const [note, setNote] = useState("");
+  const mutation = useCloseShiftMutation();
+
+  const handleSubmit = async () => {
+    const parsed = parseFloat(actualCash);
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      Alert.alert(
+        "Invalid amount",
+        "Enter the actual cash counted."
+      );
+      return;
+    }
+
+    try {
+      const result = await mutation.mutateAsync({
+        shiftId,
+        payload: {
+          actualEndingCash: parsed,
+          note,
+        },
+      });
+
+      Alert.alert(
+        "Shift closed",
+        result.variance === 0
+          ? "Cash matched exactly."
+          : `Variance: ${
+              result.variance > 0 ? "+" : ""
+            }${formatCurrency(result.variance)}`
+      );
+
+      onDone();
+    } catch (err) {
+      Alert.alert("Failed", getErrorMessage(err));
+    }
+  };
+
+  return (
+    <View>
+      <Text className="mb-4 text-base font-extrabold text-slate-800 md:text-xl">
+        Close Shift
+      </Text>
+
+      <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500 md:text-sm">
+        Actual ending cash counted
+      </Text>
+
+      <TextInput
+        value={actualCash}
+        onChangeText={setActualCash}
+        keyboardType="decimal-pad"
+        placeholder="0.00"
+        autoFocus
+        className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px] md:text-base"
+      />
+
+      <Text className="mb-1.5 mt-3 text-xs font-semibold text-slate-500 md:text-sm">
+        Note (optional)
+      </Text>
+
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        className="rounded-lg border border-slate-300 px-3 py-2.5 text-[15px] md:text-base"
+      />
+
+      <Pressable
+        className="mt-6 items-center rounded-lg bg-red-600 py-3 md:py-3.5"
+        onPress={handleSubmit}
+        disabled={mutation.isPending}
+      >
+        {mutation.isPending ? (
+          <ActivityIndicator color="#ffffff" />
+        ) : (
+          <Text className="font-bold text-white md:text-base">
+            Close Shift
+          </Text>
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
+function ShiftHistoryList({
+  storeId,
+  onClose,
+}: {
+  storeId: number;
+  onClose: () => void;
+}) {
+  const { data, isLoading } = useShiftHistoryQuery(storeId, true);
+
+  return (
+    <View>
+      <View className="mb-3 flex-row items-center justify-between">
+        <Text className="text-base font-extrabold text-slate-800 md:text-xl">
+          Shift History
+        </Text>
+
+        <Pressable onPress={onClose}>
+          <X size={20} color="#64748b" />
+        </Pressable>
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator
+          color="#059669"
+          className="mt-4"
+        />
+      ) : (
+        <FlatList
+          data={data || []}
+          keyExtractor={(s) => String(s.shiftId)}
+          style={{ maxHeight: 420 }}
+          ListEmptyComponent={
+            <Text className="py-6 text-center text-slate-400 md:text-sm">
+              No past shifts yet.
+            </Text>
+          }
+          renderItem={({ item }) => (
+            <View className="flex-row justify-between border-b border-slate-100 py-3 md:py-4">
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-slate-800 md:text-base">
+                  {item.cashierName}
+                </Text>
+
+                <Text className="mt-0.5 text-xs text-slate-500 md:text-sm">
+                  {new Date(item.startDate).toLocaleString()}
+                </Text>
+
+                {item.notes ? (
+                  <Text className="mt-0.5 text-xs italic text-slate-400 md:text-sm">
+                    "{item.notes}"
+                  </Text>
+                ) : null}
+              </View>
+
+              <View className="items-end">
+                <Text className="mr-1 text-sm font-extrabold text-emerald-600 md:text-base">
+                  {formatCurrency(item.totalSales)}
+                </Text>
+
+                <View
+                  className={`mt-1 rounded-full px-2 py-0.5 ${
+                    item.status === "Open"
+                      ? "bg-amber-100"
+                      : "bg-slate-100"
+                  }`}
+                >
+                  <Text
+                    className={`text-[10px] font-bold md:text-xs ${
+                      item.status === "Open"
+                        ? "text-amber-800"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    {item.status}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+        />
+      )}
+    </View>
+  );
+}
+
+================
+File: src/screens/SupportScreen.tsx
+================
+import React from "react";
+import { View, Text, Pressable, Linking, ScrollView } from "react-native";
+import { Mail, Shield, FileText, Globe, ExternalLink, Info } from "lucide-react-native";
+import { MenuButton } from "@/components/MenuButton";
+
+const PRIVACY_POLICY_URL = "https://tenexerp.com/privacy-policy";
+const TERMS_OF_SERVICE_URL = "https://tenexerp.com/terms-of-service";
+const WEBSITE_URL = "https://tenexerp.com";
+const SUPPORT_EMAIL_URL = "mailto:support@tenexerp.com";
+
+export function SupportScreen() {
+  return (
+    <ScrollView className="flex-1 bg-slate-50" contentContainerClassName="p-6">
+      <View className="mx-auto w-full max-w-[700px]">
+        <View className="mb-5 flex-row items-center gap-3">
+          <MenuButton />
+
+          <Text className="text-2xl font-extrabold text-slate-800">
+            Support
+          </Text>
+        </View>
+
+        <Text className="mb-6 mt-1 text-sm text-slate-500">
+          Help, legal information, and TenexERP links.
+        </Text>
+
+        <View className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <Pressable
+            className="flex-row items-center gap-4 border-b border-slate-100 px-5 py-4"
+            onPress={() => Linking.openURL(SUPPORT_EMAIL_URL)}
+          >
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+              <Mail size={18} color="#059669" />
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-slate-800">
+                Contact Support
+              </Text>
+
+              <Text className="mt-0.5 text-xs text-slate-500">
+                support@tenexerp.com
+              </Text>
+            </View>
+
+            <ExternalLink size={17} color="#94a3b8" />
+          </Pressable>
+
+          <Pressable
+            className="flex-row items-center gap-4 border-b border-slate-100 px-5 py-4"
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+          >
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+              <Shield size={18} color="#059669" />
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-slate-800">
+                Privacy Policy
+              </Text>
+
+              <Text className="mt-0.5 text-xs text-slate-500">
+                View our privacy policy
+              </Text>
+            </View>
+
+            <ExternalLink size={17} color="#94a3b8" />
+          </Pressable>
+
+          <Pressable
+            className="flex-row items-center gap-4 border-b border-slate-100 px-5 py-4"
+            onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
+          >
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+              <FileText size={18} color="#059669" />
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-slate-800">
+                Terms of Service
+              </Text>
+
+              <Text className="mt-0.5 text-xs text-slate-500">
+                View our terms of service
+              </Text>
+            </View>
+
+            <ExternalLink size={17} color="#94a3b8" />
+          </Pressable>
+
+          <Pressable
+            className="flex-row items-center gap-4 px-5 py-4"
+            onPress={() => Linking.openURL(WEBSITE_URL)}
+          >
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+              <Globe size={18} color="#059669" />
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-slate-800">
+                TenexERP Website
+              </Text>
+
+              <Text className="mt-0.5 text-xs text-slate-500">
+                tenexerp.com
+              </Text>
+            </View>
+
+            <ExternalLink size={17} color="#94a3b8" />
+          </Pressable>
+        </View>
+
+        <Text className="mt-6 text-center text-xs text-slate-400">
+          © {new Date().getFullYear()} TenexERP
+        </Text>
+      </View>
+
+              <View className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+          <View className="flex-row items-start gap-3">
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-emerald-50">
+              <Info size={18} color="#059669" />
+            </View>
+
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-slate-800">
+                Account deletion
+              </Text>
+
+              <Text className="mt-2 text-xs leading-5 text-slate-500">
+                If you created your TenexERP account yourself, you can delete
+                your account directly from the TenexERP website.
+              </Text>
+
+              <Text className="mt-2 text-xs leading-5 text-slate-500">
+                If your account was created by your supervisor, you can ask
+                your supervisor to delete it, or you can delete the account
+                yourself from the website.
+              </Text>
+
+              <Text className="mt-2 text-xs leading-5 text-slate-500">
+                In any case, if you have any problems or need assistance,
+                you can contact TenexERP Support to request account deletion.
+              </Text>
+            </View>
+          </View>
+        </View>
+    </ScrollView>
+  );
+}
+
+================
+File: src/store/cartStore.ts
+================
+import { create } from "zustand";
+import type { CartItem, Product } from "../types";
+import { round2 } from "../utils/currency";
+
+interface CartState {
+  items: CartItem[];
+  cartDiscountPercentage: number;
+  addProduct: (product: Product) => void;
+  incrementQuantity: (productId: number, by?: number) => void;
+  decrementQuantity: (productId: number) => void;
+  setQuantity: (productId: number, quantity: number) => void;
+  setItemDiscount: (productId: number, discountPercentage: number) => void;
+  removeItem: (productId: number) => void;
+  setCartDiscount: (discountPercentage: number) => void;
+  clear: () => void;
+  subtotal: () => number;
+  totalDiscount: () => number;
+  total: () => number;
+  itemCount: () => number;
+}
+
+export const useCartStore = create<CartState>((set, get) => ({
+  items: [],
+  cartDiscountPercentage: 0,
+
+  addProduct: (product) =>
+    set((state) => {
+      const existing = state.items.find(
+        (i) => i.productId === product.productId
+      );
+
+      if (existing) {
+        return {
+          items: state.items.map((i) =>
+            i.productId === product.productId
+              ? { ...i, quantity: i.quantity + 1 }
+              : i
+          ),
+        };
+      }
+
+      const newItem: CartItem = {
+        productId: product.productId,
+        name: product.name,
+        unitPrice: product.price,
+        quantity: 1,
+        marketDiscountPercentage: product.marketDiscountRate ?? 0,
+        manualItemDiscountPercentage: 0,
+        maxDiscountPercentage: product.maxDiscountPercentage,
+      };
+
+      return { items: [...state.items, newItem] };
+    }),
+
+  incrementQuantity: (productId, by = 1) =>
+    set((state) => ({
+      items: state.items.map((i) =>
+        i.productId === productId
+          ? { ...i, quantity: i.quantity + by }
+          : i
+      ),
+    })),
+
+  decrementQuantity: (productId) =>
+    set((state) => ({
+      items: state.items
+        .map((i) =>
+          i.productId === productId
+            ? { ...i, quantity: i.quantity - 1 }
+            : i
+        )
+        .filter((i) => i.quantity > 0),
+    })),
+
+  setQuantity: (productId, quantity) =>
+    set((state) => ({
+      items:
+        quantity <= 0
+          ? state.items.filter((i) => i.productId !== productId)
+          : state.items.map((i) =>
+              i.productId === productId ? { ...i, quantity } : i
+            ),
+    })),
+
+  setItemDiscount: (productId, discountPercentage) =>
+    set((state) => ({
+      items: state.items.map((i) =>
+        i.productId === productId
+          ? {
+              ...i,
+              manualItemDiscountPercentage: discountPercentage,
+            }
+          : i
+      ),
+    })),
+
+  removeItem: (productId) =>
+    set((state) => ({
+      items: state.items.filter((i) => i.productId !== productId),
+    })),
+
+  setCartDiscount: (discountPercentage) =>
+    set({ cartDiscountPercentage: discountPercentage }),
+
+  clear: () =>
+    set({
+      items: [],
+      cartDiscountPercentage: 0,
+    }),
+
+  subtotal: () =>
+    round2(
+      get().items.reduce(
+        (sum, i) => sum + i.unitPrice * i.quantity,
+        0
+      )
+    ),
+
+  totalDiscount: () => {
+    const itemDiscount = get().items.reduce(
+      (sum, i) =>
+        sum +
+        round2(
+          i.unitPrice *
+            i.quantity *
+            ((i.manualItemDiscountPercentage + i.marketDiscountPercentage)  / 100)
+        ),
+      0
+    );
+
+    const subtotalAfterItemDiscounts = round2(
+      get().subtotal() - itemDiscount
+    );
+
+    const cartDiscount = round2(
+      subtotalAfterItemDiscounts *
+        (get().cartDiscountPercentage / 100)
+    );
+
+    return round2(itemDiscount + cartDiscount);
+  },
+
+  total: () =>
+    round2(get().subtotal() - get().totalDiscount()),
+
+  itemCount: () =>
+    get().items.reduce((sum, i) => sum + i.quantity, 0),
+}));
+
+================
+File: src/store/posLayoutStore.ts
+================
+import { create } from "zustand";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { PosSlot } from "../types";
+
+const STORAGE_KEY = "pos_grid_layout_v1";
+
+interface PosLayoutState {
+  slots: PosSlot[];
+  isLoaded: boolean;
+  load: () => Promise<void>;
+  assignProduct: (slotIndex: number, productId: number | null) => void;
+  appendProduct: (productId: number) => void; // NEW
+  getProductIdAt: (slotIndex: number) => number | null;
+}
+
+export const usePosLayoutStore = create<PosLayoutState>((set, get) => ({
+  slots: [],
+  isLoaded: false,
+
+  load: async () => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      const slots: PosSlot[] = raw ? JSON.parse(raw) : [];
+      set({ slots, isLoaded: true });
+    } catch {
+      set({ slots: [], isLoaded: true });
+    }
+  },
+
+  assignProduct: (slotIndex, productId) => {
+    set((state) => {
+      const others = state.slots.filter((s) => s.slotIndex !== slotIndex);
+      const next = [...others, { slotIndex, productId }];
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+      return { slots: next };
+    });
+  },
+
+  appendProduct: (productId) => {
+    set((state) => {
+      const maxIndex = state.slots.length
+        ? Math.max(...state.slots.map((s) => s.slotIndex))
+        : -1;
+      const next = [...state.slots, { slotIndex: maxIndex + 1, productId }];
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+      return { slots: next };
+    });
+  },
+
+  getProductIdAt: (slotIndex) => {
+    return get().slots.find((s) => s.slotIndex === slotIndex)?.productId ?? null;
+  },
+}));
+
+================
+File: src/store/terminalStore.ts
+================
+import { create } from "zustand";
+import { posService } from "../api/posService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const STORAGE_KEY = "pos_terminal_store_id";
+
+interface TerminalState {
+  storeId: number | null;
+  storeName: string | null;
+  maxCartDiscountPercentage: number;
+  isLoaded: boolean;
+  load: () => Promise<void>;
+  setStore: (
+    storeId: number,
+    storeName: string,
+    maxCartDiscountPercentage: number
+  ) => Promise<void>;
+  clearStore: () => Promise<void>;
+}
+
+export const useTerminalStore = create<TerminalState>((set) => ({
+  storeId: null,
+  storeName: null,
+  maxCartDiscountPercentage: 0,
+  isLoaded: false,
+
+  load: async () => {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+
+    if (!raw) {
+      set({ isLoaded: true });
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+    const stores = await posService.getStores();
+
+    const currentStore = stores.find(
+      (store) => store.storeId === parsed.storeId
+    );
+
+      if (!currentStore) {
+        await AsyncStorage.removeItem(STORAGE_KEY);
+
+        set({
+          storeId: null,
+          storeName: null,
+          isLoaded: true,
+        });
+
+        return;
+      }
+
+      set({
+        storeId: currentStore.storeId,
+        storeName: currentStore.name,
+        maxCartDiscountPercentage:
+          currentStore.maxCartDiscountPercentage ?? 0,
+        isLoaded: true,
+      });
+    } catch {
+      set({ isLoaded: true });
+    }
+  },
+
+  setStore: async (
+    storeId,
+    storeName,
+    maxCartDiscountPercentage
+  ) => {
+    await AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        storeId,
+        storeName,
+        maxCartDiscountPercentage,
+      })
+    );
+
+    set({
+      storeId,
+      storeName,
+      maxCartDiscountPercentage,
+    });
+  },
+
+  clearStore: async () => {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    set({ storeId: null, storeName: null });
+  },
+}));
+
+================
+File: src/theme/colors.ts
+================
+export const colors = {
+  emerald50: "#ecfdf5",
+  emerald100: "#d1fae5",
+  emerald200: "#a7f3d0",
+  emerald300: "#6ee7b7",
+  emerald500: "#10b981",
+  emerald600: "#059669",
+  emerald700: "#047857",
+
+  sky500: "#0ea5e9",
+
+  slate50: "#f8fafc",
+  slate100: "#f1f5f9",
+  slate200: "#e2e8f0",
+  slate300: "#cbd5e1",
+  slate400: "#94a3b8",
+  slate500: "#64748b",
+  slate600: "#475569",
+  slate700: "#334155",
+  slate800: "#1e293b",
+  slate900: "#0f172a",
+
+  red50: "#fef2f2",
+  red100: "#fee2e2",
+  red200: "#fecaca",
+  red500: "#ef4444",
+  red600: "#dc2626",
+  red700: "#b91c1c",
+
+  amber50: "#fffbeb",
+  amber100: "#fef3c7",
+  amber300: "#fcd34d",
+  amber600: "#d97706",
+  amber800: "#92400e",
+
+  blue50: "#eff6ff",
+  blue100: "#dbeafe",
+  blue600: "#2563eb",
+  blue700: "#1d4ed8",
+
+  white: "#ffffff",
+};
+
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+};
+
+export const radius = {
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  full: 999,
+};
+
+export const shadow = {
+  sm: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+};
+
+export const APP_NAME = "POS";
+
+================
+File: src/types/index.ts
+================
+export type DisplayMode = "Image" | "Shape";
+export type ShapeType =
+  | "square"
+  | "Circle"
+  | "Triangle"
+  | "Pentagon"
+  | "Star"
+  | "Diamond"
+  | "Heart";
+
+export interface Product {
+  productId: number;
+  name: string;
+  categoryId: number;
+  categoryName: string;
+  supplierId: number | null;
+  companyName: string;
+  quantity: number;
+  lowStockThreshold: number | null;
+  price: number;
+  costPrice: number;
+  vatRate: number;
+  marketDiscountRate: number;
+  maxDiscountPercentage: number;
+  barcode: string | null;
+  imageUrl: string | null;
+  shapeType: ShapeType | null;
+  shapeColor: string | null;
+  shapeText: string | null;
+  displayMode: DisplayMode;
+}
+
+export interface AuthUser {
+  userId: number;
+  fullName: string;
+  username: string;
+  role: string;
+  permissions: string[];
+}
+
+export interface UserLookup {
+  userId: number;
+  fullName: string;
+  username: string;
+}
+
+export interface StoreLookup {
+  storeId: number;
+  name: string;
+  maxCartDiscountPercentage: number;
+}
+
+export interface CartItem {
+  productId: number;
+  name: string;
+  unitPrice: number;
+  quantity: number;
+  marketDiscountPercentage: number;
+  manualItemDiscountPercentage: number;
+  maxDiscountPercentage: number;
+}
+
+export interface CurrentShift {
+  shiftId: number;
+  storeId: number;
+  storeName: string;
+  startDate: string;
+  startingCash: number;
+  expectedEndingCash: number;
+  totalSales: number;
+  totalProfit: number;
+  cashSales: number;
+  cardSales: number;
+  voucherSales: number;
+  totalPayIns: number;
+  totalPayOuts: number;
+  receiptCount: number;
+  notes: string | null;
+}
+
+export interface ShiftHistoryItem {
+  shiftId: number;
+  cashierName: string;
+  startDate: string;
+  endDate: string | null;
+  totalSales: number;
+  startingCash: number;
+  actualEndingCash: number | null;
+  status: "Open" | "Closed";
+  notes: string | null;
+}
+
+export interface ShiftReceiptSummary {
+  receiptId: number;
+  receiptNumber: string;
+  createdAt: string;
+  finalTotal: number;
+  paymentMethod: "Cash" | "Card" | "Voucher";
+  itemCount: number;
+}
+
+export interface ReceiptLine {
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  marketDiscountPercentage: number;
+  manualItemDiscountPercentage: number;
+  lineTotal: number;
+}
+
+export interface ReceiptDetail {
+  receiptId: number;
+  receiptNumber: string;
+  createdAt: string;
+  cashierName: string;
+  storeName: string;
+  subTotal: number;
+  cartDiscountPercentage: number;
+  totalVatAmount: number;
+  finalTotal: number;
+  paymentMethod: "Cash" | "Card" | "Voucher";
+  lines: ReceiptLine[];
+}
+
+export interface PosSlot {
+  slotIndex: number;
+  productId: number | null;
+}
+
+================
+File: src/utils/currency.ts
+================
+export function formatCurrency(value: number): string {
+  return `$${value.toFixed(2)}`;
+}
+
+export function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+================
+File: src/utils/jwt.ts
+================
+import type { AuthUser } from "../types";
+
+function base64UrlDecode(input: string): string {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  return decodeURIComponent(
+    atob(padded)
+      .split("")
+      .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+      .join("")
+  );
+}
+
+export function decodeToken(token: string): AuthUser | null {
+  try {
+    const payloadSegment = token.split(".")[1];
+    const payload = JSON.parse(base64UrlDecode(payloadSegment));
+
+    const rawPermission =
+      payload["Permission"] ?? payload["permission"] ?? [];
+    const permissions: string[] = Array.isArray(rawPermission)
+      ? rawPermission
+      : rawPermission
+      ? [rawPermission]
+      : [];
+
+    return {
+      userId: Number(
+        payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ??
+          payload["nameid"] ??
+          payload["sub"]
+      ),
+      fullName:
+        payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"] ??
+        payload["given_name"] ??
+        "",
+      username:
+        payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ??
+        payload["unique_name"] ??
+        payload["name"] ??
+        "",
+      role:
+        payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ??
+        payload["role"] ??
+        "Unassigned",
+      permissions,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+export function isTokenExpired(token: string): boolean {
+  try {
+    const payloadSegment = token.split(".")[1];
+    const payload = JSON.parse(base64UrlDecode(payloadSegment));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+}
+
+================
+File: .gitignore
+================
+node_modules/
+.expo/
+.env
+.env.*
+!.env.example
+
+android/.gradle/
+android/build/
+android/app/build/
+android/.cxx/
+android/app/.cxx/
+
+ios/Pods/
+ios/build/
+ios/.xcode.env.local
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.DS_Store
+
+/android
+/ios
+
+================
+File: app.json
+================
+{
+  "expo": {
+    "name": "TenexERP POS",
+    "slug": "tenexerp-pos",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tenexerp.pos"
+    },
+    "android": {
+      "package": "com.tenexerp.pos",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#079B70"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "backgroundColor": "#f8fafc"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3f92355e-4ae3-45e7-8010-2107cba9e32c"
+      }
+    }
+  }
+}
+
+================
+File: App.tsx
+================
+import React, { useEffect } from "react";
+import "./global.css";
+import { StatusBar } from "expo-status-bar";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { NavigationContainer } from "@react-navigation/native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import { useTerminalStore } from "./src/store/terminalStore";
+import { LoginScreen } from "./src/screens/LoginScreen";
+import { RootNavigator } from "./src/navigation/RootNavigator";
+import { colors } from "./src/theme/colors";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+function AppContent() {
+  const { user, isLoading } = useAuth();
+
+  const loadTerminal = useTerminalStore((s) => s.load);
+  const terminalLoaded = useTerminalStore((s) => s.isLoaded);
+
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (!terminalLoaded) {
+      loadTerminal();
+    }
+  }, [terminalLoaded, loadTerminal]);
+
+  if (isLoading || !terminalLoaded) {
+    return (
+      <View
+        style={[
+          styles.splash,
+          {
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+          },
+        ]}
+      >
+        <ActivityIndicator
+          color={colors.emerald600}
+          size="large"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+      }}
+    >
+      <NavigationContainer>
+        {user ? <RootNavigator /> : <LoginScreen />}
+      </NavigationContainer>
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <StatusBar style="dark" />
+            <AppContent />
+          </AuthProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.slate50,
+  },
+});
+
+================
+File: babel.config.js
+================
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: [
+      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+      "nativewind/babel",
+    ],
+    plugins: ["react-native-worklets/plugin"],
+  };
+};
+
+================
+File: eas.json
+================
+{
+  "cli": {
+    "version": ">= 24.8.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://tenexerp-api-d0dqdzguecf8d5dq.polandcentral-01.azurewebsites.net/api",
+        "EXPO_PUBLIC_TOKEN_KEY": "%vIa?^d<J82*vH(*crocodile001"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+
+================
+File: global.css
+================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+================
+File: global.d.ts
+================
+declare module "*.css";
+
+================
+File: metro.config.js
+================
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
+
+const config = getDefaultConfig(__dirname);
+
+module.exports = withNativeWind(config, {
+  input: "./global.css",
+});
+
+================
+File: nativewind-env.d.ts
+================
+/// <reference types="nativewind/types" />
+
+================
+File: package.json
+================
+{
+  "name": "pos-app",
+  "version": "1.0.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "private": true,
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-navigation/drawer": "^7.14.2",
+    "@react-navigation/native": "^7.4.1",
+    "@react-navigation/native-stack": "^7.19.2",
+    "@tanstack/react-query": "^5.62.0",
+    "axios": "^1.7.9",
+    "babel-preset-expo": "~57.0.0",
+    "expo": "~57.0.26",
+    "expo-asset": "~57.0.18",
+    "expo-dev-client": "~57.0.19",
+    "expo-secure-store": "~57.0.4",
+    "expo-splash-screen": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
+    "lucide-react-native": "^0.541.0",
+    "nativewind": "^4.2.7",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "^0.86.3",
+    "react-native-css-interop": "^0.2.7",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
+    "react-native-web": "^0.21.2",
+    "react-native-worklets": "0.10.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/node": "^26.6.2",
+    "@types/react": "~19.2.4",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~6.0.3"
+  }
+}
+
+================
+File: README.md
+================
+# POS App (Expo / React Native)
+
+A phone/tablet/iPad point-of-sale app for NexusERP: login, sidebar navigation,
+a configurable fixed-grid sales screen (image or shape display), an
+always-visible cart on wide screens, checkout with cash/card + change
+calculation, current-shift receipts, and shift management (open/close, cash
+in/out, shift history).
+
+## 1. Apply the backend patches first
+
+This app depends on 5 small additive endpoints that don't exist in the
+backend yet. They're in `../backend-patches/` (sibling folder to this one),
+numbered in the order to apply them:
+
+1. `1_PosDtos_ADDITIONS.cs` — new DTOs, paste into `PosDtos.cs`
+2. `2_IPosService_ADDITIONS.cs` — new interface methods
+3. `3_PosService_ADDITIONS.cs` — implementations (needs `using NexusERP.Application.DTOs;`)
+4. `4_PosController_ADDITIONS.cs` — new endpoints on `PosController`
+5. `5_PinLogin_ADDITIONS.cs` — user-switch PIN login (touches `IUserRepository`,
+   `UserRepository`, `IAuthService`, `AuthService`, `AuthController`, and adds
+   one small endpoint to `PosController`)
+
+None of these change or remove any existing code — they're pure additions.
+Build and run your API, then confirm `POST /api/auth/pin-login` and
+`GET /api/pos/shift/current?storeId=1` respond before moving on.
+
+## 2. Install dependencies
+
+```bash
+cd pos-app
+npm install
+```
+
+## 3. Point the app at your backend
+
+Open `src/api/client.ts` and set `API_BASE_URL` to your API's real address.
+`localhost` will **not** work from a physical phone/tablet/emulator — use
+your computer's LAN IP (e.g. `http://192.168.1.50:7001/api`) or a deployed
+HTTPS URL. If your API uses a self-signed dev certificate, you'll also need
+to trust it on the device or temporarily point at HTTP during development.
+
+## 4. Run it
+
+```bash
+npx expo start
+```
+
+Scan the QR code with Expo Go (fastest way to test on a real phone/tablet),
+or press `i` / `a` for a simulator, or `w` for a web preview.
+
+## What's included
+
+- **Login** — plain username/password, no registration (matches your spec)
+- **Sidebar** — current user card + "Switch User" (PIN pad, no full re-login
+  needed), permanently visible on tablet/desktop width, slide-out drawer on
+  phone
+- **Sales** — fixed-size grid (12 boxes on wide screens, 9 on phone —
+  intentionally fixed per device class so the layout never reflows), tap
+  "Edit Layout" to assign/clear a product per box via search, tap a box in
+  normal mode to add to cart. Cart sits permanently beside the grid on wide
+  screens; on phone it's a tab (with a badge showing item count) since there
+  isn't room for both side by side
+- **Cart** — tap an item to edit quantity/discount, double-tap to +1 quantity,
+  swipe left to remove, one button for a whole-receipt discount
+- **Checkout** — full receipt preview, Cash/Card toggle (Cash default),
+  amount-tendered input with live change calculation, blocked until tendered
+  ≥ total for cash sales
+- **Receipts** — current shift's receipts, tap through to a clean full-detail
+  view
+- **Shift** — open/close shift, Cash In / Cash Out with comment, running
+  totals (cash/card/voucher breakdown, pay-ins/outs, profit), shift history
+  via the top-right clock-icon button
+
+## Known limitations / good next steps
+
+- **Grid layout is stored per-device** (`AsyncStorage`), not synced across
+  multiple POS terminals in the same store. If you want every till at a store
+  to show the same board, add one more backend endpoint (a JSON blob keyed by
+  store, similar to the existing `SystemSettings` table) and swap
+  `src/store/posLayoutStore.ts` to read/write through it instead of
+  `AsyncStorage`.
+- **`getByIds` in `productService.ts`** fetches a page of up to 100 products
+  and filters client-side, since there's no bulk-by-id endpoint yet. Fine at
+  small-to-medium catalog sizes; add a real bulk endpoint if your catalog
+  grows large.
+- **Barcode scanning isn't included** — wasn't in the spec, but `expo-camera`
+  + `expo-barcode-scanner` would slot in cleanly next to the product grid if
+  wanted later.
+- No offline/queueing support — checkout requires a live connection.
+
+================
+File: tailwind.config.js
+================
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./App.{js,jsx,ts,tsx}",
+    "./src/**/*.{js,jsx,ts,tsx}",
+  ],
+  presets: [require("nativewind/preset")],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+
+================
+File: tsconfig.json
+================
+{
+  "extends": "expo/tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "bundler",
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.d.ts",
+    "nativewind-env.d.ts"
+  ]
+}
+
+
+
+
+
+================================================================
+End of Codebase
+================================================================

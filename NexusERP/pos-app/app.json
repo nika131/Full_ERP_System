@@ -1,21 +1,24 @@
 {
   "expo": {
-    "name": "pos-app",
-    "slug": "pos-app",
+    "name": "TenexERP POS",
+    "slug": "tenexerp-pos",
     "version": "1.0.0",
     "orientation": "default",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nexuserp.pos"
+      "bundleIdentifier": "com.tenexerp.pos"
     },
     "android": {
-      "package": "com.nexuserp.pos",
+      "package": "com.tenexerp.pos",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#f8fafc"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#079B70"
       }
     },
     "web": {
@@ -27,9 +30,15 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/icon.png",
           "backgroundColor": "#f8fafc"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3f92355e-4ae3-45e7-8010-2107cba9e32c"
+      }
+    }
   }
 }
