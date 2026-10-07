@@ -40,6 +40,18 @@ namespace NexusERP.Infrastructure.Services
             public List<Product> Products { get; set; } = new();
         }
 
+        private class ShiftCalculationResult
+        {
+            public decimal CashPayments { get; set; }
+            public decimal CardPayments { get; set; }
+            public decimal VoucherPayments { get; set; }
+
+            public decimal PayIn { get; set; }
+            public decimal PayOut { get; set; }
+
+            public int ReceiptCount { get; set; }
+        }
+
         private readonly ApplicationDbContext _context;
 
         public PosService(ApplicationDbContext context)
@@ -49,12 +61,17 @@ namespace NexusERP.Infrastructure.Services
 
         public async Task<Shift> OpenShiftAsync(int userId, OpenShiftDto dto)
         {
+            if (dto.StartingCash < 0)
+                throw new AppException("Starting amount cant be less than zero.");
+
             var existingShift = await _context.Shifts
                 .FirstOrDefaultAsync(s => s.UserId == userId && s.Status == ShiftStatus.Open);
 
-
             if (existingShift != null)
-                throw new AppException("You already have open shift. Close it before opening a new one. ");
+                throw new AppException("You already have open shift. Close it before opening a new one.");
+
+            var isStoreActive = await _context.Stores.FirstOrDefaultAsync(s => s.StoreId == dto.StoreId && s.IsActive) ??
+                throw new AppException("Store Dose not exists.");
 
             var shift = new Shift
             {
@@ -79,6 +96,8 @@ namespace NexusERP.Infrastructure.Services
             if (shift == null) throw new AppException("Shift not found.");
             if (shift.Status == ShiftStatus.Closed) throw new AppException("Shift is closed");
 
+            await InitializeShiftAsync(shift);
+
             shift.EndDate = DateTime.UtcNow;
             shift.ActualEndingCash = dto.ActualEndingCash;
             shift.Status = ShiftStatus.Closed;
@@ -88,32 +107,112 @@ namespace NexusERP.Infrastructure.Services
                 shift.Notes = string.IsNullOrWhiteSpace(shift.Notes) ? dto.Note : $"{shift.Notes} | {dto.Note}";
             }
 
-            _context.Shifts.Update(shift);
             await _context.SaveChangesAsync();
+
             return shift;
+        }
+
+        private async Task<ShiftCalculationResult> InitializeShiftAsync(Shift shift)
+        {
+            var receiptValues = await _context.Receipts
+                .Where(r =>
+                    r.ShiftId == shift.ShiftId &&
+                    r.IsActive)
+                .GroupBy(r => 1)
+                .Select(g => new
+                {
+                    TotalSales = g.Sum(r => r.FinalTotal),
+
+                    TotalCost = g.Sum(r => r.TotalCostAmount),
+
+                    TotalVat = g.Sum(r => r.TotalVatAmount),
+
+                    CashSales = g.Sum(r =>
+                        r.PaymentMethod == PaymentMethod.Cash
+                            ? r.FinalTotal
+                            : 0m),
+
+                    CardSales = g.Sum(r =>
+                        r.PaymentMethod == PaymentMethod.Card
+                            ? r.FinalTotal
+                            : 0m),
+
+                    VoucherSales = g.Sum(r =>
+                        r.PaymentMethod == PaymentMethod.Voucher
+                            ? r.FinalTotal
+                            : 0m),
+
+                    ReceiptCount = g.Count()
+                })
+                .FirstOrDefaultAsync();
+
+            var movementValues = await _context.CashMovements
+                .Where(c =>
+                    c.ShiftId == shift.ShiftId &&
+                    c.IsActive)
+                .GroupBy(c => 1)
+                .Select(g => new
+                {
+                    PayIns = g.Sum(c =>
+                        c.MovementType == CashMovementType.PayIn
+                            ? c.Amount
+                            : 0m),
+
+                    PayOuts = g.Sum(c =>
+                        c.MovementType == CashMovementType.PayOut
+                            ? c.Amount
+                            : 0m)
+                })
+                .FirstOrDefaultAsync();
+
+            var totalSales = receiptValues?.TotalSales ?? 0m;
+            var totalCost = receiptValues?.TotalCost ?? 0m;
+            var totalVat = receiptValues?.TotalVat ?? 0m;
+
+            var cashSales = receiptValues?.CashSales ?? 0m;
+            var cardSales = receiptValues?.CardSales ?? 0m;
+            var voucherSales = receiptValues?.VoucherSales ?? 0m;
+
+            var payIns = movementValues?.PayIns ?? 0m;
+            var payOuts = movementValues?.PayOuts ?? 0m;
+
+            shift.TotalSales = totalSales;
+
+            shift.TotalProfit =
+                totalSales
+                - totalCost
+                - totalVat;
+
+            shift.ExpectedEndingCash =
+                shift.StartingCash
+                + cashSales
+                + payIns
+                - payOuts;
+
+            await _context.SaveChangesAsync();
+
+            return new ShiftCalculationResult
+            {
+                CashPayments = cashSales,
+                CardPayments = cardSales,
+                VoucherPayments = voucherSales,
+
+                PayIn = payIns,
+                PayOut = payOuts,
+
+                ReceiptCount = receiptValues?.ReceiptCount ?? 0
+            };
         }
 
         public async Task<CurrentShiftDto?> GetCurrentShiftAsync(int userId, int storeId)
         {
             var shift = await _context.Shifts
                 .Include(s => s.Store)
-                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.UserId == userId && s.StoreId == storeId && s.Status == ShiftStatus.Open);
 
             if (shift == null) return null;
 
-            var receipts = await _context.Receipts
-                .Where(r => r.ShiftId == shift.ShiftId && r.IsActive)
-                .AsNoTracking()
-                .ToListAsync();
-
-            var payIns = await _context.CashMovements
-                .Where(m => m.ShiftId == shift.ShiftId && m.MovementType == CashMovementType.PayIn && m.IsActive)
-                .SumAsync(m => (decimal?)m.Amount) ?? 0;
-
-            var payOuts = await _context.CashMovements
-                .Where(m => m.ShiftId == shift.ShiftId && m.MovementType == CashMovementType.PayOut && m.IsActive)
-                .SumAsync(m => (decimal?)m.Amount) ?? 0;
+            var calculation = await InitializeShiftAsync(shift);
 
             return new CurrentShiftDto
             {
@@ -121,27 +220,32 @@ namespace NexusERP.Infrastructure.Services
                 StoreId = shift.StoreId,
                 StoreName = shift.Store?.Name ?? string.Empty,
                 StartDate = shift.StartDate,
+
                 StartingCash = shift.StartingCash,
+
                 ExpectedEndingCash = shift.ExpectedEndingCash,
                 TotalSales = shift.TotalSales,
                 TotalProfit = shift.TotalProfit,
-                CashSales = receipts.Where(r => r.PaymentMethod == PaymentMethod.Cash).Sum(r => r.FinalTotal),
-                CardSales = receipts.Where(r => r.PaymentMethod == PaymentMethod.Card).Sum(r => r.FinalTotal),
-                VoucherSales = receipts.Where(r => r.PaymentMethod == PaymentMethod.Voucher).Sum(r => r.FinalTotal),
-                TotalPayIns = payIns,
-                TotalPayOuts = payOuts,
-                ReceiptCount = receipts.Count,
+
+                CashSales = calculation.CashPayments,
+                CardSales = calculation.CardPayments,
+                VoucherSales = calculation.VoucherPayments,
+
+                TotalPayIns = calculation.PayIn,
+                TotalPayOuts = calculation.PayOut,
+
+                ReceiptCount = calculation.ReceiptCount,
+
                 Notes = shift.Notes
             };
         }
 
-        public async Task<List<ShiftHistoryItemDto>> GetShiftHistoryAsync(int storeId, int take = 20)
+        public async Task<List<ShiftHistoryItemDto>> GetShiftHistoryAsync(int userId, int storeId)
         {
             return await _context.Shifts
-                .Include(s => s.User)
-                .Where(s => s.StoreId == storeId)
+                .Where(s => s.StoreId == storeId && s.UserId == userId && s.Status == ShiftStatus.Closed)
                 .OrderByDescending(s => s.StartDate)
-                .Take(take)
+                .Take(20)
                 .AsNoTracking()
                 .Select(s => new ShiftHistoryItemDto
                 {
@@ -158,30 +262,52 @@ namespace NexusERP.Infrastructure.Services
                 .ToListAsync();
         }
 
-        public async Task<CashMovement> AddCashMovementAsync(int shiftId, int userId, CashMovementDto dto)
+        public async Task<CashMovementResultDto> AddCashMovementAsync(int shiftId, int userId, CashMovementDto dto)
         {
-            var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.Status == ShiftStatus.Open);
-            if (shift == null) throw new AppException("Active shift not found for this user.");
+            if (dto.Amount <= 0)
+                throw new AppException("Amount must be greater then zero.");
+
+            if (dto.MovementType != CashMovementType.PayIn && dto.MovementType != CashMovementType.PayOut)
+                throw new AppException("Invalid movement type.");
+
+            var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.Status == ShiftStatus.Open && s.UserId == userId) ??
+                throw new AppException("Active shift not found for this user.");
+
+            var hasWarning = false;
+            string? warning = null;
+
+            if (dto.MovementType == CashMovementType.PayOut)
+            {
+                await InitializeShiftAsync(shift);
+
+                if (dto.Amount > shift.ExpectedEndingCash)
+                {
+                    hasWarning = true;
+                    warning = $"PayOut exceeds expected register cash by {dto.Amount - shift.ExpectedEndingCash:C}.";
+
+                }
+            }
 
             var movement = new CashMovement
             {
                 ShiftId = shiftId,
                 UserId = userId,
-                StoreId = dto.StoreId,
+                StoreId = shift.StoreId,
                 MovementType = dto.MovementType,
                 Amount = dto.Amount,
                 Reason = dto.Reason,
                 CreatedAt = DateTime.UtcNow,
             };
 
-            if (dto.MovementType == CashMovementType.PayIn) shift.ExpectedEndingCash += dto.Amount;
-            else if (dto.MovementType == CashMovementType.PayOut) shift.ExpectedEndingCash -= dto.Amount;
-
             _context.CashMovements.Add(movement);
-            _context.Shifts.Update(shift);
             await _context.SaveChangesAsync();
 
-            return movement;
+            return new CashMovementResultDto
+            {
+                Movement = movement,
+                HasWarning = hasWarning,
+                Warning = warning
+            };
         }
 
         public async Task<List<ShiftReceiptSummaryDto>> GetShiftReceiptsAsync(int shiftId, int userId)
@@ -192,7 +318,6 @@ namespace NexusERP.Infrastructure.Services
             if (shift == null) throw new AppException("Shift not found or does not belong to you.");
 
             return await _context.Receipts
-                .Include(r => r.Lines)
                 .Where(r => r.ShiftId == shiftId && r.IsActive)
                 .OrderByDescending(r => r.CreatedAt)
                 .AsNoTracking()
@@ -486,15 +611,7 @@ namespace NexusERP.Infrastructure.Services
                                 (l.VatRate / (100m + l.VatRate));
                         });
 
-                    activeShift.TotalSales += receipt.FinalTotal;
-
-                    activeShift.TotalProfit +=
-                        receipt.FinalTotal - totalCostForProfit - receipt.TotalVatAmount;
-
-                    if (receipt.PaymentMethod == PaymentMethod.Cash)
-                    {
-                        activeShift.ExpectedEndingCash += receipt.FinalTotal;
-                    }
+                    receipt.TotalCostAmount = totalCostForProfit;
 
                     _context.Receipts.Add(receipt);
                     await _context.SaveChangesAsync();

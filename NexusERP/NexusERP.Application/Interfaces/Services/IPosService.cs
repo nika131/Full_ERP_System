@@ -12,7 +12,7 @@ namespace NexusERP.Application.Interfaces.Services
     {
         Task<Shift> OpenShiftAsync(int userId, OpenShiftDto dto);
         Task<Shift> CloseShiftAsync(int shiftId, int userId, CloseShiftDto dto);
-        Task<CashMovement> AddCashMovementAsync(int shiftId, int userId, CashMovementDto dto);
+        Task<CashMovementResultDto> AddCashMovementAsync(int shiftId, int userId, CashMovementDto dto);
         Task<Receipt> ProcessCheckoutAsync(int userId, CheckoutRequestDto cart);
         Task<CurrentShiftDto?> GetCurrentShiftAsync(int userId, int storeId);
         Task<List<ShiftHistoryItemDto>> GetShiftHistoryAsync(int storeId, int take = 20);

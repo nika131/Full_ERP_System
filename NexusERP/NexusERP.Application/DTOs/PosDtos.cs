@@ -1,4 +1,5 @@
-﻿using NexusERP.Domain.Enums;
+﻿using NexusERP.Domain.Entities;
+using NexusERP.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -153,5 +154,12 @@ namespace NexusERP.Application.DTOs
     public class CheckoutQuoteDto
     {
         public decimal FinalTotal { get; set; }
+    }
+
+    public class CashMovementResultDto
+    {
+        public CashMovement Movement { get; set; } = null!;
+        public bool HasWarning { get; set; }
+        public string? Warning { get; set; }
     }
 }
