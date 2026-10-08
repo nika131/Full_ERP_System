@@ -16,6 +16,7 @@ namespace NexusERP.Infrastructure.Services
             public decimal SubTotal { get; set; }
             public decimal DiscountedSubtotal { get; set; }
             public decimal FinalTotal { get; set; }
+            public decimal TotalVatAmount { get; set; }
 
             public List<CalculatedCheckoutLine> Lines { get; set; } = new();
         }
@@ -64,52 +65,107 @@ namespace NexusERP.Infrastructure.Services
             if (dto.StartingCash < 0)
                 throw new AppException("Starting amount cant be less than zero.");
 
-            var existingShift = await _context.Shifts
-                .FirstOrDefaultAsync(s => s.UserId == userId && s.Status == ShiftStatus.Open);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            if (existingShift != null)
-                throw new AppException("You already have open shift. Close it before opening a new one.");
-
-            var isStoreActive = await _context.Stores.FirstOrDefaultAsync(s => s.StoreId == dto.StoreId && s.IsActive) ??
-                throw new AppException("Store Dose not exists.");
-
-            var shift = new Shift
+            return await strategy.ExecuteAsync(async () =>
             {
-                UserId = userId,
-                StoreId = dto.StoreId,
-                StartDate = DateTime.UtcNow,
-                StartingCash = dto.StartingCash,
-                ExpectedEndingCash = dto.StartingCash,
-                Status = ShiftStatus.Open,
-                Notes = dto.Note
-            };
+                _context.ChangeTracker.Clear();
 
-            _context.Shifts.Add(shift);
-            await _context.SaveChangesAsync();
-            return shift;
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+                try
+                {
+                    var existingShift = await _context.Shifts
+                        .FirstOrDefaultAsync(s => s.UserId == userId && s.Status == ShiftStatus.Open);
+
+                    if (existingShift != null)
+                        throw new AppException("You already have open shift. Close it before opening a new one.");
+
+                    var isStoreActive = await _context.Stores.FirstOrDefaultAsync(s => s.StoreId == dto.StoreId && s.IsActive) ??
+                        throw new AppException("Store Dose not exists.");
+
+                    var shift = new Shift
+                    {
+                        UserId = userId,
+                        StoreId = dto.StoreId,
+                        StartDate = DateTime.UtcNow,
+                        StartingCash = dto.StartingCash,
+                        ExpectedEndingCash = dto.StartingCash,
+                        Status = ShiftStatus.Open,
+                        Notes = dto.Note
+                    };
+
+                    _context.Shifts.Add(shift);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return shift;
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
         }
 
         public async Task<Shift> CloseShiftAsync(int shiftId, int userId, CloseShiftDto dto)
         {
-            var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.UserId == userId);
+            if (dto.ActualEndingCash < 0)
+                throw new AppException("Actual ending cash cannot be less than zero.");
 
-            if (shift == null) throw new AppException("Shift not found.");
-            if (shift.Status == ShiftStatus.Closed) throw new AppException("Shift is closed");
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            await InitializeShiftAsync(shift);
-
-            shift.EndDate = DateTime.UtcNow;
-            shift.ActualEndingCash = dto.ActualEndingCash;
-            shift.Status = ShiftStatus.Closed;
-
-            if (!string.IsNullOrWhiteSpace(dto.Note))
+            return await strategy.ExecuteAsync(async () =>
             {
-                shift.Notes = string.IsNullOrWhiteSpace(shift.Notes) ? dto.Note : $"{shift.Notes} | {dto.Note}";
-            }
+                _context.ChangeTracker.Clear();
 
-            await _context.SaveChangesAsync();
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-            return shift;
+                try
+                {
+                    var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.UserId == userId);
+
+                    if (shift == null) 
+                        throw new AppException("Shift not found.");
+                    
+                    if (shift.Status == ShiftStatus.Closed) 
+                        throw new AppException("Shift is closed");
+
+                    // recalculate shift totals before closing
+                    await InitializeShiftAsync(shift);
+
+                    shift.EndDate = DateTime.UtcNow;
+                    shift.ActualEndingCash = dto.ActualEndingCash;
+                    shift.Status = ShiftStatus.Closed;
+
+                    if (!string.IsNullOrWhiteSpace(dto.Note))
+                    {
+                        shift.Notes = string.IsNullOrWhiteSpace(shift.Notes) 
+                            ? dto.Note 
+                            : $"{shift.Notes} | {dto.Note}";
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+
+                    return shift;
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
+
+            
+        }
+
+        private static decimal RoundToTwoDecimalPlaces(decimal value)
+        {
+            return Math.Round(value, 2, MidpointRounding.AwayFromZero);
         }
 
         private async Task<ShiftCalculationResult> InitializeShiftAsync(Shift shift)
@@ -206,38 +262,58 @@ namespace NexusERP.Infrastructure.Services
 
         public async Task<CurrentShiftDto?> GetCurrentShiftAsync(int userId, int storeId)
         {
-            var shift = await _context.Shifts
-                .Include(s => s.Store)
-                .FirstOrDefaultAsync(s => s.UserId == userId && s.StoreId == storeId && s.Status == ShiftStatus.Open);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            if (shift == null) return null;
-
-            var calculation = await InitializeShiftAsync(shift);
-
-            return new CurrentShiftDto
+            return await strategy.ExecuteAsync(async () =>
             {
-                ShiftId = shift.ShiftId,
-                StoreId = shift.StoreId,
-                StoreName = shift.Store?.Name ?? string.Empty,
-                StartDate = shift.StartDate,
+                _context.ChangeTracker.Clear();
 
-                StartingCash = shift.StartingCash,
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-                ExpectedEndingCash = shift.ExpectedEndingCash,
-                TotalSales = shift.TotalSales,
-                TotalProfit = shift.TotalProfit,
+                try
+                {
+                    var shift = await _context.Shifts
+                        .Include(s => s.Store)
+                        .FirstOrDefaultAsync(s => s.UserId == userId && s.StoreId == storeId && s.Status == ShiftStatus.Open);
 
-                CashSales = calculation.CashPayments,
-                CardSales = calculation.CardPayments,
-                VoucherSales = calculation.VoucherPayments,
+                    if (shift == null) return null;
 
-                TotalPayIns = calculation.PayIn,
-                TotalPayOuts = calculation.PayOut,
+                    var calculation = await InitializeShiftAsync(shift);
 
-                ReceiptCount = calculation.ReceiptCount,
+                    var result = new CurrentShiftDto
+                    {
+                        ShiftId = shift.ShiftId,
+                        StoreId = shift.StoreId,
+                        StoreName = shift.Store?.Name ?? string.Empty,
+                        StartDate = shift.StartDate,
 
-                Notes = shift.Notes
-            };
+                        StartingCash = shift.StartingCash,
+
+                        ExpectedEndingCash = shift.ExpectedEndingCash,
+                        TotalSales = shift.TotalSales,
+                        TotalProfit = shift.TotalProfit,
+
+                        CashSales = calculation.CashPayments,
+                        CardSales = calculation.CardPayments,
+                        VoucherSales = calculation.VoucherPayments,
+
+                        TotalPayIns = calculation.PayIn,
+                        TotalPayOuts = calculation.PayOut,
+
+                        ReceiptCount = calculation.ReceiptCount,
+
+                        Notes = shift.Notes
+                    };
+
+                    await transaction.CommitAsync();
+                    return result;
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
         }
 
         public async Task<List<ShiftHistoryItemDto>> GetShiftHistoryAsync(int userId, int storeId)
@@ -270,44 +346,64 @@ namespace NexusERP.Infrastructure.Services
             if (dto.MovementType != CashMovementType.PayIn && dto.MovementType != CashMovementType.PayOut)
                 throw new AppException("Invalid movement type.");
 
-            var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.Status == ShiftStatus.Open && s.UserId == userId) ??
-                throw new AppException("Active shift not found for this user.");
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            var hasWarning = false;
-            string? warning = null;
-
-            if (dto.MovementType == CashMovementType.PayOut)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await InitializeShiftAsync(shift);
+                _context.ChangeTracker.Clear();
 
-                if (dto.Amount > shift.ExpectedEndingCash)
+                using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+                try
                 {
-                    hasWarning = true;
-                    warning = $"PayOut exceeds expected register cash by {dto.Amount - shift.ExpectedEndingCash:C}.";
+                    var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.Status == ShiftStatus.Open && s.UserId == userId) ??
+                        throw new AppException("Active shift not found for this user.");
 
+                    var hasWarning = false;
+                    string? warning = null;
+
+                    if (dto.MovementType == CashMovementType.PayOut)
+                    {
+                        // update shift totals before checking if PayOut exceeds expected cash
+                        await InitializeShiftAsync(shift);
+
+                        if (dto.Amount > shift.ExpectedEndingCash)
+                        {
+                            hasWarning = true;
+                            warning = $"PayOut exceeds expected register cash by {dto.Amount - shift.ExpectedEndingCash:C}.";
+
+                        }
+                    }
+
+                    var movement = new CashMovement
+                    {
+                        ShiftId = shiftId,
+                        UserId = userId,
+                        StoreId = shift.StoreId,
+                        MovementType = dto.MovementType,
+                        Amount = dto.Amount,
+                        Reason = dto.Reason,
+                        CreatedAt = DateTime.UtcNow,
+                    };
+
+                    _context.CashMovements.Add(movement);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return new CashMovementResultDto
+                    {
+                        Movement = movement,
+                        HasWarning = hasWarning,
+                        Warning = warning
+                    };
                 }
-            }
-
-            var movement = new CashMovement
-            {
-                ShiftId = shiftId,
-                UserId = userId,
-                StoreId = shift.StoreId,
-                MovementType = dto.MovementType,
-                Amount = dto.Amount,
-                Reason = dto.Reason,
-                CreatedAt = DateTime.UtcNow,
-            };
-
-            _context.CashMovements.Add(movement);
-            await _context.SaveChangesAsync();
-
-            return new CashMovementResultDto
-            {
-                Movement = movement,
-                HasWarning = hasWarning,
-                Warning = warning
-            };
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            });
         }
 
         public async Task<List<ShiftReceiptSummaryDto>> GetShiftReceiptsAsync(int shiftId, int userId)
@@ -503,8 +599,16 @@ namespace NexusERP.Infrastructure.Services
                 // 2. Manual item discount
                 decimal afterManualDiscount = afterMarketDiscount * (1m - item.ManualItemDiscountPercentage / 100m);
 
+                // 3. Cart discount
+                decimal afterCartDiscount = afterManualDiscount * (1m - cart.CartDiscountPercentage / 100m);
+
+                // 4. VAT amount
+                decimal vatAmount = afterCartDiscount * (product.VatRate / (100m + product.VatRate));
+
                 result.SubTotal += itemSubtotal;
                 result.DiscountedSubtotal += afterManualDiscount;
+                result.FinalTotal += afterCartDiscount;
+                result.TotalVatAmount += vatAmount;
 
                 result.Lines.Add(new CalculatedCheckoutLine
                 {
@@ -518,9 +622,16 @@ namespace NexusERP.Infrastructure.Services
                 });
             }
 
-            // 3. Cart discount
-            result.FinalTotal = result.DiscountedSubtotal * (1m - cart.CartDiscountPercentage / 100m);
-            
+            result.SubTotal =
+                RoundToTwoDecimalPlaces(result.SubTotal);
+
+            result.FinalTotal =
+                RoundToTwoDecimalPlaces(result.FinalTotal);
+
+            result.TotalVatAmount =
+                RoundToTwoDecimalPlaces(result.TotalVatAmount);
+
+
             return result;
         }
 
@@ -565,6 +676,7 @@ namespace NexusERP.Infrastructure.Services
 
                     receipt.SubTotal = calculation.SubTotal;
                     receipt.FinalTotal = calculation.FinalTotal;
+                    receipt.TotalVatAmount = calculation.TotalVatAmount;
 
                     foreach (var line in calculation.Lines)
                     {
@@ -596,20 +708,6 @@ namespace NexusERP.Infrastructure.Services
                             LineTotal = line.FinalLineTotal,
                         });
                     }
-
-                    receipt.TotalVatAmount =
-                        receipt.Lines.Sum(l =>
-                        {
-                            decimal lineAfterItemDiscounts =
-                                l.LineTotal;
-
-                            decimal lineAfterCartDiscount =
-                                lineAfterItemDiscounts *
-                                (1m - receipt.CartDiscountPercentage / 100m);
-
-                            return lineAfterCartDiscount *
-                                (l.VatRate / (100m + l.VatRate));
-                        });
 
                     receipt.TotalCostAmount = totalCostForProfit;
 
