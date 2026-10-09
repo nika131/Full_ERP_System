@@ -1,19 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { posService } from "../../api/posService";
-import type {
-  OpenShiftPayload,
-  CloseShiftPayload,
-  CashMovementPayload,
-  CheckoutPayload,
-  CheckoutQuotePayload,
-} from "../../api/posService";
+import type { OpenShiftPayload, CloseShiftPayload, CashMovementPayload, CheckoutPayload, CheckoutQuotePayload } from "../../api/posService";
 
 export const useCurrentShiftQuery = (storeId: number | null) =>
   useQuery({
     queryKey: ["pos", "currentShift", storeId],
     queryFn: () => posService.getCurrentShift(storeId as number),
     enabled: storeId !== null,
-    refetchInterval: 30_000,
+    staleTime: 30_000,
   });
 
 export const useShiftHistoryQuery = (storeId: number | null, enabled: boolean) =>
@@ -87,7 +81,7 @@ export const useCheckoutMutation = () => {
 
 export const useCheckoutQuoteQuery = (
   payload: CheckoutQuotePayload | null
-) => 
+) =>
   useQuery({
     queryKey: ["pos", "checkoutQuote", payload],
     queryFn: () => posService.getCheckoutQuote(payload as CheckoutQuotePayload),

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, FlatList, Pressable, ActivityIndicator } from "react-native";
 import { Search, X } from "lucide-react-native";
-import { ModalSheet } from "./ModalSheet";
-import { useProductSearchQuery } from "../hooks/queries/useProductQueries";
-import { formatCurrency } from "../utils/currency";
-import type { Product } from "../types";
+import { ModalSheet } from "@/components/ModalSheet";
+import { useProductSearchQuery } from "@/hooks/queries/useProductQueries";
+import { formatCurrency } from "@/utils/currency";
+import type { Product } from "@/types";
 
 interface ProductPickerModalProps {
   visible: boolean;

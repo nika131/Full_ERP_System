@@ -1,10 +1,10 @@
 import React from "react";
 import { View, Text, Pressable, Image } from "react-native";
 import { Pencil, Plus, Trash2 } from "lucide-react-native";
-import { ShapeIcon } from "./ShapeIcon";
-import { API_BASE_URL } from "../api/client";
-import { formatCurrency } from "../utils/currency";
-import type { Product } from "../types";
+import { ShapeIcon } from "@/components/ShapeIcon";
+import { API_BASE_URL } from "@/api/client";
+import { formatCurrency } from "@/utils/currency";
+import type { Product } from "@/types";
 
 interface ProductBoxProps {
   product: Product | null;

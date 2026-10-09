@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable } from "react-native";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { Menu } from "lucide-react-native";
-import { useIsWideLayout } from "@/hooks/seIsWideLayout";
+import { useIsWideLayout } from "@/hooks/useIsWideLayout";
 
 interface MenuButtonProps {
   className?: string;

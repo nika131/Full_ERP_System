@@ -4,7 +4,7 @@ import { authService } from "../../api/authService";
 
 export const useProductSearchQuery = (searchTerm: string, excludeIds: number[] = []) => {
   const excludeKey = [...excludeIds].sort((a, b) => a - b);
- 
+
   return useQuery({
     queryKey: ["products", "search", searchTerm, excludeKey],
     queryFn: () =>

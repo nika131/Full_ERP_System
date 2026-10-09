@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, FlatList } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { ShoppingBag, Receipt as ReceiptIcon, Clock, Users, LogOut, X, LifeBuoy } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
 
 export function DrawerContent(props: DrawerContentComponentProps) {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const [switchOpen, setSwitchOpen] = useState(false);
 
   const initials =
@@ -30,7 +32,13 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       .toUpperCase() || "?";
 
   return (
-    <View className="flex-1 bg-white px-4 pt-8">
+    <View
+      className="flex-1 bg-white px-4"
+      style={{
+        paddingTop: insets.top + 16,
+        paddingBottom: Math.max(insets.bottom, 8),
+      }}
+    >
       <View className="mb-3 flex-row items-center gap-3">
         <View className="h-11 w-11 items-center justify-center rounded-full bg-emerald-600">
           <Text className="text-[15px] font-extrabold text-white">

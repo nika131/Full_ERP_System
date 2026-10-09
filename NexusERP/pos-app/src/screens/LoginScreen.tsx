@@ -4,6 +4,7 @@ import { LogIn, Lock, User as UserIcon } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 import { getErrorMessage } from "../api/client";
 import { APP_NAME } from "../theme/colors";
+import { AppScreen } from "@/components/layout/AppScreen";
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -43,10 +44,11 @@ export function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 items-center justify-center bg-slate-50 p-6"
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <AppScreen>
+      <KeyboardAvoidingView
+        className="flex-1 items-center justify-center p-6"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       <View className="w-full max-w-[380px] items-center rounded-2xl bg-white p-8 shadow-md">
         <View className="mb-4 h-14 w-14 items-center justify-center rounded-full bg-emerald-600">
           <Text className="text-2xl font-extrabold text-white">
@@ -135,6 +137,7 @@ export function LoginScreen() {
           © {new Date().getFullYear()} TenexERP
         </Text>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </AppScreen>
   );
 }

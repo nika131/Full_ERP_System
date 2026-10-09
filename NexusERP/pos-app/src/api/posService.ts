@@ -97,11 +97,11 @@ export const posService = {
   },
 
   getStores: async (): Promise<StoreLookup[]> => {
-    const res = await apiClient.get("/stores");
-    return (res.data as any[]).map((s) => ({        
-      storeId: s.storeId, 
-      name: s.name,
-      maxCartDiscountPercentage: s.maxCartDiscountPercentage,
+    const res = await apiClient.get<StoreLookup[]>("/stores");
+    return res.data.map((store) => ({
+      storeId: store.storeId,
+      name: store.name,
+      maxCartDiscountPercentage: store.maxCartDiscountPercentage,
     }));
   },
 

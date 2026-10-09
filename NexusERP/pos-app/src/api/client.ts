@@ -7,6 +7,14 @@ export const API_BASE_URL =
 
 export const TOKEN_KEY = "pos_auth_token";
 
+interface ApiErrorPayload {
+  Message?: unknown;
+  message?: unknown;
+  error?: unknown;
+  title?: unknown;
+  errors?: Record<string, string | string[]>;
+}
+
 let webToken: string | null = null;
 
 export async function getStoredToken(): Promise<string | null> {
@@ -51,33 +59,30 @@ apiClient.interceptors.request.use(async (config) => {
 });
 
 export function getErrorMessage(err: unknown): string {
-  if (axios.isAxiosError(err)) {
-    const data = err.response?.data as any;
+  if (axios.isAxiosError<ApiErrorPayload | string>(err)) {
+    const data = err.response?.data;
 
     if (typeof data === "string" && data.trim()) {
       return data;
     }
 
-    if (data?.Message) {
-      return String(data.Message);
-    }
+    if (data && typeof data === "object") {
+      const directMessage =
+        data.Message ?? data.message ?? data.error ?? data.title;
 
-    if (data?.error) {
-      return String(data.error);
-    }
+      if (directMessage != null) {
+        return String(directMessage);
+      }
 
-    if (data?.title) {
-      return String(data.title);
-    }
+      if (data.errors && typeof data.errors === "object") {
+        const messages = Object.values(data.errors)
+          .flatMap((value) => (Array.isArray(value) ? value : [value]))
+          .filter(Boolean)
+          .map(String);
 
-    if (data?.errors && typeof data.errors === "object") {
-      const messages = Object.values(data.errors)
-        .flat()
-        .filter(Boolean)
-        .map(String);
-
-      if (messages.length > 0) {
-        return messages.join("\n");
+        if (messages.length > 0) {
+          return messages.join("\n");
+        }
       }
     }
 

@@ -1,6 +1,7 @@
 import { create } from "zustand";
-import type { CartItem, Product } from "../types";
-import { round2 } from "../utils/currency";
+
+import type { CartItem, Product } from "@/types";
+import { calculateCartTotals } from "@/utils/cartPricing";
 
 interface CartState {
   items: CartItem[];
@@ -26,15 +27,15 @@ export const useCartStore = create<CartState>((set, get) => ({
   addProduct: (product) =>
     set((state) => {
       const existing = state.items.find(
-        (i) => i.productId === product.productId
+        (item) => item.productId === product.productId
       );
 
       if (existing) {
         return {
-          items: state.items.map((i) =>
-            i.productId === product.productId
-              ? { ...i, quantity: i.quantity + 1 }
-              : i
+          items: state.items.map((item) =>
+            item.productId === product.productId
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
           ),
         };
       }
@@ -54,49 +55,49 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   incrementQuantity: (productId, by = 1) =>
     set((state) => ({
-      items: state.items.map((i) =>
-        i.productId === productId
-          ? { ...i, quantity: i.quantity + by }
-          : i
+      items: state.items.map((item) =>
+        item.productId === productId
+          ? { ...item, quantity: item.quantity + by }
+          : item
       ),
     })),
 
   decrementQuantity: (productId) =>
     set((state) => ({
       items: state.items
-        .map((i) =>
-          i.productId === productId
-            ? { ...i, quantity: i.quantity - 1 }
-            : i
+        .map((item) =>
+          item.productId === productId
+            ? { ...item, quantity: item.quantity - 1 }
+            : item
         )
-        .filter((i) => i.quantity > 0),
+        .filter((item) => item.quantity > 0),
     })),
 
   setQuantity: (productId, quantity) =>
     set((state) => ({
       items:
         quantity <= 0
-          ? state.items.filter((i) => i.productId !== productId)
-          : state.items.map((i) =>
-              i.productId === productId ? { ...i, quantity } : i
+          ? state.items.filter((item) => item.productId !== productId)
+          : state.items.map((item) =>
+              item.productId === productId ? { ...item, quantity } : item
             ),
     })),
 
   setItemDiscount: (productId, discountPercentage) =>
     set((state) => ({
-      items: state.items.map((i) =>
-        i.productId === productId
+      items: state.items.map((item) =>
+        item.productId === productId
           ? {
-              ...i,
+              ...item,
               manualItemDiscountPercentage: discountPercentage,
             }
-          : i
+          : item
       ),
     })),
 
   removeItem: (productId) =>
     set((state) => ({
-      items: state.items.filter((i) => i.productId !== productId),
+      items: state.items.filter((item) => item.productId !== productId),
     })),
 
   setCartDiscount: (discountPercentage) =>
@@ -109,40 +110,23 @@ export const useCartStore = create<CartState>((set, get) => ({
     }),
 
   subtotal: () =>
-    round2(
-      get().items.reduce(
-        (sum, i) => sum + i.unitPrice * i.quantity,
-        0
-      )
-    ),
+    calculateCartTotals(
+      get().items,
+      get().cartDiscountPercentage
+    ).subtotal,
 
-  totalDiscount: () => {
-    const itemDiscount = get().items.reduce(
-      (sum, i) =>
-        sum +
-        round2(
-          i.unitPrice *
-            i.quantity *
-            ((i.manualItemDiscountPercentage + i.marketDiscountPercentage)  / 100)
-        ),
-      0
-    );
-
-    const subtotalAfterItemDiscounts = round2(
-      get().subtotal() - itemDiscount
-    );
-
-    const cartDiscount = round2(
-      subtotalAfterItemDiscounts *
-        (get().cartDiscountPercentage / 100)
-    );
-
-    return round2(itemDiscount + cartDiscount);
-  },
+  totalDiscount: () =>
+    calculateCartTotals(
+      get().items,
+      get().cartDiscountPercentage
+    ).totalDiscount,
 
   total: () =>
-    round2(get().subtotal() - get().totalDiscount()),
+    calculateCartTotals(
+      get().items,
+      get().cartDiscountPercentage
+    ).total,
 
   itemCount: () =>
-    get().items.reduce((sum, i) => sum + i.quantity, 0),
+    get().items.reduce((sum, item) => sum + item.quantity, 0),
 }));

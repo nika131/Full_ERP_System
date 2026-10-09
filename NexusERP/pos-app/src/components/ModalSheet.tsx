@@ -1,5 +1,6 @@
 import React from "react";
-import { Modal, View, Pressable, KeyboardAvoidingView, Platform } from "react-native";
+import { Modal, Pressable, KeyboardAvoidingView, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ModalSheetProps {
   visible: boolean;
@@ -14,6 +15,8 @@ export function ModalSheet({
   children,
   maxWidth = 420,
 }: ModalSheetProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal
       visible={visible}
@@ -22,7 +25,11 @@ export function ModalSheet({
       onRequestClose={onClose}
     >
       <Pressable
-        className="flex-1 items-center justify-center bg-slate-900/45 p-4"
+        className="flex-1 items-center justify-center bg-slate-900/45 px-4"
+        style={{
+          paddingTop: Math.max(insets.top, 16),
+          paddingBottom: Math.max(insets.bottom, 16),
+        }}
         onPress={onClose}
       >
         <KeyboardAvoidingView

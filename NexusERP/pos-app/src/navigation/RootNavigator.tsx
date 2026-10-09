@@ -10,7 +10,7 @@ import { ReceiptsScreen } from "../screens/ReceiptsScreen";
 import { ReceiptDetailScreen } from "../screens/ReceiptDetailScreen";
 import { ShiftScreen } from "../screens/ShiftScreen";
 import { colors } from "../theme/colors";
-import { WIDE_BREAKPOINT } from "@/hooks/seIsWideLayout"; 
+import { WIDE_BREAKPOINT } from "@/hooks/useIsWideLayout";
 
 import type { SalesStackParamList, ReceiptsStackParamList } from "./types";
 import { SupportScreen } from "@/screens/SupportScreen";

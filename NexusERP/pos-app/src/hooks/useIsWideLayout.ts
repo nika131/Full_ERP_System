@@ -6,6 +6,3 @@ export function useIsWideLayout(): boolean {
   const { width } = useWindowDimensions();
   return width >= WIDE_BREAKPOINT;
 }
-
-
-

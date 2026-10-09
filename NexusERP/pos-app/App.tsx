@@ -3,7 +3,7 @@ import "./global.css";
 import { StatusBar } from "expo-status-bar";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -28,7 +28,6 @@ function AppContent() {
   const loadTerminal = useTerminalStore((s) => s.load);
   const terminalLoaded = useTerminalStore((s) => s.isLoaded);
 
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!terminalLoaded) {
@@ -38,15 +37,7 @@ function AppContent() {
 
   if (isLoading || !terminalLoaded) {
     return (
-      <View
-        style={[
-          styles.splash,
-          {
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom,
-          },
-        ]}
-      >
+      <View style={styles.splash}>
         <ActivityIndicator
           color={colors.emerald600}
           size="large"
@@ -56,17 +47,9 @@ function AppContent() {
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom,
-      }}
-    >
-      <NavigationContainer>
-        {user ? <RootNavigator /> : <LoginScreen />}
-      </NavigationContainer>
-    </View>
+    <NavigationContainer>
+      {user ? <RootNavigator /> : <LoginScreen />}
+    </NavigationContainer>
   );
 }
 

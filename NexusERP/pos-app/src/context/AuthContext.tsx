@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import * as SecureStore from "expo-secure-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { authService } from "../api/authService";
 import {
   getStoredToken,
@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const clearCart = useCartStore((s) => s.clear);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     (async () => {
@@ -51,25 +52,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (username: string, password: string) => {
     const token = await authService.login(username, password);
+    queryClient.removeQueries({ queryKey: ["pos"] });
     await persistTokenAndSetUser(token, setUser);
-  }, []);
+  }, [queryClient]);
 
   // Switching users mid-session: the previous cashier's cart shouldn't leak
   // into the next cashier's session, so we clear it here.
   const switchUser = useCallback(
     async (userId: number, pin: string) => {
       const token = await authService.pinLogin(userId, pin);
+      queryClient.removeQueries({ queryKey: ["pos"] });
       await persistTokenAndSetUser(token, setUser);
       clearCart();
     },
-    [clearCart]
+    [clearCart, queryClient]
   );
 
   const logout = useCallback(async () => {
     await deleteStoredToken();
+    queryClient.removeQueries({ queryKey: ["pos"] });
     setUser(null);
     clearCart();
-  }, [clearCart]);
+  }, [clearCart, queryClient]);
 
   const hasPermission = useCallback(
     (permission: string) => user?.permissions.includes(permission) ?? false,
