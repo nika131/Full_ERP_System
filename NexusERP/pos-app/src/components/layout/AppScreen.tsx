@@ -43,23 +43,28 @@ interface BottomActionBarProps extends ViewProps {
   children: React.ReactNode;
   className?: string;
   minimumBottomPadding?: number;
+  respectSafeArea?: boolean;
+  extraBottomPadding?: number;
 }
 
 export function BottomActionBar({
   children,
   className = "gap-3 border-t border-slate-200 bg-white px-4 pt-4 shadow-md",
   minimumBottomPadding = 24,
+  respectSafeArea = true,
+  extraBottomPadding = 8,
   style,
   ...props
 }: BottomActionBarProps) {
   const insets = useSafeAreaInsets();
+  const safeBottom = respectSafeArea ? insets.bottom : 0;
 
   return (
     <View
       {...props}
       className={className}
       style={[
-        { paddingBottom: Math.max(insets.bottom + 8, minimumBottomPadding) },
+        { paddingBottom: Math.max(safeBottom + extraBottomPadding, minimumBottomPadding) },
         style,
       ]}
     >

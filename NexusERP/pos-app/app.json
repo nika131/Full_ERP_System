@@ -16,6 +16,7 @@
     "android": {
       "package": "com.tenexerp.pos",
       "versionCode": 1,
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#079B70"

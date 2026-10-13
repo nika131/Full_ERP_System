@@ -33,6 +33,7 @@ export function SalesScreen({ navigation }: Props) {
   const {
     slots,
     isLoaded,
+    loadedStoreId,
     load,
     assignProduct,
     appendProduct,
@@ -40,12 +41,27 @@ export function SalesScreen({ navigation }: Props) {
   } = usePosLayoutStore();
 
   useEffect(() => {
-    if (!isLoaded) {
-      load();
+    if (
+      storeId != null &&
+      loadedStoreId !== storeId
+    ) {
+      void load(storeId);
     }
-  }, [isLoaded, load]);
+  }, [storeId, loadedStoreId, load]);
+
+  const isLayoutLoading =
+    storeId != null &&
+    (
+      !isLoaded ||
+      loadedStoreId !== storeId
+    );
 
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    setPage(0);
+  }, [storeId]);
+
   const [isEditing, setIsEditing] = useState(false);
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -73,21 +89,41 @@ export function SalesScreen({ navigation }: Props) {
     return map;
   }, [hydratedProducts]);
 
+  const orderedSlots = useMemo(
+      () =>
+        [...slots]
+          .filter((slot) => slot.productId !== null)
+          .sort((a, b) => a.slotIndex - b.slotIndex),
+      [slots]
+    );
+
+    const orderedProducts = useMemo(
+      () =>
+        orderedSlots
+          .map((slot) =>
+            slot.productId !== null
+              ? productById.get(slot.productId)
+              : undefined
+          )
+          .filter((product): product is Product => product !== undefined),
+      [orderedSlots, productById]
+    );
+
   const phoneProducts = useMemo(() => {
-    const products = [...productById.values()];
     const search = searchText.trim().toLowerCase();
 
-    return products.filter((product) => {
+    return orderedProducts.filter((product) => {
       const matchesSearch =
         !search ||
         product.name.toLowerCase().includes(search) ||
         String(product.productId).includes(search);
-      const matchesCategory =
+      
+        const matchesCategory =
         !selectedCategory || product.categoryName === selectedCategory;
 
       return matchesSearch && matchesCategory;
     });
-  }, [productById, searchText, selectedCategory]);
+  }, [searchText, selectedCategory, orderedProducts]);
 
   const categories = useMemo(
     () =>
@@ -124,8 +160,8 @@ export function SalesScreen({ navigation }: Props) {
   };
 
   const handlePhoneProductDelete = (productId: number) => {
-    const slotIndex = slots.findIndex((slot) => slot.productId === productId);
-    if (slotIndex !== -1) assignProduct(slotIndex, null);
+    const slot = slots.find((slot) => slot.productId === productId);
+    if (slot) assignProduct(slot.slotIndex, null);
   };
 
   const handlePickerSelect = (product: Product) => {
@@ -162,7 +198,7 @@ export function SalesScreen({ navigation }: Props) {
     />
   );
 
-  if (isShiftLoading) {
+  if (isShiftLoading || isLayoutLoading) {
     return (
       <AppScreen className="flex-1 items-center justify-center bg-slate-50">
         <ActivityIndicator color="#059669" />
@@ -265,7 +301,7 @@ function useSalesGridConfig() {
   const { width } = useWindowDimensions();
 
   return useMemo(() => {
-    if (width < 600) {
+    if (width < 900) {
       return {
         columns: 1,
         rows: 1,
@@ -274,20 +310,14 @@ function useSalesGridConfig() {
       };
     }
 
-    if (width < 1000) {
-      return {
-        columns: 4,
-        rows: 3,
-        isPhone: false,
-        cartWidth: 320,
-      };
-    }
-
     return {
       columns: 5,
       rows: 5,
       isPhone: false,
-      cartWidth: 360,
+      cartWidth:
+        width < 1200
+          ? 300
+          : 360,
     };
   }, [width]);
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { ArrowDownCircle, ArrowUpCircle, Store } from "lucide-react-native";
 import { useStoresQuery } from "@/hooks/queries/usePosQueries";
@@ -11,6 +11,19 @@ export function StorePickerView({
   onPicked: (store: StoreLookup) => void;
 }) {
   const { data: stores, isLoading } = useStoresQuery();
+
+  const didAutoPick = useRef(false);
+
+  useEffect(() => {
+    if (
+      !isLoading && 
+      stores?.length === 1 &&
+      !didAutoPick.current
+    ) {
+      didAutoPick.current = true;
+      onPicked(stores[0]);
+    }
+  }, [isLoading, stores, onPicked]);
 
   return (
     <View className="flex-1 items-center justify-center gap-1.5 p-6">

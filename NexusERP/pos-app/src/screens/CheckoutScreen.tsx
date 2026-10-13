@@ -160,7 +160,7 @@ export function CheckoutScreen({ navigation }: Props) {
         behavior={
           Platform.OS === "ios"
             ? "padding"
-            : "height"
+            : undefined
         }
       >
         <FlatList
@@ -189,7 +189,7 @@ export function CheckoutScreen({ navigation }: Props) {
                   <Text className="text-[13px] text-slate-500">
                     Receipt discount
                   </Text>
-                  <Text className="text-[13px] font-semibold text-red-600">
+                  <Text className="text-[13px] font-semibold text-amber-600">
                     − {cartDiscountPercentage}%
                   </Text>
                 </View>

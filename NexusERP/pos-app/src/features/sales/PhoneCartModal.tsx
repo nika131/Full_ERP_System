@@ -33,7 +33,7 @@ export function PhoneCartModal({
           </View>
 
           <View className="flex-1">
-            <CartPanel onCheckout={onCheckout} />
+            <CartPanel onCheckout={onCheckout} compactBottomSpacing />
           </View>
         </View>
       </View>

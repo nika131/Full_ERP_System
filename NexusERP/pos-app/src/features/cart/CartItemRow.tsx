@@ -63,14 +63,14 @@ export function CartItemRow({
           </Text>
 
           {item.marketDiscountPercentage > 0 && (
-            <Text className="mt-0.5 text-xs font-medium text-red-600">
+            <Text className="mt-0.5 text-xs font-medium text-amber-600">
               Market discount: −{item.marketDiscountPercentage}%: −
               {formatCurrency(pricing.marketDiscountAmount)}
             </Text>
           )}
 
           {item.manualItemDiscountPercentage > 0 && (
-            <Text className="mt-0.5 text-xs font-medium text-emerald-600">
+            <Text className="mt-0.5 text-xs font-medium text-amber-600">
               Manual discount {item.manualItemDiscountPercentage}%: −
               {formatCurrency(pricing.manualDiscountAmount)}
             </Text>

@@ -20,14 +20,14 @@ export function CheckoutItemRow({ item }: { item: CartItem }) {
         </Text>
 
         {item.marketDiscountPercentage > 0 ? (
-          <Text className="text-xs text-red-600">
+          <Text className="text-xs text-amber-600">
             Market discount: −{item.marketDiscountPercentage}%: −
             {formatCurrency(pricing.marketDiscountAmount)}
           </Text>
         ) : null}
 
         {item.manualItemDiscountPercentage > 0 ? (
-          <Text className="text-xs text-emerald-600">
+          <Text className="text-xs text-amber-600">
             Manual discount: −{item.manualItemDiscountPercentage}%: −
             {formatCurrency(pricing.manualDiscountAmount)}
           </Text>

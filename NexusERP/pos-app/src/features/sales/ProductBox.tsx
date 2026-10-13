@@ -33,17 +33,38 @@ export function ProductBox({
   const isNormalMode =
     !!product && !isImageMode && !isShapeMode;
 
+  const [shapeSize, setShapeSize] = React.useState(64);
+
   return (
     <Pressable
       onPress={onPress}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+
+        const nextSize = Math.max(
+          40,
+          Math.min(
+            240,
+            Math.floor(Math.min(width, height) * 1.1)
+          )
+        );
+
+        setShapeSize((current) =>
+          current === nextSize ? current : nextSize
+        );
+      }}
       className={[
         "relative flex-1 overflow-hidden border border-slate-200 bg-white",
-        (product?.marketDiscountRate ?? 0) > 0 ? "border-red-300" : "",
-        isEditing ? "border-dashed border-emerald-300" : "",
+        (product?.marketDiscountRate ?? 0) > 0
+          ? "border-amber-300"
+          : "",
+        isEditing
+          ? "border-dashed border-emerald-300"
+          : "",
       ].join(" ")}
     >
       {product && (product.marketDiscountRate ?? 0) > 0 && (
-        <View className="absolute left-2 top-2 z-20 rounded-md bg-red-600 px-2 py-1 shadow-sm">
+        <View className="absolute left-2 top-2 z-20 rounded-md bg-amber-500 px-2 py-1 shadow-sm">
           <Text className="text-[11px] font-extrabold text-white">
             -{product.marketDiscountRate ?? 0}%
           </Text>
@@ -72,7 +93,7 @@ export function ProductBox({
                 shapeType={product.shapeType!}
                 color={product.shapeColor || "#ffffff"}
                 text={product.shapeText}
-                size={220}
+                size={shapeSize}
               />
             </View>
           )}
@@ -82,6 +103,8 @@ export function ProductBox({
               <Text
                 className="px-4 text-center text-lg font-semibold text-slate-700"
                 numberOfLines={3}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
               >
                 {product.name}
               </Text>

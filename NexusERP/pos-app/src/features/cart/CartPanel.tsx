@@ -15,9 +15,10 @@ import { calculateCartTotals } from "@/utils/cartPricing";
 interface CartPanelProps {
   onCheckout: () => void;
   disabled?: boolean;
+  compactBottomSpacing?: boolean;
 }
 
-export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
+export function CartPanel({ onCheckout, disabled, compactBottomSpacing }: CartPanelProps) {
   const items = useCartStore((state) => state.items);
   const cartDiscountPercentage = useCartStore(
     (state) => state.cartDiscountPercentage
@@ -68,18 +69,22 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
         />
       )}
 
-      <BottomActionBar className="gap-3 border-t border-slate-200 bg-white px-4 pt-4">
+      <BottomActionBar 
+        className="gap-3 border-t border-slate-200 bg-white px-4 pt-4"
+        respectSafeArea={!compactBottomSpacing}
+        extraBottomPadding={compactBottomSpacing ? 0 : 8}
+        minimumBottomPadding={compactBottomSpacing ? 8 : 24}>
         <Pressable
-          className="flex-row items-center justify-between rounded-lg bg-emerald-50 p-3"
+          className="flex-row items-center justify-between rounded-lg bg-amber-50 p-3"
           onPress={() => setDiscountModalOpen(true)}
         >
           <View className="flex-row items-center gap-1.5">
-            <Tag size={14} color="#059669" />
-            <Text className="text-[13px] font-semibold text-emerald-700">
+            <Tag size={14} color="#d97706" />
+            <Text className="text-[13px] font-semibold text-amber-700">
               Receipt discount
             </Text>
           </View>
-          <Text className="text-[13px] font-bold text-emerald-700">
+          <Text className="text-[13px] font-bold text-amber-700">
             {cartDiscountPercentage > 0 ? `${cartDiscountPercentage}%` : "Add"}
           </Text>
         </Pressable>
@@ -91,7 +96,7 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
             <SummaryRow
               label="Market discounts"
               value={`−${formatCurrency(totals.marketDiscountTotal)}`}
-              valueClassName="text-emerald-600"
+              valueClassName="text-amber-600"
             />
           ) : null}
 
@@ -99,7 +104,7 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
             <SummaryRow
               label="Manual item discounts"
               value={`−${formatCurrency(totals.manualItemDiscountTotal)}`}
-              valueClassName="text-emerald-600"
+              valueClassName="text-amber-600"
             />
           ) : null}
 
@@ -107,7 +112,7 @@ export function CartPanel({ onCheckout, disabled }: CartPanelProps) {
             <SummaryRow
               label={`Receipt discount (${cartDiscountPercentage}%)`}
               value={`−${formatCurrency(totals.receiptDiscountAmount)}`}
-              valueClassName="text-emerald-600"
+              valueClassName="text-amber-600"
             />
           ) : null}
 

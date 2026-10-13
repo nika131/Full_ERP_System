@@ -102,18 +102,23 @@ export function ShapeIcon({ shapeType, color, text, size = 64 }: ShapeIconProps)
 
       {text ? (
         <View
-          className="absolute px-1"
+          className="absolute items-center justify-center"
+          style={{ width: size * 0.9 }}
           pointerEvents="none"
         >
           <Text
             className="font-bold text-white"
             style={{
-              fontSize: Math.max(9, size * 0.16),
+              fontSize: Math.min(22, Math.max(9, size * 0.15)),
+              lineHeight: Math.min(24, Math.max(10, size * 0.15)),
+              textAlign: "center",
               textShadowColor: "rgba(0,0,0,0.35)",
               textShadowOffset: { width: 0, height: 1 },
               textShadowRadius: 2,
             }}
-            numberOfLines={1}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.55}
           >
             {text}
           </Text>

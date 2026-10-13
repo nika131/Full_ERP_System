@@ -76,12 +76,12 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
                       {line.quantity} × {formatCurrency(line.unitPrice)}
                     </Text>
                     {line.marketDiscountPercentage > 0 ? (
-                      <Text className="text-xs text-red-600">
+                      <Text className="text-xs text-amber-600">
                         Market discount: {line.marketDiscountPercentage}%
                       </Text>
                     ) : null}
                     {line.manualItemDiscountPercentage > 0 ? (
-                      <Text className="text-xs text-red-600">
+                      <Text className="text-xs text-amber-600">
                         Manual discount: {line.manualItemDiscountPercentage}%
                       </Text>
                     ) : null}
@@ -167,10 +167,10 @@ function SummaryRow({
 }) {
   const labelClass =
     emphasize === "saved"
-      ? "font-semibold text-red-600"
+      ? "font-semibold text-amber-700"
       : "text-slate-500";
   const valueClass = emphasize
-    ? "font-bold text-red-600"
+    ? "font-bold text-amber-600"
     : "font-semibold text-slate-700";
 
   return (

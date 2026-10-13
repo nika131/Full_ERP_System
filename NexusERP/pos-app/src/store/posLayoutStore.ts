@@ -2,52 +2,162 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { PosSlot } from "../types";
 
-const STORAGE_KEY = "pos_grid_layout_v1";
+const getStorageKey = (storeId: number) =>
+  `pos_grid_layout_v2_store_${storeId}`;
+
+const sortSlots = (slots: PosSlot[]) =>
+  [...slots].sort((a, b) => a.slotIndex - b.slotIndex);
 
 interface PosLayoutState {
   slots: PosSlot[];
   isLoaded: boolean;
-  load: () => Promise<void>;
-  assignProduct: (slotIndex: number, productId: number | null) => void;
-  appendProduct: (productId: number) => void; // NEW
-  getProductIdAt: (slotIndex: number) => number | null;
+  loadedStoreId: number | null;
+
+  load: (storeId: number) => Promise<void>;
+
+  assignProduct: (
+    slotIndex: number,
+    productId: number | null
+  ) => void;
+
+  appendProduct: (productId: number) => void;
+
+  getProductIdAt: (
+    slotIndex: number
+  ) => number | null;
 }
 
-export const usePosLayoutStore = create<PosLayoutState>((set, get) => ({
-  slots: [],
-  isLoaded: false,
+export const usePosLayoutStore =
+  create<PosLayoutState>((set, get) => ({
+    slots: [],
+    isLoaded: false,
+    loadedStoreId: null,
 
-  load: async () => {
-    try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      const slots: PosSlot[] = raw ? JSON.parse(raw) : [];
-      set({ slots, isLoaded: true });
-    } catch {
-      set({ slots: [], isLoaded: true });
-    }
-  },
+    load: async (storeId) => {
+      set({
+        slots: [],
+        isLoaded: false,
+        loadedStoreId: storeId,
+      });
 
-  assignProduct: (slotIndex, productId) => {
-    set((state) => {
-      const others = state.slots.filter((s) => s.slotIndex !== slotIndex);
-      const next = [...others, { slotIndex, productId }];
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
-      return { slots: next };
-    });
-  },
+      try {
+        const raw = await AsyncStorage.getItem(
+          getStorageKey(storeId)
+        );
 
-  appendProduct: (productId) => {
-    set((state) => {
-      const maxIndex = state.slots.length
-        ? Math.max(...state.slots.map((s) => s.slotIndex))
-        : -1;
-      const next = [...state.slots, { slotIndex: maxIndex + 1, productId }];
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
-      return { slots: next };
-    });
-  },
+        const slots: PosSlot[] = raw
+          ? JSON.parse(raw)
+          : [];
 
-  getProductIdAt: (slotIndex) => {
-    return get().slots.find((s) => s.slotIndex === slotIndex)?.productId ?? null;
-  },
-}));
+        if (get().loadedStoreId !== storeId) {
+          return;
+        }
+
+        set({
+          slots: sortSlots(slots),
+          isLoaded: true,
+        });
+      } catch {
+        if (get().loadedStoreId !== storeId) {
+          return;
+        }
+
+        set({
+          slots: [],
+          isLoaded: true,
+        });
+      }
+    },
+
+    assignProduct: (slotIndex, productId) => {
+      set((state) => {
+        const storeId = state.loadedStoreId;
+
+        if (storeId === null) {
+          return state;
+        }
+
+        const withoutCurrentSlot =
+          state.slots.filter(
+            (slot) =>
+              slot.slotIndex !== slotIndex
+          );
+
+        const next =
+          productId === null
+            ? sortSlots(withoutCurrentSlot)
+            : sortSlots([
+                ...withoutCurrentSlot,
+                {
+                  slotIndex,
+                  productId,
+                },
+              ]);
+
+        AsyncStorage.setItem(
+          getStorageKey(storeId),
+          JSON.stringify(next)
+        ).catch(() => {});
+
+        return {
+          slots: next,
+        };
+      });
+    },
+
+    appendProduct: (productId) => {
+      set((state) => {
+        const storeId = state.loadedStoreId;
+
+        if (storeId === null) {
+          return state;
+        }
+
+        if (
+          state.slots.some(
+            (slot) =>
+              slot.productId === productId
+          )
+        ) {
+          return state;
+        }
+
+        const occupiedIndexes = new Set(
+          state.slots.map(
+            (slot) => slot.slotIndex
+          )
+        );
+
+        let slotIndex = 0;
+
+        while (
+          occupiedIndexes.has(slotIndex)
+        ) {
+          slotIndex++;
+        }
+
+        const next = sortSlots([
+          ...state.slots,
+          {
+            slotIndex,
+            productId,
+          },
+        ]);
+
+        AsyncStorage.setItem(
+          getStorageKey(storeId),
+          JSON.stringify(next)
+        ).catch(() => {});
+
+        return {
+          slots: next,
+        };
+      });
+    },
+
+    getProductIdAt: (slotIndex) =>
+      get().slots.find(
+        (slot) =>
+          slot.slotIndex === slotIndex
+      )?.productId ?? null,
+  }));
