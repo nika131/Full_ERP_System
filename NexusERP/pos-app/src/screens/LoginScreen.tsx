@@ -83,8 +83,14 @@ export function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             placeholder="Password"
+            placeholderTextColor="#94a3b8"
             secureTextEntry
-            className="flex-1 text-[15px]"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="password"
+            textContentType="password"
+            className="flex-1 text-[15px] text-slate-900"
+            style={{ color: "#0f172a"}}
             onSubmitEditing={handleSubmit}
           />
         </View>

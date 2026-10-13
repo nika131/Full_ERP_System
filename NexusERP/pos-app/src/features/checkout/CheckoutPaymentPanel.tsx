@@ -63,8 +63,9 @@ export function CheckoutPaymentPanel({
               value={amountTendered}
               onChangeText={onAmountTenderedChange}
               keyboardType="decimal-pad"
-              placeholder={backendTotal == null ? "-" : formatCurrency(backendTotal)}
-              className="rounded-lg border border-slate-300 px-3 py-2.5 text-base font-semibold"
+              placeholder={backendTotal == null ? "-" : backendTotal.toFixed(2)}
+              placeholderTextColor="#94a3b8"
+              className="rounded-lg border border-slate-300 px-3 py-2.5 text-base font-semibold text-slate-900"
             />
           </View>
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ArrowLeft, CheckCircle2 } from "lucide-react-native";
 import type { SalesStackParamList } from "@/navigation/types";
@@ -60,19 +60,34 @@ export function CheckoutScreen({ navigation }: Props) {
   } = useCheckoutQuoteQuery(quotePayload);
 
   const backendTotal = checkoutQuote?.finalTotal ?? null;
-  const tendered = parseFloat(amountTendered) || 0;
-  const change = useMemo(
-    () =>
-      backendTotal == null
-        ? 0
-        : round2(Math.max(0, tendered - backendTotal)),
-    [tendered, backendTotal]
-  );
 
-  const hasCashAmount = amountTendered.trim().length > 0;
+  const enteredCashAmount = useMemo(() => {
+    const value = amountTendered.trim();
+
+    if (!value) return null;
+
+    return Number(value.replace(",", "."));
+  }, [amountTendered]);
+
+  const effectiveTendered = 
+    enteredCashAmount == null
+      ? backendTotal ?? 0
+      : enteredCashAmount;
+
+  const change = useMemo(() => {
+    if (
+      backendTotal == null ||
+      !Number.isFinite(effectiveTendered)
+    ) return 0;
+
+    return round2(Math.max(0, effectiveTendered - backendTotal));
+  }, [backendTotal, effectiveTendered]);
+
   const cashPaymentValid =
     paymentMethod === "Card" ||
-    (hasCashAmount && backendTotal != null && tendered >= backendTotal);
+    (backendTotal != null && (enteredCashAmount == null || (
+      Number.isFinite(enteredCashAmount) && enteredCashAmount >= backendTotal
+    )));
 
   const canConfirm =
     items.length > 0 &&
@@ -140,58 +155,75 @@ export function CheckoutScreen({ navigation }: Props) {
         right={<View className="w-8" />}
       />
 
-      <FlatList
-        data={items}
-        keyExtractor={(item) => String(item.productId)}
+      <KeyboardAvoidingView
         className="flex-1"
-        contentContainerClassName="p-4"
-        renderItem={({ item }) => <CheckoutItemRow item={item} />}
-        ListFooterComponent={
-          <View className="mt-4 gap-1 border-t border-slate-200 pt-4">
-            <View className="flex-row justify-between">
-              <Text className="text-[13px] text-slate-500">Subtotal</Text>
-              <Text className="text-[13px] font-semibold text-slate-700">
-                {formatCurrency(subtotal)}
-              </Text>
-            </View>
-
-            {cartDiscountPercentage > 0 ? (
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : "height"
+        }
+      >
+        <FlatList
+          data={items}
+          keyExtractor={(item) => String(item.productId)}
+          className="flex-1"
+          contentContainerClassName="p-4"
+          renderItem={({ item }) => <CheckoutItemRow item={item} />}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={
+            Platform.OS === "ios"
+              ? "interactive"
+              : "on-drag"
+          }
+          ListFooterComponent={
+            <View className="mt-4 gap-1 border-t border-slate-200 pt-4">
               <View className="flex-row justify-between">
-                <Text className="text-[13px] text-slate-500">
-                  Receipt discount
-                </Text>
-                <Text className="text-[13px] font-semibold text-red-600">
-                  − {cartDiscountPercentage}%
+                <Text className="text-[13px] text-slate-500">Subtotal</Text>
+                <Text className="text-[13px] font-semibold text-slate-700">
+                  {formatCurrency(subtotal)}
                 </Text>
               </View>
-            ) : null}
 
-            <View className="mt-2 flex-row justify-between">
-              <Text className="text-[17px] font-extrabold text-slate-800">
-                Total
-              </Text>
-              <Text className="text-[22px] font-extrabold text-emerald-600">
-                {backendTotal != null ? formatCurrency(backendTotal) : "-"}
-              </Text>
+              {cartDiscountPercentage > 0 ? (
+                <View className="flex-row justify-between">
+                  <Text className="text-[13px] text-slate-500">
+                    Receipt discount
+                  </Text>
+                  <Text className="text-[13px] font-semibold text-red-600">
+                    − {cartDiscountPercentage}%
+                  </Text>
+                </View>
+              ) : null}
+
+              <View className="mt-2 flex-row justify-between">
+                <Text className="text-[17px] font-extrabold text-slate-800">
+                  Total
+                </Text>
+                <Text className="text-[22px] font-extrabold text-emerald-600">
+                  {backendTotal != null ? formatCurrency(backendTotal) : "-"}
+                </Text>
+              </View>
             </View>
-          </View>
-        }
-      />
+          }
+        />
 
-      <CheckoutPaymentPanel
-        paymentMethod={paymentMethod}
-        backendTotal={backendTotal}
-        amountTendered={amountTendered}
-        change={change}
-        checkoutError={checkoutError}
-        quoteErrorMessage={isQuoteError ? getErrorMessage(quoteError) : null}
-        isQuoteLoading={isQuoteLoading}
-        canConfirm={canConfirm}
-        isSubmitting={checkoutMutation.isPending}
-        onPaymentMethodChange={setPaymentMethod}
-        onAmountTenderedChange={setAmountTendered}
-        onConfirm={handleConfirm}
-      />
+        <CheckoutPaymentPanel
+          paymentMethod={paymentMethod}
+          backendTotal={backendTotal}
+          amountTendered={amountTendered}
+          change={change}
+          checkoutError={checkoutError}
+          quoteErrorMessage={isQuoteError ? getErrorMessage(quoteError) : null}
+          isQuoteLoading={isQuoteLoading}
+          canConfirm={canConfirm}
+          isSubmitting={checkoutMutation.isPending}
+          onPaymentMethodChange={setPaymentMethod}
+          onAmountTenderedChange={setAmountTendered}
+          onConfirm={handleConfirm}
+        />
+      </KeyboardAvoidingView>
+
+      
     </AppScreen>
   );
 }

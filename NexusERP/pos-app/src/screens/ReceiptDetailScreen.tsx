@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native"; 
 import type { ReceiptsStackParamList } from "@/navigation/types";
 import { useReceiptDetailQuery } from "@/hooks/queries/usePosQueries";
 import { formatCurrency } from "@/utils/currency";
@@ -88,11 +88,13 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
                     {line.marketDiscountPercentage > 0 ||
                     line.manualItemDiscountPercentage > 0 ? (
                       <>
-                        <Text className="text-xs text-red-600">
-                          Original: {formatCurrency(line.unitPrice * line.quantity)}
-                        </Text>
                         <Text className="text-xs font-semibold text-emerald-600">
-                          After item discounts: {formatCurrency(line.lineTotal)}
+                          Discounted unit price: {" "}
+                          {formatCurrency(
+                            line.quantity > 0
+                              ? line.lineTotal / line.quantity
+                              : line.unitPrice 
+                          )}
                         </Text>
                       </>
                     ) : null}
@@ -129,7 +131,6 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
                 emphasize="saved"
               />
             ) : null}
-            <SummaryRow label="After discounts" value={receipt.finalTotal} />
             <SummaryRow label="VAT" value={receipt.totalVatAmount} />
 
             <View className="my-4 h-px bg-slate-200" />

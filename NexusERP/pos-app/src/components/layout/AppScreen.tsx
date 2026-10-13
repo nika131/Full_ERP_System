@@ -48,7 +48,7 @@ interface BottomActionBarProps extends ViewProps {
 export function BottomActionBar({
   children,
   className = "gap-3 border-t border-slate-200 bg-white px-4 pt-4 shadow-md",
-  minimumBottomPadding = 16,
+  minimumBottomPadding = 24,
   style,
   ...props
 }: BottomActionBarProps) {
@@ -59,7 +59,7 @@ export function BottomActionBar({
       {...props}
       className={className}
       style={[
-        { paddingBottom: Math.max(insets.bottom, minimumBottomPadding) },
+        { paddingBottom: Math.max(insets.bottom + 8, minimumBottomPadding) },
         style,
       ]}
     >
