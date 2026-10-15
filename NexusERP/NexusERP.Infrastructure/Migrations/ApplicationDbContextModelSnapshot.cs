@@ -473,6 +473,9 @@ namespace NexusERP.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PosLayoutJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -587,21 +590,21 @@ namespace NexusERP.Infrastructure.Migrations
                             SettingKey = "GlobalLowStockThreshold",
                             Description = "The Deafult low Stock alert threshold for products that do not have custom threshold.",
                             SettingValue = "5",
-                            UpdatedAt = new DateTime(2026, 10, 15, 13, 8, 17, 787, DateTimeKind.Utc).AddTicks(2201)
+                            UpdatedAt = new DateTime(2026, 10, 15, 16, 55, 6, 265, DateTimeKind.Utc).AddTicks(4358)
                         },
                         new
                         {
                             SettingKey = "AllowNegativeInventory",
                             Description = "Allow stock deductions (loss/damage) to push quantities below zero.",
                             SettingValue = "false",
-                            UpdatedAt = new DateTime(2026, 10, 15, 13, 8, 17, 787, DateTimeKind.Utc).AddTicks(2204)
+                            UpdatedAt = new DateTime(2026, 10, 15, 16, 55, 6, 265, DateTimeKind.Utc).AddTicks(4361)
                         },
                         new
                         {
                             SettingKey = "DiscountPolicy",
                             Description = "Controls who can apply manual cart or item discounts during checkout.",
                             SettingValue = "Enabled",
-                            UpdatedAt = new DateTime(2026, 10, 15, 13, 8, 17, 787, DateTimeKind.Utc).AddTicks(2207)
+                            UpdatedAt = new DateTime(2026, 10, 15, 16, 55, 6, 265, DateTimeKind.Utc).AddTicks(4362)
                         });
                 });
 
