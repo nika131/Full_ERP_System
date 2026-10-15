@@ -123,5 +123,20 @@ namespace NexusERP.Api.Controllers
             return Ok(quote);
         }
 
+        [HttpGet("layout")]
+        public async Task<IActionResult> GetPosLayout([FromQuery] int storeId)
+        {
+            var layout = await _posService.GetPosLayoutAsync(storeId);
+
+            return Ok(layout);
+        }
+
+        [HttpPost("layout/storeId:int")]
+        public async Task<IActionResult> SavePosLayout(int storeId, [FromBody] UpdatePosLayoutDto dto)
+        {
+            var layout = await _posService.SavePosLayoutAsync(storeId, dto);
+
+            return Ok(layout);
+        }
     }
 }

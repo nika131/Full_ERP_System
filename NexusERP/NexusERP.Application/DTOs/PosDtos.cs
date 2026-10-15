@@ -162,4 +162,21 @@ namespace NexusERP.Application.DTOs
         public bool HasWarning { get; set; }
         public string? Warning { get; set; }
     }
+
+    public class PosLayoutSlotDto
+    {
+        public int SlotIndex { get; set; }
+        public int ProductId { get; set; }
+    }
+
+    public class PosLayoutDto
+    {
+        public int StoreId { get; set; }
+        public List<PosLayoutSlotDto> Slots { get; set; } = new();
+    }
+
+    public class UpdatePosLayoutDto
+    {
+        public List<PosLayoutSlotDto> Slots { get; set; } = new();
+    }
 }

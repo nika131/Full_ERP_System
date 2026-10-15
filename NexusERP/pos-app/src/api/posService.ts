@@ -5,6 +5,7 @@ import type {
   ShiftReceiptSummary,
   ReceiptDetail,
   StoreLookup,
+  PosSlot
 } from "../types";
 
 export interface OpenShiftPayload {
@@ -44,6 +45,11 @@ export interface CheckoutResult {
   total: number;
 }
 
+export interface PosLayoutResult {
+  storeId: number;
+  slots: PosSlot[];
+}
+
 export type CheckoutQuotePayload = Omit<CheckoutPayload, "paymentMethod">;
 
 export interface CheckoutQuoteResult {
@@ -51,9 +57,8 @@ export interface CheckoutQuoteResult {
 }
 
 export const posService = {
-  getCurrentShift: async (
-    storeId: number
-  ): Promise<{ hasOpenShift: boolean; shift: CurrentShift | null }> => {
+
+  getCurrentShift: async (storeId: number): Promise<{ hasOpenShift: boolean; shift: CurrentShift | null }> => {
     const res = await apiClient.get("/pos/shift/current", { params: { storeId } });
     return res.data;
   },
@@ -111,4 +116,30 @@ export const posService = {
     const res = await apiClient.post("/pos/checkout/quote", payload);
     return res.data;
   },
+
+  getPosLayout: async (storeId: number): Promise<PosLayoutResult> => {
+    const res = await apiClient.get<PosLayoutResult>(
+      "/pos/layout", {
+        params: { storeId },
+      }
+    );
+
+    return res.data;
+  },
+
+  savePosLayout: async (storeId: number, slots: PosSlot[]): Promise<PosLayoutResult> => {
+    const assignedSlots = slots.filter((slot) => slot.productId !== null)
+    .map((slot) => ({
+      slotIndex: slot.slotIndex,
+      productId: slot.productId as number,
+    }));
+
+    const res = await apiClient.put<PosLayoutResult>(
+      `/pos/layout/${storeId}`, {
+        slots:assignedSlots,
+      }
+    );
+
+    return res.data;
+  }
 };

@@ -19,5 +19,7 @@ namespace NexusERP.Application.Interfaces.Services
         Task<List<ShiftReceiptSummaryDto>> GetShiftReceiptsAsync(int shiftId, int userId);
         Task<ReceiptDetailDto> GetReceiptDetailAsync(int receiptId, int userId);
         Task<CheckoutQuoteDto> GetCheckoutQuoteAsync(int UserId, CheckoutRequestDto cart);
+        Task<PosLayoutDto> GetPosLayoutAsync(int storeId);
+        Task<PosLayoutDto> SavePosLayoutAsync(int storeId, UpdatePosLayoutDto layout);
     }
 }

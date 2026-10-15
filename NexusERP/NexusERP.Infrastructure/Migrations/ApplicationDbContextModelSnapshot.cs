@@ -587,21 +587,21 @@ namespace NexusERP.Infrastructure.Migrations
                             SettingKey = "GlobalLowStockThreshold",
                             Description = "The Deafult low Stock alert threshold for products that do not have custom threshold.",
                             SettingValue = "5",
-                            UpdatedAt = new DateTime(2026, 10, 9, 13, 52, 27, 644, DateTimeKind.Utc).AddTicks(5633)
+                            UpdatedAt = new DateTime(2026, 10, 15, 13, 8, 17, 787, DateTimeKind.Utc).AddTicks(2201)
                         },
                         new
                         {
                             SettingKey = "AllowNegativeInventory",
                             Description = "Allow stock deductions (loss/damage) to push quantities below zero.",
                             SettingValue = "false",
-                            UpdatedAt = new DateTime(2026, 10, 9, 13, 52, 27, 644, DateTimeKind.Utc).AddTicks(5638)
+                            UpdatedAt = new DateTime(2026, 10, 15, 13, 8, 17, 787, DateTimeKind.Utc).AddTicks(2204)
                         },
                         new
                         {
                             SettingKey = "DiscountPolicy",
                             Description = "Controls who can apply manual cart or item discounts during checkout.",
                             SettingValue = "Enabled",
-                            UpdatedAt = new DateTime(2026, 10, 9, 13, 52, 27, 644, DateTimeKind.Utc).AddTicks(5639)
+                            UpdatedAt = new DateTime(2026, 10, 15, 13, 8, 17, 787, DateTimeKind.Utc).AddTicks(2207)
                         });
                 });
 

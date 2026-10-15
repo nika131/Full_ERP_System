@@ -97,6 +97,7 @@ namespace NexusERP.Infrastructure.Database
                 entity.HasKey(e => e.UserId);
             });
 
+            // 4. Map Roles
             modelBuilder.Entity<Role>(entity =>
             {
                 entity.HasKey(e => e.RoleId);
@@ -106,6 +107,7 @@ namespace NexusERP.Infrastructure.Database
                         v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>());
             });
 
+            // 5. Map User Absences
             modelBuilder.Entity<UserAbsence>(entity =>
             {
                 entity.HasKey(e => e.AbsenceId);
@@ -128,12 +130,14 @@ namespace NexusERP.Infrastructure.Database
                     .HasForeignKey(e => e.ReviewedByUserId);
             });
 
+            // 6. Map Salary Records
             modelBuilder.Entity<SalaryRecord>(entity =>
             {
                 entity.HasKey(e => e.SalaryRecordId);
                 entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
             });
 
+            // 7. Map Categories, Suppliers, and System Audit Logs
             modelBuilder.Entity<Category>().HasKey(e => e.CategoryId);
             modelBuilder.Entity<Supplier>().HasKey(e => e.SupplierId);
             modelBuilder.Entity<SystemAuditLog>().HasKey(e => e.LogId);
@@ -142,11 +146,13 @@ namespace NexusERP.Infrastructure.Database
                 .HasIndex(log => new { log.CreatedAt, log.LogId })
                 .IsDescending(true, true);
 
+            // Store Mapping
             modelBuilder.Entity<Store>(entity =>
             {
                 entity.HasKey(e => e.StoreId);
                 entity.Property(e => e.Location).HasColumnType("geography");
                 entity.Property(e => e.MaxCartDiscountPercentage).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PosLayoutJson).HasColumnType("nvarchar(max)");
             });
 
             // Shift Mapping

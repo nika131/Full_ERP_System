@@ -6,6 +6,7 @@ using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Infrastructure.Database;
 using System.Data;
+using System.Text.Json;
 
 namespace NexusERP.Infrastructure.Services
 {
@@ -739,5 +740,85 @@ namespace NexusERP.Infrastructure.Services
             };
         }
 
+        public async Task<PosLayoutDto> GetPosLayoutAsync(int storeId)
+        {
+            var store = await _context.Stores.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.StoreId == storeId)
+                ?? throw new AppException("Store not found.");
+
+            if (string.IsNullOrWhiteSpace(store.PosLayoutJson))
+            {
+                return new PosLayoutDto
+                {
+                    StoreId = storeId,
+                    Slots = new List<PosLayoutSlotDto>()
+                };
+            }
+
+            try
+            {
+                var slots = JsonSerializer.Deserialize<List<PosLayoutSlotDto>>(store.PosLayoutJson) ??
+                    new List<PosLayoutSlotDto>();
+
+                return new PosLayoutDto
+                {
+                    StoreId = storeId,
+                    Slots = slots.OrderBy(s => s.SlotIndex).ToList()
+                };
+            }
+            catch (JsonException)
+            {
+                throw new AppException("Invalid POS layout data.");
+            }
+        }
+
+
+        public async Task<PosLayoutDto> SavePosLayoutAsync(int storeId, UpdatePosLayoutDto dto)
+        {
+            var store = await _context.Stores.FirstOrDefaultAsync(s => s.StoreId == storeId) ??
+                throw new AppException("Store not found.");
+
+            var slots = dto.Slots ?? new List<PosLayoutSlotDto>();
+
+            if (slots.Any(s => s.SlotIndex < 0))
+                throw new AppException("Slot index cannot be negative.");
+
+            if (slots.Any(s => s.ProductId <= 0))
+                throw new AppException("POS layout contains invalid product.");
+
+            if (slots.GroupBy(s => s.SlotIndex).Any(group => group.Count() > 1))
+                throw new AppException("POS layout contains duplicate slot indices.");
+
+            var productIds = slots.Select(s => s.ProductId).Distinct().ToList();
+
+            if (productIds.Count > 0)
+            {
+                var existingProductIds = await _context.Products
+                    .Where(p => productIds.Contains(p.ProductId) && p.IsActive)
+                    .Select(p => p.ProductId)
+                    .ToListAsync();
+
+                if (existingProductIds.Count != productIds.Count)
+                    throw new AppException("POS layout contains invalid or inactive products.");
+            }
+
+            var cleanSlots = slots.OrderBy(s => s.SlotIndex).Select(s => new PosLayoutSlotDto
+            {
+                SlotIndex = s.SlotIndex,
+                ProductId = s.ProductId
+            }).ToList();
+
+            store.PosLayoutJson = JsonSerializer.Serialize(cleanSlots);
+
+            store.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return new PosLayoutDto
+            {
+                StoreId = storeId,
+                Slots = cleanSlots
+            };
+        }
     }
 }

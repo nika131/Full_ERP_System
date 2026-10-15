@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, Text, useWindowDimensions, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { AlertTriangle } from "lucide-react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { SalesStackParamList } from "@/navigation/types";
@@ -16,6 +16,8 @@ import { DesktopProductGrid } from "@/features/sales/DesktopProductGrid";
 import { PhoneProductList } from "@/features/sales/PhoneProductList";
 import { PhoneCartModal } from "@/features/sales/PhoneCartModal";
 import { ProductPickerModal } from "@/features/sales/ProductPickerModal";
+import { getErrorMessage } from "@/api/client";
+import { useFocusEffect } from "@react-navigation/native";
 
 type Props = NativeStackScreenProps<SalesStackParamList, "SalesHome">;
 
@@ -34,27 +36,27 @@ export function SalesScreen({ navigation }: Props) {
     slots,
     isLoaded,
     loadedStoreId,
+    loadError,
     load,
     assignProduct,
     appendProduct,
     getProductIdAt,
   } = usePosLayoutStore();
 
-  useEffect(() => {
-    if (
-      storeId != null &&
-      loadedStoreId !== storeId
-    ) {
-      void load(storeId);
-    }
-  }, [storeId, loadedStoreId, load]);
 
-  const isLayoutLoading =
-    storeId != null &&
-    (
-      !isLoaded ||
-      loadedStoreId !== storeId
-    );
+  useFocusEffect(
+    useCallback(() => {
+      if (storeId != null && hasOpenShift) {
+        void load(storeId);
+      }
+    }, [storeId, hasOpenShift, load])
+  );
+
+  const isLayoutLoading = hasOpenShift && storeId != null &&
+  (
+    !isLoaded ||
+    loadedStoreId !== storeId
+  );
 
   const [page, setPage] = useState(0);
 
@@ -159,28 +161,70 @@ export function SalesScreen({ navigation }: Props) {
     if (product) addProduct(product);
   };
 
-  const handlePhoneProductDelete = (productId: number) => {
-    const slot = slots.find((slot) => slot.productId === productId);
-    if (slot) assignProduct(slot.slotIndex, null);
-  };
+  const handlePhoneProductDelete = async (productId: number) => {
+      const slot = slots.find((slot) =>
+          slot.productId === productId
+      );
 
-  const handlePickerSelect = (product: Product) => {
-    if (pickerSlot === APPEND_SLOT) {
-      if (!assignedIds.includes(product.productId)) {
-        appendProduct(product.productId);
+      if (!slot) return;
+
+      try {
+        await assignProduct(slot.slotIndex, null);
+      } catch (err) {
+        Alert.alert("Layout not saved", getErrorMessage(err));
       }
-    } else if (pickerSlot !== null) {
-      assignProduct(pickerSlot, product.productId);
-    }
-
-    setPickerSlot(null);
   };
 
-  const handlePickerClearSlot = () => {
-    if (pickerSlot !== null && pickerSlot !== APPEND_SLOT) {
-      assignProduct(pickerSlot, null);
+  const handleDeleteSlot = async (slotIndex: number) => {
+      try {
+        await assignProduct(slotIndex, null);
+      } catch (err) {
+        Alert.alert("Layout not saved", getErrorMessage(err));
     }
+  };
+
+  const handlePickerSelect = async (product: Product) => {
+    const targetSlot = pickerSlot;
+
     setPickerSlot(null);
+
+    try {
+      if (targetSlot === APPEND_SLOT) {
+        if (!assignedIds.includes(product.productId)) {
+          await appendProduct(product.productId);
+        }
+      } else if (targetSlot !== null) {
+        await assignProduct(targetSlot, product.productId);
+      }
+    }
+    catch (err) {
+      Alert.alert("Layout not saved", getErrorMessage(err));
+    };
+  };
+
+  const handlePickerClearSlot = async () => {
+    const targetSlot = pickerSlot;
+
+    setPickerSlot(null);
+
+    if (
+      targetSlot === null ||
+      targetSlot === APPEND_SLOT
+    ) {
+      return;
+    }
+
+    try {
+      await assignProduct(
+        targetSlot,
+        null
+      );
+    } catch (err) {
+      Alert.alert(
+        "Layout not saved",
+        getErrorMessage(err)
+      );
+    }
   };
 
   const sharedPickerModal = (
@@ -225,6 +269,35 @@ export function SalesScreen({ navigation }: Props) {
             className="mt-2 rounded-md bg-emerald-600 px-4 py-2.5"
           >
             <Text className="text-sm font-semibold text-white">Go to Shift</Text>
+          </Pressable>
+        </View>
+      </AppScreen>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <AppScreen>
+        <View className="flex-1 items-center justify-center gap-3 p-6">
+          <Text className="text-base font-bold text-slate-700">
+            Could not load POS layout
+          </Text>
+
+          <Text className="text-center text-sm text-slate-500">
+            {loadError}
+          </Text>
+
+          <Pressable
+            className="rounded-lg bg-emerald-600 px-5 py-3"
+            onPress={() => {
+              if (storeId != null) {
+                void load(storeId);
+              }
+            }}
+          >
+            <Text className="font-semibold text-white">
+              Retry
+            </Text>
           </Pressable>
         </View>
       </AppScreen>
@@ -280,7 +353,7 @@ export function SalesScreen({ navigation }: Props) {
             onNextPage={() => setPage((current) => current + 1)}
             onToggleEditing={() => setIsEditing((current) => !current)}
             onBoxPress={handleBoxPress}
-            onDeleteSlot={(slotIndex) => assignProduct(slotIndex, null)}
+            onDeleteSlot={(slotIndex) => { void handleDeleteSlot(slotIndex);}}
           />
         </View>
 
