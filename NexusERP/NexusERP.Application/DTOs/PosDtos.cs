@@ -173,6 +173,7 @@ namespace NexusERP.Application.DTOs
     {
         public int StoreId { get; set; }
         public List<PosLayoutSlotDto> Slots { get; set; } = new();
+        public List<ProductResponseDto> Products { get; set; } = new();
     }
 
     public class UpdatePosLayoutDto

@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { posService } from "@/api/posService";
 import { getErrorMessage } from "@/api/client";
-import type { PosSlot } from "@/types";
+import type { PosSlot, Product } from "@/types";
 
 const sortSlots = (slots: PosSlot[]) =>
   [...slots].sort(
@@ -11,6 +11,8 @@ const sortSlots = (slots: PosSlot[]) =>
 
 interface PosLayoutState {
   slots: PosSlot[];
+  products: Product[];
+
   isLoaded: boolean;
   loadedStoreId: number | null;
   loadError: string | null;
@@ -34,6 +36,8 @@ interface PosLayoutState {
 export const usePosLayoutStore =
   create<PosLayoutState>((set, get) => ({
     slots: [],
+    products: [],
+
     isLoaded: false,
     loadedStoreId: null,
     loadError: null,
@@ -41,6 +45,7 @@ export const usePosLayoutStore =
     load: async (storeId) => {
       set({
         slots: [],
+        products: [],
         isLoaded: false,
         loadedStoreId: storeId,
         loadError: null,
@@ -50,6 +55,8 @@ export const usePosLayoutStore =
         const layout =
           await posService.getPosLayout(storeId);
 
+        // Store may have changed while
+        // the request was running.
         if (
           get().loadedStoreId !== storeId
         ) {
@@ -58,6 +65,7 @@ export const usePosLayoutStore =
 
         set({
           slots: sortSlots(layout.slots),
+          products: layout.products,
           isLoaded: true,
           loadError: null,
         });
@@ -70,6 +78,7 @@ export const usePosLayoutStore =
 
         set({
           slots: [],
+          products: [],
           isLoaded: true,
           loadError: getErrorMessage(err),
         });
@@ -110,6 +119,8 @@ export const usePosLayoutStore =
           next
         );
 
+      // User may have switched store
+      // while save was running.
       if (
         get().loadedStoreId !== storeId
       ) {
@@ -118,6 +129,8 @@ export const usePosLayoutStore =
 
       set({
         slots: sortSlots(saved.slots),
+        products: saved.products,
+        loadError: null,
       });
     },
 
@@ -176,6 +189,8 @@ export const usePosLayoutStore =
 
       set({
         slots: sortSlots(saved.slots),
+        products: saved.products,
+        loadError: null,
       });
     },
 

@@ -7,7 +7,6 @@ import type { Product } from "@/types";
 import { usePosLayoutStore } from "@/store/posLayoutStore";
 import { useCartStore } from "@/store/cartStore";
 import { useTerminalStore } from "@/store/terminalStore";
-import { useProductsByIdsQuery } from "@/hooks/queries/useProductQueries";
 import { useCurrentShiftQuery } from "@/hooks/queries/usePosQueries";
 import { MenuButton } from "@/components/MenuButton";
 import { AppScreen } from "@/components/layout/AppScreen";
@@ -34,6 +33,7 @@ export function SalesScreen({ navigation }: Props) {
 
   const {
     slots,
+    products,
     isLoaded,
     loadedStoreId,
     loadError,
@@ -81,15 +81,15 @@ export function SalesScreen({ navigation }: Props) {
     [slots]
   );
 
-  const { data: hydratedProducts } = useProductsByIdsQuery(assignedIds);
-
   const productById = useMemo(() => {
     const map = new Map<number, Product>();
-    (hydratedProducts || []).forEach((product) => {
+
+    products.forEach((product) => {
       map.set(product.productId, product);
     });
+
     return map;
-  }, [hydratedProducts]);
+  }, [products]);
 
   const orderedSlots = useMemo(
       () =>

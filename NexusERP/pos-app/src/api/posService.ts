@@ -5,7 +5,8 @@ import type {
   ShiftReceiptSummary,
   ReceiptDetail,
   StoreLookup,
-  PosSlot
+  PosSlot,
+  Product
 } from "../types";
 
 export interface OpenShiftPayload {
@@ -48,6 +49,7 @@ export interface CheckoutResult {
 export interface PosLayoutResult {
   storeId: number;
   slots: PosSlot[];
+  products: Product[];
 }
 
 export type CheckoutQuotePayload = Omit<CheckoutPayload, "paymentMethod">;

@@ -12,13 +12,6 @@ export const useProductSearchQuery = (searchTerm: string, excludeIds: number[] =
   });
 };
 
-export const useProductsByIdsQuery = (ids: number[]) =>
-  useQuery({
-    queryKey: ["products", "byIds", [...ids].sort()],
-    queryFn: () => productService.getByIds(ids),
-    enabled: ids.length > 0,
-  });
-
 export const useSwitchableUsersQuery = (enabled: boolean) =>
   useQuery({
     queryKey: ["auth", "switchableUsers"],

@@ -25,10 +25,4 @@ export const productService = {
     return (res.data as ProductsPage).items;
   },
 
-  getByIds: async (ids: number[]): Promise<Product[]> => {
-    if (ids.length === 0) return [];
-    const res = await apiClient.get("/products", { params: { page: 1, pageSize: 100 } });
-    const all = (res.data as ProductsPage).items;
-    return all.filter((p) => ids.includes(p.productId));
-  },
 };
