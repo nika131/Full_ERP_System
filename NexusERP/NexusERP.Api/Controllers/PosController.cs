@@ -84,10 +84,11 @@ namespace NexusERP.Api.Controllers
 
         [HttpGet("shift/history")]
         [Authorize]
-        public async Task<IActionResult> GetShiftHistory([FromQuery] int storeId, [FromQuery] int take = 20)
+        public async Task<IActionResult> GetShiftHistory([FromQuery] int storeId)
         {
-            if (take > 50) take = 50;
-            var history = await _posService.GetShiftHistoryAsync(storeId, take);
+            var history = 
+                await _posService.GetShiftHistoryAsync(User.GetCurrentUserId(), storeId);
+
             return Ok(history);
         }
 
@@ -131,7 +132,7 @@ namespace NexusERP.Api.Controllers
             return Ok(layout);
         }
 
-        [HttpPost("layout/storeId:int")]
+        [HttpPost("layout/{storeId:int}")]
         public async Task<IActionResult> SavePosLayout(int storeId, [FromBody] UpdatePosLayoutDto dto)
         {
             var layout = await _posService.SavePosLayoutAsync(storeId, dto);

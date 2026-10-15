@@ -322,9 +322,12 @@ namespace NexusERP.Infrastructure.Services
         public async Task<List<ShiftHistoryItemDto>> GetShiftHistoryAsync(int userId, int storeId)
         {
             return await _context.Shifts
-                .Where(s => s.StoreId == storeId && s.UserId == userId && s.Status == ShiftStatus.Closed)
+                .Where(s =>
+                    s.UserId == userId &&
+                    s.StoreId == storeId &&
+                    s.Status == ShiftStatus.Closed)
                 .OrderByDescending(s => s.StartDate)
-                .Take(20)
+                .Take(30)
                 .AsNoTracking()
                 .Select(s => new ShiftHistoryItemDto
                 {
