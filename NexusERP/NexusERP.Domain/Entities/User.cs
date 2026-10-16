@@ -20,6 +20,9 @@ namespace NexusERP.Domain.Entities
         public int RoleId { get; set; }
         public Role Role { get; set; }
 
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public ICollection<UserAbsence> Absences { get; set; } = new List<UserAbsence>();
         public ICollection<SalaryRecord> SalaryRecords { get; set; } = new List<SalaryRecord>();
 

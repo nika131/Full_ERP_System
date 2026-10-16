@@ -13,6 +13,10 @@ namespace NexusERP.Domain.Entities
         public string SettingKey { get; set; } = string.Empty;
         public string SettingValue { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public DateTime UpdatedAt { get; set; }
         public int? UpdatedByUserId { get; set; }
     }

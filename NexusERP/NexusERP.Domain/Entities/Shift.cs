@@ -31,6 +31,9 @@ namespace NexusERP.Domain.Entities
         public ShiftStatus Status { get; set; } = ShiftStatus.Open;
         public string? Notes { get; set; }
 
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
