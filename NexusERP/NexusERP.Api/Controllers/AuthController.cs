@@ -35,7 +35,7 @@ namespace NexusERP.Api.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
             int currentUserId = User.GetCurrentUserId();
-            int companyId = User.GetCurrentUserId();
+            int companyId = User.GetCurrentCompanyId();
 
             await _authService.Register(request.FullName, request.Username, request.Password, request.RoleId, currentUserId, companyId, request.PosPin);
 

@@ -24,7 +24,7 @@ namespace NexusERP.Api.Extensions
         {
             var companyClaim = user.FindFirst("CompanyId")?.Value;
 
-            if (!int.TryParse(companyClaim, out int companyId))
+            if (!int.TryParse(companyClaim, out int companyId) || companyId <= 0)
                 throw new UnauthorizedAccessException("Inavlid company context.");
 
             return companyId;
