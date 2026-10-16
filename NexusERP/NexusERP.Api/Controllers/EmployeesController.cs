@@ -1,12 +1,9 @@
-﻿using DocumentFormat.OpenXml.Bibliography;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NexusERP.Application.DTOs;
 using NexusERP.Api.Extensions;
+using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
-using NexusERP.Domain.Enums;
-using System.Security.Claims;
 using static NexusERP.Application.DTOs.SalaryDtos;
 
 namespace NexusERP.Api.Controllers
@@ -24,16 +21,13 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetEmployees(
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? searchTerm = null,
-            [FromQuery] string roleFilter = "All"
-        )
+        public async Task<IActionResult> GetEmployees([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null, [FromQuery] string roleFilter = "All")
         {
             if (pageSize > 100) pageSize = 100;
 
-            var result = await _repository.GetPagedAsync(page, pageSize, searchTerm, roleFilter);
+            int companyId = User.GetCurrentCompanyId();
+
+            var result = await _repository.GetPagedAsync(companyId, page, pageSize, searchTerm, roleFilter);
 
             var responseData = result.Items.Select(u => new EmployeeResponseDto
             {
@@ -59,11 +53,10 @@ namespace NexusERP.Api.Controllers
         public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeUpdateDto dto)
         {
             int currentUserId = User.GetCurrentUserId();
+            int companyId = User.GetCurrentCompanyId();
 
             if (id == currentUserId)
-            {
-                return BadRequest(new { message = "Security Lock: You cannot remove your own Admin priviladges." });
-            }
+                return BadRequest(new { message = "Security Lock: You cannot remove your own Admin privileges." });
 
             var userToUpdate = new User
             {
@@ -71,10 +64,11 @@ namespace NexusERP.Api.Controllers
                 FullName = dto.FullName,
                 Username = dto.Username,
                 RoleId = dto.RoleId,
-                PosPin = dto.PosPin,
+                PosPin = dto.PosPin
             };
 
-            await _repository.UpdateUser(userToUpdate, currentUserId);
+            await _repository.UpdateUser(userToUpdate, currentUserId, companyId);
+
             return Ok(new { message = "Employee updated successfully." });
         }
 
@@ -82,13 +76,12 @@ namespace NexusERP.Api.Controllers
         public async Task<IActionResult> DeleteEmployee(int id)
         {
             int currentUserId = User.GetCurrentUserId();
+            int companyId = User.GetCurrentCompanyId();
 
             if (id == currentUserId)
-            {
                 return BadRequest(new { message = "Security Lock: You cannot delete your own active account." });
-            }
 
-            await _repository.DeleteUser(id, currentUserId);
+            await _repository.DeleteUser(id, currentUserId, companyId);
 
             return Ok(new { message = "Employee access revoked successfully." });
         }
@@ -96,7 +89,9 @@ namespace NexusERP.Api.Controllers
         [HttpGet("{id}/salary")]
         public async Task<IActionResult> GetSalaryHistory(int id)
         {
-            var history = await _repository.GetSalaryHistoryAsync(id);
+            int companyId = User.GetCurrentCompanyId();
+
+            var history = await _repository.GetSalaryHistoryAsync(companyId, id);
 
             var safeData = history.Select(s => new SalaryRecordResponseDto
             {
@@ -113,8 +108,10 @@ namespace NexusERP.Api.Controllers
         [HttpGet("mysalary")]
         public async Task<IActionResult> GetMySalaryHistory()
         {
-            var currentUserId = User.GetCurrentUserId();
-            var history = await _repository.GetSalaryHistoryAsync(currentUserId);
+            int currentUserId = User.GetCurrentUserId();
+            int companyId = User.GetCurrentCompanyId();
+
+            var history = await _repository.GetSalaryHistoryAsync(companyId, currentUserId);
 
             var safeData = history.Select(s => new SalaryRecordResponseDto
             {
@@ -132,11 +129,10 @@ namespace NexusERP.Api.Controllers
         public async Task<IActionResult> AddSalaryRecord(int id, [FromBody] SalaryRecordCreateDto dto)
         {
             int currentUserId = User.GetCurrentUserId();
+            int companyId = User.GetCurrentCompanyId();
 
             if (id == currentUserId)
-            {
-                return BadRequest(new { message = "Security Lock: You cannot set your own Salary." });
-            }
+                return BadRequest(new { message = "Security Lock: You cannot set your own salary." });
 
             var record = new SalaryRecord
             {
@@ -145,14 +141,18 @@ namespace NexusERP.Api.Controllers
                 Notes = dto.Notes
             };
 
-            await _repository.AddSalaryRecordAsync(id, record);
+            await _repository.AddSalaryRecordAsync(companyId, id, record);
+
             return Ok(new { message = "Salary record added successfully." });
         }
 
         [HttpGet("lookup")]
         public async Task<IActionResult> GetLookupUsers()
         {
-            var users = await _repository.GetLookupUsersAsync();
+            int companyId = User.GetCurrentCompanyId();
+
+            var users = await _repository.GetLookupUsersAsync(companyId);
+
             return Ok(users);
         }
     }

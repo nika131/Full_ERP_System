@@ -29,16 +29,18 @@ namespace NexusERP.Infrastructure.Services
             _jwtSecret = config["Jwt:Key"] ?? throw new AppException("JWT Secret missing!");
         }
 
-        public async Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId, string PosPin)
+        public async Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId, int companyId, string PosPin)
         {
-            var existingUser = await _userRepository.GetUserByUsername(username);
+            var existingUser = await _userRepository.GetUserByUsername(username, companyId);
+
             if (existingUser != null)
-                throw new AppException("Username already exists.");
+                throw new AppException("Username already exists in this company.");
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(plaintextPassword);
 
             var newUser = new User
             {
+                CompanyId = companyId,
                 FullName = fullname,
                 Username = username,
                 PasswordHash = hashedPassword,
@@ -46,7 +48,7 @@ namespace NexusERP.Infrastructure.Services
                 PosPin = PosPin
             };
 
-            await _userRepository.CreateUser(newUser, actorUserId);
+            await _userRepository.CreateUser(newUser, actorUserId, companyId);
         }
 
         public async Task<string> Login(string username, string plaintextpassword)
@@ -70,6 +72,7 @@ namespace NexusERP.Infrastructure.Services
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim("CompanyId", user.CompanyId.ToString()),
                 new Claim(ClaimTypes.GivenName, user.FullName),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Role, user.Role?.Name ?? "Unassigned")
@@ -96,9 +99,10 @@ namespace NexusERP.Infrastructure.Services
             return tokenHandler.WriteToken(token);
         }
 
-        public async Task<string> LoginWithPin(int targetUserId, string pin)
+        public async Task<string> LoginWithPin(int companyId, int targetUserId, string pin)
         {
-            var user = await _userRepository.GetUserById(targetUserId);
+            var user = await _userRepository.GetUserById(companyId, targetUserId);
+            
             if (user == null)
                 throw new AppException("User not found.");
 

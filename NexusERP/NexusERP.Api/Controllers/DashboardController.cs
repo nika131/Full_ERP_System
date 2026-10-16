@@ -1,9 +1,8 @@
-﻿using DocumentFormat.OpenXml.Office2016.Excel;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
-using System.ComponentModel;
 
 namespace NexusERP.Api.Controllers
 {
@@ -12,34 +11,36 @@ namespace NexusERP.Api.Controllers
     [Authorize(Policy = "RequireViewDashboard")]
     public class DashboardController : Controller
     {
-        private readonly IProductRepository _Productrepository;
-        private readonly IReportRepository _ReportRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IReportRepository _reportRepository;
 
         public DashboardController(IProductRepository productRepository, IReportRepository reportRepository)
         {
-            _Productrepository = productRepository;
-            _ReportRepository = reportRepository;
+            _productRepository = productRepository;
+            _reportRepository = reportRepository;
         }
-
 
         [HttpGet("statistics")]
         public async Task<IActionResult> GetDashboardStatistics([FromQuery] DashboardFilterRequest request)
         {
-            var stats = await _Productrepository.GetDashboardAggregates(request);
+            var stats = await _productRepository.GetDashboardAggregates(User.GetCurrentCompanyId(), request);
+
             return Ok(stats);
         }
 
         [HttpGet("revenueChart")]
         public async Task<IActionResult> GetChartData([FromQuery] DashboardFilterRequest request)
         {
-            var chartData = await _ReportRepository.GetWeeklyRevenueChart(request);
+            var chartData = await _reportRepository.GetWeeklyRevenueChart(User.GetCurrentCompanyId(), request);
+
             return Ok(chartData);
         }
 
         [HttpGet("top-Products")]
         public async Task<IActionResult> GetTopProducts([FromQuery] DashboardFilterRequest request)
         {
-            var data = await _ReportRepository.GetTopPerformingProducts(request);
+            var data = await _reportRepository.GetTopPerformingProducts(User.GetCurrentCompanyId(), request);
+
             return Ok(data);
         }
     }

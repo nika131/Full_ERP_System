@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NexusERP.Application.DTOs;
 using NexusERP.Api.Extensions;
+using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Constants;
 using NexusERP.Domain.Entities;
@@ -11,6 +11,7 @@ namespace NexusERP.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RolesController : Controller
     {
         private readonly IRoleRepository _repository;
@@ -26,13 +27,16 @@ namespace NexusERP.Api.Controllers
         {
             if (pageSize > 100) pageSize = 100;
 
-            var result = await _repository.GetPaged(page, pageSize, search);
+            int companyId = User.GetCurrentCompanyId();
+
+            var result = await _repository.GetPaged(companyId, page, pageSize, search);
 
             var responseItems = result.Items.Select(r => new RoleResponseDto
             {
                 RoleId = r.RoleId,
                 Name = r.Name,
-                Permissions = r.Permissions
+                Permissions = r.Permissions,
+                IsSystemRole = r.IsSystemRole
             }).ToList();
 
             return Ok(new
@@ -47,12 +51,13 @@ namespace NexusERP.Api.Controllers
         [HttpGet("lookup")]
         public async Task<IActionResult> GetLookupList()
         {
-            var activeRoles = await _repository.GetAllActive();
+            var activeRoles = await _repository.GetAllActive(User.GetCurrentCompanyId());
 
             var roles = activeRoles.Select(r => new RoleLookupDto
             {
                 RoleId = r.RoleId,
-                Name = r.Name
+                Name = r.Name,
+                IsSystemRole = r.IsSystemRole
             }).ToList();
 
             return Ok(roles);
@@ -82,7 +87,8 @@ namespace NexusERP.Api.Controllers
                 Permissions = dto.Permissions
             };
 
-            await _repository.Upsert(role, User.GetCurrentUserId());
+            await _repository.Upsert(role, User.GetCurrentUserId(), User.GetCurrentCompanyId());
+
             return Ok(new { message = "Role saved successfully." });
         }
 
@@ -90,7 +96,8 @@ namespace NexusERP.Api.Controllers
         [Authorize(Policy = "RequireManageUsers")]
         public async Task<IActionResult> DeleteRole(int id)
         {
-            await _repository.Delete(id, User.GetCurrentUserId());
+            await _repository.Delete(id, User.GetCurrentUserId(), User.GetCurrentCompanyId());
+
             return Ok(new { message = "Role deleted successfully." });
         }
     }

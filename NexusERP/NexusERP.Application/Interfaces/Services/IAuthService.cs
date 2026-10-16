@@ -1,18 +1,21 @@
 ﻿using NexusERP.Domain.Entities;
-using NexusERP.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NexusERP.Application.Interfaces.Services
 {
     public interface IAuthService
     {
-        Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId, string PosPin);
-        Task<string> Login(string username, string plaintextpassword);
+        Task Register(
+            string fullname,
+            string username,
+            string plaintextPassword,
+            int roleId,
+            int actorUserId,
+            int companyId,
+            string posPin
+        );
+
+        Task<string> Login(string username, string plaintextPassword);
         string GenerateJwtToken(User user);
-        Task<string> LoginWithPin(int targetUserId, string pin);
+        Task<string> LoginWithPin(int companyId, int targetUserId, string pin);
     }
 }

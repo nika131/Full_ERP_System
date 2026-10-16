@@ -19,5 +19,15 @@ namespace NexusERP.Api.Extensions
         {
             return user.HasClaim(c => c.Type == "Permission" && c.Value == permission);
         }
+
+        public static int GetCurrentCompanyId(this ClaimsPrincipal user)
+        {
+            var companyClaim = user.FindFirst("CompanyId")?.Value;
+
+            if (!int.TryParse(companyClaim, out int companyId))
+                throw new UnauthorizedAccessException("Inavlid company context.");
+
+            return companyId;
+        }
     }
 }

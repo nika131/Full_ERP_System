@@ -3,11 +3,6 @@ using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NexusERP.Infrastructure.Services
 {
@@ -15,31 +10,34 @@ namespace NexusERP.Infrastructure.Services
     {
         private readonly IProductRepository _productRepository;
 
-        public InventoryService (IProductRepository productRepository)
+        public InventoryService(IProductRepository productRepository)
         {
             _productRepository = productRepository;
         }
-        public async Task ProcessTransaction(InventoryTransaction transaction, int userId, string transactionType)
+
+        public async Task ProcessTransaction(InventoryTransaction transaction, int userId, int companyId, string transactionType)
         {
             if (!Enum.TryParse<TransactionAction>(transactionType, true, out var actionEnum))
                 throw new AppException("Invalid transaction type.");
 
-            var product = await _productRepository.GetByIdAsync(transaction.ProductId);
+            var product = await _productRepository.GetByIdAsync(companyId, transaction.ProductId);
 
-            if (product == null) throw new AppException("Product not found.");
-            if (!product.IsActive) throw new AppException("Cannot process transactions for a deleted product.");
+            if (!product.IsActive)
+                throw new AppException("Cannot process transactions for a deleted product.");
 
             var qty = Math.Abs(transaction.Quantity);
+
+            transaction.CompanyId = companyId;
             transaction.Quantity = qty;
             transaction.UserId = userId;
             transaction.TransactionType = actionEnum;
 
-            bool allowNegative = await _productRepository.IsNegativeInventoryAllowedAsync();
+            bool allowNegative = await _productRepository.IsNegativeInventoryAllowedAsync(companyId);
 
             switch (actionEnum)
             {
                 case TransactionAction.Sale:
-                    throw new AppException($"Sales must now be processed through the POS Checkout system to generate a valid Receipt.");
+                    throw new AppException("Sales must now be processed through the POS Checkout system to generate a valid Receipt.");
 
                 case TransactionAction.Loss:
                 case TransactionAction.Damage:
@@ -50,9 +48,6 @@ namespace NexusERP.Infrastructure.Services
                     break;
 
                 case TransactionAction.Restock:
-                    var oldQuantity = product.Quantity;
-                    var oldTotalValue = oldQuantity * product.CostPrice;
-
                     product.Quantity += qty;
                     break;
 
@@ -60,18 +55,17 @@ namespace NexusERP.Infrastructure.Services
                     throw new AppException("Unsupported transaction operation.");
             }
 
-            string changes = $"{transactionType} product '{product.Name}' quantity {qty}.";
             var audit = new SystemAuditLog
             {
+                CompanyId = companyId,
                 UserId = userId,
                 EntityType = "Product",
                 EntityId = product.ProductId,
                 Action = transactionType,
-                ChangesMade = changes,
-                CreatedAt = DateTime.UtcNow
+                ChangesMade = $"{transactionType} product '{product.Name}' quantity {qty}."
             };
-            
-            await _productRepository.SaveTransaction(transaction, product, audit);
+
+            await _productRepository.SaveTransaction(transaction, product, audit, companyId);
         }
     }
 }

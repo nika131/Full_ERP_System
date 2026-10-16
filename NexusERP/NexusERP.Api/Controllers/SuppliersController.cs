@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NexusERP.Application.DTOs;
 using NexusERP.Api.Extensions;
+using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
-using System.Security.Claims;
 
 namespace NexusERP.Api.Controllers
 {
@@ -25,8 +24,8 @@ namespace NexusERP.Api.Controllers
         {
             if (pageSize > 100) pageSize = 100;
 
-            var result = await _repository.GetPaged(page, pageSize, search);
-            
+            var result = await _repository.GetPaged(User.GetCurrentCompanyId(), page, pageSize, search);
+
             var responseItems = result.Items.Select(s => new SupplierResponseDto
             {
                 SupplierId = s.SupplierId,
@@ -48,8 +47,8 @@ namespace NexusERP.Api.Controllers
         [HttpGet("lookup")]
         public async Task<IActionResult> GetLookupList()
         {
-            var suppliers = await _repository.GetAllActive();
-            
+            var suppliers = await _repository.GetAllActive(User.GetCurrentCompanyId());
+
             var lookupData = suppliers.Select(s => new SupplierLookupDto
             {
                 SupplierId = s.SupplierId,
@@ -71,13 +70,16 @@ namespace NexusERP.Api.Controllers
                 Email = dto.Email
             };
 
-            await _repository.Upsert(supplier, User.GetCurrentUserId());
+            await _repository.Upsert(supplier, User.GetCurrentUserId(), User.GetCurrentCompanyId());
+
             return Ok(new { message = "Supplier saved successfully." });
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSupplier(int id) { 
-            await _repository.Delete(id, User.GetCurrentUserId());
+        public async Task<IActionResult> DeleteSupplier(int id)
+        {
+            await _repository.Delete(id, User.GetCurrentUserId(), User.GetCurrentCompanyId());
+
             return Ok(new { message = "Supplier deleted successfully." });
         }
     }

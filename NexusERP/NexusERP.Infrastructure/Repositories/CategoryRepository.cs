@@ -1,15 +1,9 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Exceptions;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
-using NexusERP.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -17,26 +11,27 @@ namespace NexusERP.Infrastructure.Repositories
     {
         private readonly ApplicationDbContext _context;
 
-        public CategoryRepository (ApplicationDbContext context)
+        public CategoryRepository(ApplicationDbContext context)
         {
             _context = context;
         }
-        public async Task<PagedResult<Category>> GetPagedCategories(int pageNumber, int pageSize, string? searchTerm)
+
+        public async Task<PagedResult<Category>> GetPagedCategories(int companyId, int pageNumber, int pageSize, string? searchTerm)
         {
             var query = _context.Categories
-                .Where(c => c.IsActive)
+                .Where(c => c.CompanyId == companyId)
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
                 query = query.Where(c => c.CategoryName.Contains(searchTerm));
-            }
 
             var totalCount = await query.CountAsync();
-            var items = await query.OrderBy(c => c.CategoryName)
-                            .Skip((pageNumber - 1) * pageSize)
-                            .Take(pageSize)
-                            .ToListAsync();
+
+            var items = await query
+                .OrderBy(c => c.CategoryName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             return new PagedResult<Category>
             {
@@ -47,64 +42,70 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public async Task<IEnumerable<Category>> GetAllActive()
+        public async Task<IEnumerable<Category>> GetAllActive(int companyId)
         {
             return await _context.Categories
                 .AsNoTracking()
-                .Where(c => c.IsActive)
-                .Select(c => new Category {  CategoryId = c.CategoryId, CategoryName = c.CategoryName })
+                .Where(c => c.CompanyId == companyId)
+                .Select(c => new Category
+                {
+                    CategoryId = c.CategoryId,
+                    CategoryName = c.CategoryName,
+                    CompanyId = c.CompanyId
+                })
                 .OrderBy(c => c.CategoryName)
                 .ToListAsync();
         }
 
-        public async Task Upsert(Category category, int UserId)
+        public async Task Upsert(Category category, int userId, int companyId)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
 
             await strategy.ExecuteAsync(async () =>
             {
-                using var transaction = await _context.Database.BeginTransactionAsync();
+                await using var transaction = await _context.Database.BeginTransactionAsync();
 
                 try
                 {
-                    if (category.CategoryId == 0)
+                    bool isNew = category.CategoryId == 0;
+
+                    if (isNew)
                     {
+                        category.CompanyId = companyId;
                         category.IsActive = true;
+
                         await _context.Categories.AddAsync(category);
-                        await _context.SaveChangesAsync();
-
-                        var audit = new SystemAuditLog
-                        {
-                            UserId = UserId,
-                            EntityType = "Category",
-                            EntityId = category.CategoryId,
-                            Action = "Create",
-                            ChangesMade = $"Created Category '{category.CategoryName}'"
-                        };
-
-                        await _context.SystemAuditLogs.AddAsync(audit);
                     }
                     else
                     {
-                        var existing = await _context.Categories.FindAsync(category.CategoryId);
-                        if (existing == null || !existing.IsActive)
-                            throw new AppException("Category not found or is inactive");
+                        var existing = await _context.Categories.FirstOrDefaultAsync(c =>
+                            c.CategoryId == category.CategoryId &&
+                            c.CompanyId == companyId
+                        );
+
+                        if (existing == null)
+                            throw new AppException("Category not found or is inactive.");
 
                         existing.CategoryName = category.CategoryName;
-
-                        var audit = new SystemAuditLog
-                        {
-                            UserId = UserId,
-                            EntityType = "Category",
-                            EntityId = category.CategoryId,
-                            Action = "Update",
-                            ChangesMade = $"Updated Category '{category.CategoryName}'"
-                        };
-
-                        await _context.SystemAuditLogs.AddAsync(audit);
                     }
 
                     await _context.SaveChangesAsync();
+
+                    var audit = new SystemAuditLog
+                    {
+                        CompanyId = companyId,
+                        UserId = userId,
+                        EntityType = "Category",
+                        EntityId = category.CategoryId,
+                        Action = isNew ? "Create" : "Update",
+                        ChangesMade = isNew
+                            ? $"Created Category '{category.CategoryName}'"
+                            : $"Updated Category '{category.CategoryName}'"
+                    };
+
+                    await _context.SystemAuditLogs.AddAsync(audit);
+                    await _context.SaveChangesAsync();
+
                     await transaction.CommitAsync();
                 }
                 catch
@@ -113,28 +114,37 @@ namespace NexusERP.Infrastructure.Repositories
                     throw;
                 }
             });
-
         }
 
-        public async Task Delete(int id, int UserId)
+        public async Task Delete(int id, int userId, int companyId)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null || !category.IsActive)
-                throw new AppException("Category not found");
+            var category = await _context.Categories.FirstOrDefaultAsync(c =>
+                c.CategoryId == id &&
+                c.CompanyId == companyId
+            );
 
-            bool hasActiveProducts = await _context.Products.AnyAsync(p => p.CategoryId == id && p.IsActive);
+            if (category == null)
+                throw new AppException("Category not found.");
+
+            bool hasActiveProducts = await _context.Products.AnyAsync(p =>
+                p.CompanyId == companyId &&
+                p.CategoryId == id &&
+                p.IsActive
+            );
+
             if (hasActiveProducts)
                 throw new AppException("Cannot delete this category because it contains active products. Reassign the products first.");
-            
+
             category.IsActive = false;
 
             var audit = new SystemAuditLog
             {
-                UserId = UserId,
+                CompanyId = companyId,
+                UserId = userId,
                 EntityType = "Category",
                 EntityId = category.CategoryId,
                 Action = "Delete",
-                ChangesMade = $"Delete Category '{category.CategoryName}'"
+                ChangesMade = $"Deleted Category '{category.CategoryName}'"
             };
 
             await _context.SystemAuditLogs.AddAsync(audit);

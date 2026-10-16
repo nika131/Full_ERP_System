@@ -22,47 +22,60 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("shift/open")]
-        [Authorize]
         public async Task<IActionResult> OpenShift([FromBody] OpenShiftDto dto)
         {
             var shift = await _posService.OpenShiftAsync(User.GetCurrentUserId(), dto);
-            return Ok(new { message = "Shift opened successfully.", shiftId = shift.ShiftId });
+
+            return Ok(new
+            {
+                message = "Shift opened successfully.",
+                shiftId = shift.ShiftId
+            });
         }
 
         [HttpPost("shift/{shiftId}/close")]
-        [Authorize]
         public async Task<IActionResult> CloseShift(int shiftId, [FromBody] CloseShiftDto dto)
         {
             var shift = await _posService.CloseShiftAsync(shiftId, User.GetCurrentUserId(), dto);
-            return Ok(new { message = "Shift closed successfully.", variance = shift.ActualEndingCash - shift.ExpectedEndingCash });
+
+            return Ok(new
+            {
+                message = "Shift closed successfully.",
+                variance = shift.ActualEndingCash - shift.ExpectedEndingCash
+            });
         }
 
         [HttpPost("shift/{shiftId}/cash-movement")]
-        [Authorize]
         public async Task<IActionResult> AddCashMovement(int shiftId, [FromBody] CashMovementDto dto)
         {
             await _posService.AddCashMovementAsync(shiftId, User.GetCurrentUserId(), dto);
+
             return Ok(new { message = "Cash movement recorded." });
         }
 
         [HttpPost("checkout")]
-        [Authorize]
         public async Task<IActionResult> ProcessCheckout([FromBody] CheckoutRequestDto dto)
         {
             var receipt = await _posService.ProcessCheckoutAsync(User.GetCurrentUserId(), dto);
-            return Ok(new { message = "Checkout successful.", receiptNumber = receipt.ReceiptNumber, total = receipt.FinalTotal });
+
+            return Ok(new
+            {
+                message = "Checkout successful.",
+                receiptNumber = receipt.ReceiptNumber,
+                total = receipt.FinalTotal
+            });
         }
 
         [HttpPost("verify-pin")]
-        [Authorize]
         public async Task<IActionResult> VerifyPosPin([FromBody] VerifyPinDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Pin) || dto.Pin.Length != 4)
                 return BadRequest(new { message = "PIN must be exactly 4 digits." });
 
             int currentUserId = User.GetCurrentUserId();
+            int companyId = User.GetCurrentCompanyId();
 
-            bool isValid = await _userRepository.VerifyPosPinAsync(currentUserId, dto.Pin);
+            bool isValid = await _userRepository.VerifyPosPinAsync(companyId, currentUserId, dto.Pin);
 
             if (!isValid)
                 return Unauthorized(new { message = "Invalid POS PIN." });
@@ -71,7 +84,6 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("shift/current")]
-        [Authorize]
         public async Task<IActionResult> GetCurrentShift([FromQuery] int storeId)
         {
             var shift = await _posService.GetCurrentShiftAsync(User.GetCurrentUserId(), storeId);
@@ -79,48 +91,52 @@ namespace NexusERP.Api.Controllers
             if (shift == null)
                 return Ok(new { hasOpenShift = false, shift = (object?)null });
 
-            return Ok(new { hasOpenShift = true, shift });
+            return Ok(new
+            {
+                hasOpenShift = true,
+                shift
+            });
         }
 
         [HttpGet("shift/history")]
-        [Authorize]
         public async Task<IActionResult> GetShiftHistory([FromQuery] int storeId)
         {
-            var history = 
-                await _posService.GetShiftHistoryAsync(User.GetCurrentUserId(), storeId);
+            var history = await _posService.GetShiftHistoryAsync(User.GetCurrentUserId(), storeId);
 
             return Ok(history);
         }
 
         [HttpGet("shift/{shiftId}/receipts")]
-        [Authorize]
         public async Task<IActionResult> GetShiftReceipts(int shiftId)
         {
             var receipts = await _posService.GetShiftReceiptsAsync(shiftId, User.GetCurrentUserId());
+
             return Ok(receipts);
         }
 
         [HttpGet("receipts/{receiptId}")]
-        [Authorize]
         public async Task<IActionResult> GetReceiptDetail(int receiptId)
         {
             var detail = await _posService.GetReceiptDetailAsync(receiptId, User.GetCurrentUserId());
+
             return Ok(detail);
         }
 
         [HttpGet("switchable-users")]
-        [Authorize]
         public async Task<IActionResult> GetSwitchableUsers()
         {
-            var users = await _userRepository.GetLookupUsersAsync();
+            int companyId = User.GetCurrentCompanyId();
+
+            var users = await _userRepository.GetLookupUsersAsync(companyId);
+
             return Ok(users);
         }
 
         [HttpPost("checkout/quote")]
-        [Authorize]
         public async Task<IActionResult> GetCheckoutQuote([FromBody] CheckoutRequestDto dto)
         {
             var quote = await _posService.GetCheckoutQuoteAsync(User.GetCurrentUserId(), dto);
+
             return Ok(quote);
         }
 
