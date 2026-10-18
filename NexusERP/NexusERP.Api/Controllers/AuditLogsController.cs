@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NexusERP.Application.DTOs;
+using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
 
 namespace NexusERP.Api.Controllers
@@ -18,17 +18,19 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSystemLogs(
-            [FromQuery] int pageSize = 50,
-            [FromQuery] DateTime? lastCreatedAt = null,
-            [FromQuery] int? lastLogId = null,
-            [FromQuery] string? searchTerm = null,
-            [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null)
+        public async Task<IActionResult> GetSystemLogs([FromQuery] int pageSize = 50, [FromQuery] DateTime? lastCreatedAt = null, [FromQuery] int? lastLogId = null, [FromQuery] string? searchTerm = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
         {
-            if(pageSize > 100) pageSize = 100;
+            if (pageSize > 100) pageSize = 100;
 
-            var logs = await _repository.GetPagedLogsOptimized(pageSize, lastCreatedAt, lastLogId, searchTerm, startDate, endDate);
+            var logs = await _repository.GetPagedLogsOptimized(
+                User.GetCurrentCompanyId(),
+                pageSize,
+                lastCreatedAt,
+                lastLogId,
+                searchTerm,
+                startDate,
+                endDate
+            );
 
             return Ok(new
             {
@@ -36,7 +38,7 @@ namespace NexusERP.Api.Controllers
                 nextCreatedAt = logs.NextCreatedAt,
                 nextLogId = logs.NextId,
                 pageSize = logs.PageSize,
-                hasMorePages = logs.HasMorePages,
+                hasMorePages = logs.HasMorePages
             });
         }
     }

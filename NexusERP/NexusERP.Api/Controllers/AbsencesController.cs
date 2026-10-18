@@ -33,19 +33,21 @@ namespace NexusERP.Api.Controllers
             var absence = new UserAbsence
             {
                 Type = type,
-                StartDate = dto.StartDate.Date, 
+                StartDate = dto.StartDate.Date,
                 EndDate = dto.EndDate.Date,
                 Notes = dto.Notes
             };
 
-            await _service.SubmitRequestAsync(User.GetCurrentUserId(), absence);
+            await _service.SubmitRequestAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), absence);
+
             return Ok(new { message = "Leave request submitted successfully." });
         }
 
         [HttpGet("my-history")]
         public async Task<IActionResult> GetMyHistory()
         {
-            var absences = await _repository.GetMyAbsencesAsync(User.GetCurrentUserId());
+            var absences = await _repository.GetMyAbsencesAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId());
+
             return Ok(absences.Select(MapToResponseDto));
         }
 
@@ -53,15 +55,17 @@ namespace NexusERP.Api.Controllers
         [Authorize(Policy = "RequireAbsenceManage")]
         public async Task<IActionResult> GetPendingRequests()
         {
-            var absences = await _repository.GetPendingRequestsAsync();
+            var absences = await _repository.GetPendingRequestsAsync(User.GetCurrentCompanyId());
+
             return Ok(absences.Select(MapToResponseDto));
         }
 
         [HttpPut("{id}/review")]
-        [Authorize(Policy = "RequireAbsenceManage")] 
+        [Authorize(Policy = "RequireAbsenceManage")]
         public async Task<IActionResult> ReviewLeave(int id, [FromBody] LeaveReviewDto dto)
         {
-            await _service.ReviewRequestAsync(id, User.GetCurrentUserId(), dto.Status, dto.ReviewerComments);
+            await _service.ReviewRequestAsync(User.GetCurrentCompanyId(), id, User.GetCurrentUserId(), dto.Status, dto.ReviewerComments);
+
             return Ok(new { message = $"Leave request {dto.Status.ToLower()}." });
         }
 

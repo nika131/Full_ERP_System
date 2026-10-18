@@ -1,19 +1,13 @@
-﻿using DocumentFormat.OpenXml.Office.CustomUI;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NexusERP.Infrastructure.Repositories
 {
-     public class AuditRepository : IAuditRepository
-     {
+    public class AuditRepository : IAuditRepository
+    {
         private readonly ApplicationDbContext _context;
 
         public AuditRepository(ApplicationDbContext context)
@@ -21,20 +15,13 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-
-        public async Task<CursorPagedResult<AuditLogResponseDto>> GetPagedLogsOptimized(
-            int pageSize, 
-            DateTime? lastCreatedAt,
-            int? lastLogId,
-            string? searchTerm,
-            DateTime? startDate,
-            DateTime? endDate)
+        public async Task<CursorPagedResult<AuditLogResponseDto>> GetPagedLogsOptimized(int companyId, int pageSize, DateTime? lastCreatedAt, int? lastLogId, string? searchTerm, DateTime? startDate, DateTime? endDate)
         {
-            var minumumDate = startDate ?? DateTime.UtcNow.AddDays(-30);
+            var minimumDate = startDate ?? DateTime.UtcNow.AddDays(-30);
 
             var baseQuery = _context.SystemAuditLogs
                 .Include(log => log.User)
-                .Where(log => log.CreatedAt >= minumumDate)
+                .Where(log => log.CompanyId == companyId && log.CreatedAt >= minimumDate)
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -60,12 +47,13 @@ namespace NexusERP.Infrastructure.Repositories
             {
                 baseQuery = baseQuery.Where(log =>
                     log.CreatedAt < lastCreatedAt.Value ||
-                    (log.CreatedAt == lastCreatedAt.Value && log.LogId < lastLogId.Value));
+                    (log.CreatedAt == lastCreatedAt.Value && log.LogId < lastLogId.Value)
+                );
             }
 
             int fetchCount = pageSize + 1;
 
-            var items = await baseQuery 
+            var items = await baseQuery
                 .OrderByDescending(log => log.CreatedAt)
                 .ThenByDescending(log => log.LogId)
                 .Take(fetchCount)
@@ -90,6 +78,7 @@ namespace NexusERP.Infrastructure.Repositories
             if (hasMorePages)
             {
                 var lastValidItem = items[pageSize - 1];
+
                 nextCreatedAtCursor = lastValidItem.CreatedAt;
                 nextLogIdCursor = lastValidItem.LogId;
 
@@ -104,5 +93,5 @@ namespace NexusERP.Infrastructure.Repositories
                 PageSize = pageSize
             };
         }
-     }
+    }
 }

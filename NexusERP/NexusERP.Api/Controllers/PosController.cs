@@ -24,7 +24,7 @@ namespace NexusERP.Api.Controllers
         [HttpPost("shift/open")]
         public async Task<IActionResult> OpenShift([FromBody] OpenShiftDto dto)
         {
-            var shift = await _posService.OpenShiftAsync(User.GetCurrentUserId(), dto);
+            var shift = await _posService.OpenShiftAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), dto);
 
             return Ok(new
             {
@@ -36,7 +36,7 @@ namespace NexusERP.Api.Controllers
         [HttpPost("shift/{shiftId}/close")]
         public async Task<IActionResult> CloseShift(int shiftId, [FromBody] CloseShiftDto dto)
         {
-            var shift = await _posService.CloseShiftAsync(shiftId, User.GetCurrentUserId(), dto);
+            var shift = await _posService.CloseShiftAsync(User.GetCurrentCompanyId(), shiftId, User.GetCurrentUserId(), dto);
 
             return Ok(new
             {
@@ -48,7 +48,7 @@ namespace NexusERP.Api.Controllers
         [HttpPost("shift/{shiftId}/cash-movement")]
         public async Task<IActionResult> AddCashMovement(int shiftId, [FromBody] CashMovementDto dto)
         {
-            await _posService.AddCashMovementAsync(shiftId, User.GetCurrentUserId(), dto);
+            await _posService.AddCashMovementAsync(User.GetCurrentCompanyId(), shiftId, User.GetCurrentUserId(), dto);
 
             return Ok(new { message = "Cash movement recorded." });
         }
@@ -56,7 +56,7 @@ namespace NexusERP.Api.Controllers
         [HttpPost("checkout")]
         public async Task<IActionResult> ProcessCheckout([FromBody] CheckoutRequestDto dto)
         {
-            var receipt = await _posService.ProcessCheckoutAsync(User.GetCurrentUserId(), dto);
+            var receipt = await _posService.ProcessCheckoutAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), dto);
 
             return Ok(new
             {
@@ -72,8 +72,8 @@ namespace NexusERP.Api.Controllers
             if (string.IsNullOrWhiteSpace(dto.Pin) || dto.Pin.Length != 4)
                 return BadRequest(new { message = "PIN must be exactly 4 digits." });
 
-            int currentUserId = User.GetCurrentUserId();
             int companyId = User.GetCurrentCompanyId();
+            int currentUserId = User.GetCurrentUserId();
 
             bool isValid = await _userRepository.VerifyPosPinAsync(companyId, currentUserId, dto.Pin);
 
@@ -86,7 +86,7 @@ namespace NexusERP.Api.Controllers
         [HttpGet("shift/current")]
         public async Task<IActionResult> GetCurrentShift([FromQuery] int storeId)
         {
-            var shift = await _posService.GetCurrentShiftAsync(User.GetCurrentUserId(), storeId);
+            var shift = await _posService.GetCurrentShiftAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), storeId);
 
             if (shift == null)
                 return Ok(new { hasOpenShift = false, shift = (object?)null });
@@ -101,7 +101,7 @@ namespace NexusERP.Api.Controllers
         [HttpGet("shift/history")]
         public async Task<IActionResult> GetShiftHistory([FromQuery] int storeId)
         {
-            var history = await _posService.GetShiftHistoryAsync(User.GetCurrentUserId(), storeId);
+            var history = await _posService.GetShiftHistoryAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), storeId);
 
             return Ok(history);
         }
@@ -109,7 +109,7 @@ namespace NexusERP.Api.Controllers
         [HttpGet("shift/{shiftId}/receipts")]
         public async Task<IActionResult> GetShiftReceipts(int shiftId)
         {
-            var receipts = await _posService.GetShiftReceiptsAsync(shiftId, User.GetCurrentUserId());
+            var receipts = await _posService.GetShiftReceiptsAsync(User.GetCurrentCompanyId(), shiftId, User.GetCurrentUserId());
 
             return Ok(receipts);
         }
@@ -117,7 +117,7 @@ namespace NexusERP.Api.Controllers
         [HttpGet("receipts/{receiptId}")]
         public async Task<IActionResult> GetReceiptDetail(int receiptId)
         {
-            var detail = await _posService.GetReceiptDetailAsync(receiptId, User.GetCurrentUserId());
+            var detail = await _posService.GetReceiptDetailAsync(User.GetCurrentCompanyId(), receiptId, User.GetCurrentUserId());
 
             return Ok(detail);
         }
@@ -125,9 +125,7 @@ namespace NexusERP.Api.Controllers
         [HttpGet("switchable-users")]
         public async Task<IActionResult> GetSwitchableUsers()
         {
-            int companyId = User.GetCurrentCompanyId();
-
-            var users = await _userRepository.GetLookupUsersAsync(companyId);
+            var users = await _userRepository.GetLookupUsersAsync(User.GetCurrentCompanyId());
 
             return Ok(users);
         }
@@ -135,7 +133,7 @@ namespace NexusERP.Api.Controllers
         [HttpPost("checkout/quote")]
         public async Task<IActionResult> GetCheckoutQuote([FromBody] CheckoutRequestDto dto)
         {
-            var quote = await _posService.GetCheckoutQuoteAsync(User.GetCurrentUserId(), dto);
+            var quote = await _posService.GetCheckoutQuoteAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), dto);
 
             return Ok(quote);
         }
@@ -143,7 +141,7 @@ namespace NexusERP.Api.Controllers
         [HttpGet("layout")]
         public async Task<IActionResult> GetPosLayout([FromQuery] int storeId)
         {
-            var layout = await _posService.GetPosLayoutAsync(storeId);
+            var layout = await _posService.GetPosLayoutAsync(User.GetCurrentCompanyId(), storeId);
 
             return Ok(layout);
         }
@@ -151,7 +149,7 @@ namespace NexusERP.Api.Controllers
         [HttpPut("layout/{storeId:int}")]
         public async Task<IActionResult> SavePosLayout(int storeId, [FromBody] UpdatePosLayoutDto dto)
         {
-            var layout = await _posService.SavePosLayoutAsync(storeId, dto);
+            var layout = await _posService.SavePosLayoutAsync(User.GetCurrentCompanyId(), storeId, dto);
 
             return Ok(layout);
         }

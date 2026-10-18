@@ -13,14 +13,13 @@ namespace NexusERP.Infrastructure.Services
     public class PosService : IPosService
     {
         private const int MaxPosLayoutProducts = 2000;
-     
+
         private class CheckoutCalculation
         {
             public decimal SubTotal { get; set; }
             public decimal DiscountedSubtotal { get; set; }
             public decimal FinalTotal { get; set; }
             public decimal TotalVatAmount { get; set; }
-
             public List<CalculatedCheckoutLine> Lines { get; set; } = new();
         }
 
@@ -28,12 +27,10 @@ namespace NexusERP.Infrastructure.Services
         {
             public Product Product { get; set; } = null!;
             public int Quantity { get; set; }
-
             public decimal ItemSubtotal { get; set; }
             public decimal AfterMarketDiscount { get; set; }
             public decimal AfterManualDiscount { get; set; }
             public decimal FinalLineTotal { get; set; }
-
             public decimal ManualItemDiscountPercentage { get; set; }
         }
 
@@ -49,10 +46,8 @@ namespace NexusERP.Infrastructure.Services
             public decimal CashPayments { get; set; }
             public decimal CardPayments { get; set; }
             public decimal VoucherPayments { get; set; }
-
             public decimal PayIn { get; set; }
             public decimal PayOut { get; set; }
-
             public int ReceiptCount { get; set; }
         }
 
@@ -63,7 +58,7 @@ namespace NexusERP.Infrastructure.Services
             _context = context;
         }
 
-        public async Task<Shift> OpenShiftAsync(int userId, OpenShiftDto dto)
+        public async Task<Shift> OpenShiftAsync(int companyId, int userId, OpenShiftDto dto)
         {
             if (dto.StartingCash < 0)
                 throw new AppException("Starting amount cant be less than zero.");
@@ -78,19 +73,37 @@ namespace NexusERP.Infrastructure.Services
 
                 try
                 {
-                    var existingShift = await _context.Shifts
-                        .FirstOrDefaultAsync(s => s.UserId == userId && s.Status == ShiftStatus.Open);
+                    bool userExists = await _context.Users.AnyAsync(u =>
+                        u.CompanyId == companyId &&
+                        u.UserId == userId
+                    );
+
+                    if (!userExists)
+                        throw new AppException("User does not belong to this company.");
+
+                    var existingShift = await _context.Shifts.FirstOrDefaultAsync(s =>
+                        s.CompanyId == companyId &&
+                        s.UserId == userId &&
+                        s.Status == ShiftStatus.Open
+                    );
 
                     if (existingShift != null)
                         throw new AppException("You already have open shift. Close it before opening a new one.");
 
-                    var isStoreActive = await _context.Stores.FirstOrDefaultAsync(s => s.StoreId == dto.StoreId && s.IsActive) ??
-                        throw new AppException("Store Dose not exists.");
+                    var store = await _context.Stores.FirstOrDefaultAsync(s =>
+                        s.CompanyId == companyId &&
+                        s.StoreId == dto.StoreId &&
+                        s.IsActive
+                    );
+
+                    if (store == null)
+                        throw new AppException("Store does not exist.");
 
                     var shift = new Shift
                     {
+                        CompanyId = companyId,
                         UserId = userId,
-                        StoreId = dto.StoreId,
+                        StoreId = store.StoreId,
                         StartDate = DateTime.UtcNow,
                         StartingCash = dto.StartingCash,
                         ExpectedEndingCash = dto.StartingCash,
@@ -113,7 +126,7 @@ namespace NexusERP.Infrastructure.Services
             });
         }
 
-        public async Task<Shift> CloseShiftAsync(int shiftId, int userId, CloseShiftDto dto)
+        public async Task<Shift> CloseShiftAsync(int companyId, int shiftId, int userId, CloseShiftDto dto)
         {
             if (dto.ActualEndingCash < 0)
                 throw new AppException("Actual ending cash cannot be less than zero.");
@@ -128,15 +141,18 @@ namespace NexusERP.Infrastructure.Services
 
                 try
                 {
-                    var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.UserId == userId);
+                    var shift = await _context.Shifts.FirstOrDefaultAsync(s =>
+                        s.CompanyId == companyId &&
+                        s.ShiftId == shiftId &&
+                        s.UserId == userId
+                    );
 
-                    if (shift == null) 
+                    if (shift == null)
                         throw new AppException("Shift not found.");
-                    
-                    if (shift.Status == ShiftStatus.Closed) 
-                        throw new AppException("Shift is closed");
 
-                    // recalculate shift totals before closing
+                    if (shift.Status == ShiftStatus.Closed)
+                        throw new AppException("Shift is closed.");
+
                     await InitializeShiftAsync(shift);
 
                     shift.EndDate = DateTime.UtcNow;
@@ -144,14 +160,9 @@ namespace NexusERP.Infrastructure.Services
                     shift.Status = ShiftStatus.Closed;
 
                     if (!string.IsNullOrWhiteSpace(dto.Note))
-                    {
-                        shift.Notes = string.IsNullOrWhiteSpace(shift.Notes) 
-                            ? dto.Note 
-                            : $"{shift.Notes} | {dto.Note}";
-                    }
+                        shift.Notes = string.IsNullOrWhiteSpace(shift.Notes) ? dto.Note : $"{shift.Notes} | {dto.Note}";
 
                     await _context.SaveChangesAsync();
-
                     await transaction.CommitAsync();
 
                     return shift;
@@ -162,8 +173,6 @@ namespace NexusERP.Infrastructure.Services
                     throw;
                 }
             });
-
-            
         }
 
         private static decimal RoundToTwoDecimalPlaces(decimal value)
@@ -175,31 +184,34 @@ namespace NexusERP.Infrastructure.Services
         {
             var receiptValues = await _context.Receipts
                 .Where(r =>
+                    r.CompanyId == shift.CompanyId &&
                     r.ShiftId == shift.ShiftId &&
-                    r.IsActive)
+                    r.IsActive
+                )
                 .GroupBy(r => 1)
                 .Select(g => new
                 {
                     TotalSales = g.Sum(r => r.FinalTotal),
-
                     TotalCost = g.Sum(r => r.TotalCostAmount),
-
                     TotalVat = g.Sum(r => r.TotalVatAmount),
 
                     CashSales = g.Sum(r =>
                         r.PaymentMethod == PaymentMethod.Cash
                             ? r.FinalTotal
-                            : 0m),
+                            : 0m
+                    ),
 
                     CardSales = g.Sum(r =>
                         r.PaymentMethod == PaymentMethod.Card
                             ? r.FinalTotal
-                            : 0m),
+                            : 0m
+                    ),
 
                     VoucherSales = g.Sum(r =>
                         r.PaymentMethod == PaymentMethod.Voucher
                             ? r.FinalTotal
-                            : 0m),
+                            : 0m
+                    ),
 
                     ReceiptCount = g.Count()
                 })
@@ -207,20 +219,24 @@ namespace NexusERP.Infrastructure.Services
 
             var movementValues = await _context.CashMovements
                 .Where(c =>
+                    c.CompanyId == shift.CompanyId &&
                     c.ShiftId == shift.ShiftId &&
-                    c.IsActive)
+                    c.IsActive
+                )
                 .GroupBy(c => 1)
                 .Select(g => new
                 {
                     PayIns = g.Sum(c =>
                         c.MovementType == CashMovementType.PayIn
                             ? c.Amount
-                            : 0m),
+                            : 0m
+                    ),
 
                     PayOuts = g.Sum(c =>
                         c.MovementType == CashMovementType.PayOut
                             ? c.Amount
-                            : 0m)
+                            : 0m
+                    )
                 })
                 .FirstOrDefaultAsync();
 
@@ -236,17 +252,8 @@ namespace NexusERP.Infrastructure.Services
             var payOuts = movementValues?.PayOuts ?? 0m;
 
             shift.TotalSales = totalSales;
-
-            shift.TotalProfit =
-                totalSales
-                - totalCost
-                - totalVat;
-
-            shift.ExpectedEndingCash =
-                shift.StartingCash
-                + cashSales
-                + payIns
-                - payOuts;
+            shift.TotalProfit = totalSales - totalCost - totalVat;
+            shift.ExpectedEndingCash = shift.StartingCash + cashSales + payIns - payOuts;
 
             await _context.SaveChangesAsync();
 
@@ -255,15 +262,13 @@ namespace NexusERP.Infrastructure.Services
                 CashPayments = cashSales,
                 CardPayments = cardSales,
                 VoucherPayments = voucherSales,
-
                 PayIn = payIns,
                 PayOut = payOuts,
-
                 ReceiptCount = receiptValues?.ReceiptCount ?? 0
             };
         }
 
-        public async Task<CurrentShiftDto?> GetCurrentShiftAsync(int userId, int storeId)
+        public async Task<CurrentShiftDto?> GetCurrentShiftAsync(int companyId, int userId, int storeId)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -277,7 +282,12 @@ namespace NexusERP.Infrastructure.Services
                 {
                     var shift = await _context.Shifts
                         .Include(s => s.Store)
-                        .FirstOrDefaultAsync(s => s.UserId == userId && s.StoreId == storeId && s.Status == ShiftStatus.Open);
+                        .FirstOrDefaultAsync(s =>
+                            s.CompanyId == companyId &&
+                            s.UserId == userId &&
+                            s.StoreId == storeId &&
+                            s.Status == ShiftStatus.Open
+                        );
 
                     if (shift == null) return null;
 
@@ -289,26 +299,21 @@ namespace NexusERP.Infrastructure.Services
                         StoreId = shift.StoreId,
                         StoreName = shift.Store?.Name ?? string.Empty,
                         StartDate = shift.StartDate,
-
                         StartingCash = shift.StartingCash,
-
                         ExpectedEndingCash = shift.ExpectedEndingCash,
                         TotalSales = shift.TotalSales,
                         TotalProfit = shift.TotalProfit,
-
                         CashSales = calculation.CashPayments,
                         CardSales = calculation.CardPayments,
                         VoucherSales = calculation.VoucherPayments,
-
                         TotalPayIns = calculation.PayIn,
                         TotalPayOuts = calculation.PayOut,
-
                         ReceiptCount = calculation.ReceiptCount,
-
                         Notes = shift.Notes
                     };
 
                     await transaction.CommitAsync();
+
                     return result;
                 }
                 catch
@@ -319,13 +324,15 @@ namespace NexusERP.Infrastructure.Services
             });
         }
 
-        public async Task<List<ShiftHistoryItemDto>> GetShiftHistoryAsync(int userId, int storeId)
+        public async Task<List<ShiftHistoryItemDto>> GetShiftHistoryAsync(int companyId, int userId, int storeId)
         {
             return await _context.Shifts
                 .Where(s =>
+                    s.CompanyId == companyId &&
                     s.UserId == userId &&
                     s.StoreId == storeId &&
-                    s.Status == ShiftStatus.Closed)
+                    s.Status == ShiftStatus.Closed
+                )
                 .OrderByDescending(s => s.StartDate)
                 .Take(30)
                 .AsNoTracking()
@@ -344,10 +351,10 @@ namespace NexusERP.Infrastructure.Services
                 .ToListAsync();
         }
 
-        public async Task<CashMovementResultDto> AddCashMovementAsync(int shiftId, int userId, CashMovementDto dto)
+        public async Task<CashMovementResultDto> AddCashMovementAsync(int companyId, int shiftId, int userId, CashMovementDto dto)
         {
             if (dto.Amount <= 0)
-                throw new AppException("Amount must be greater then zero.");
+                throw new AppException("Amount must be greater than zero.");
 
             if (dto.MovementType != CashMovementType.PayIn && dto.MovementType != CashMovementType.PayOut)
                 throw new AppException("Invalid movement type.");
@@ -358,38 +365,44 @@ namespace NexusERP.Infrastructure.Services
             {
                 _context.ChangeTracker.Clear();
 
-                using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
                 try
                 {
-                    var shift = await _context.Shifts.FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.Status == ShiftStatus.Open && s.UserId == userId) ??
+                    var shift = await _context.Shifts.FirstOrDefaultAsync(s =>
+                        s.CompanyId == companyId &&
+                        s.ShiftId == shiftId &&
+                        s.Status == ShiftStatus.Open &&
+                        s.UserId == userId
+                    );
+
+                    if (shift == null)
                         throw new AppException("Active shift not found for this user.");
 
-                    var hasWarning = false;
+                    bool hasWarning = false;
                     string? warning = null;
 
                     if (dto.MovementType == CashMovementType.PayOut)
                     {
-                        // update shift totals before checking if PayOut exceeds expected cash
                         await InitializeShiftAsync(shift);
 
                         if (dto.Amount > shift.ExpectedEndingCash)
                         {
                             hasWarning = true;
                             warning = $"PayOut exceeds expected register cash by {dto.Amount - shift.ExpectedEndingCash:C}.";
-
                         }
                     }
 
                     var movement = new CashMovement
                     {
+                        CompanyId = companyId,
                         ShiftId = shiftId,
                         UserId = userId,
                         StoreId = shift.StoreId,
                         MovementType = dto.MovementType,
                         Amount = dto.Amount,
                         Reason = dto.Reason,
-                        CreatedAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
                     };
 
                     _context.CashMovements.Add(movement);
@@ -412,15 +425,25 @@ namespace NexusERP.Infrastructure.Services
             });
         }
 
-        public async Task<List<ShiftReceiptSummaryDto>> GetShiftReceiptsAsync(int shiftId, int userId)
+        public async Task<List<ShiftReceiptSummaryDto>> GetShiftReceiptsAsync(int companyId, int shiftId, int userId)
         {
-            var shift = await _context.Shifts.AsNoTracking()
-                .FirstOrDefaultAsync(s => s.ShiftId == shiftId && s.UserId == userId);
+            var shift = await _context.Shifts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s =>
+                    s.CompanyId == companyId &&
+                    s.ShiftId == shiftId &&
+                    s.UserId == userId
+                );
 
-            if (shift == null) throw new AppException("Shift not found or does not belong to you.");
+            if (shift == null)
+                throw new AppException("Shift not found or does not belong to you.");
 
             return await _context.Receipts
-                .Where(r => r.ShiftId == shiftId && r.IsActive)
+                .Where(r =>
+                    r.CompanyId == companyId &&
+                    r.ShiftId == shiftId &&
+                    r.IsActive
+                )
                 .OrderByDescending(r => r.CreatedAt)
                 .AsNoTracking()
                 .Select(r => new ShiftReceiptSummaryDto
@@ -435,16 +458,22 @@ namespace NexusERP.Infrastructure.Services
                 .ToListAsync();
         }
 
-        public async Task<ReceiptDetailDto> GetReceiptDetailAsync(int receiptId, int userId)
+        public async Task<ReceiptDetailDto> GetReceiptDetailAsync(int companyId, int receiptId, int userId)
         {
             var receipt = await _context.Receipts
-                .Include(r => r.Lines).ThenInclude(l => l.Product)
+                .Include(r => r.Lines)
+                    .ThenInclude(l => l.Product)
                 .Include(r => r.User)
                 .Include(r => r.Store)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.ReceiptId == receiptId && r.UserId == userId);
+                .FirstOrDefaultAsync(r =>
+                    r.CompanyId == companyId &&
+                    r.ReceiptId == receiptId &&
+                    r.UserId == userId
+                );
 
-            if (receipt == null) throw new AppException("Receipt not found.");
+            if (receipt == null)
+                throw new AppException("Receipt not found.");
 
             return new ReceiptDetailDto
             {
@@ -458,6 +487,7 @@ namespace NexusERP.Infrastructure.Services
                 TotalVatAmount = receipt.TotalVatAmount,
                 FinalTotal = receipt.FinalTotal,
                 PaymentMethod = receipt.PaymentMethod.ToString(),
+
                 Lines = receipt.Lines.Select(l => new ReceiptLineDto
                 {
                     ProductName = l.Product?.Name ?? "Unknown Product",
@@ -470,112 +500,112 @@ namespace NexusERP.Infrastructure.Services
             };
         }
 
-        private async Task<CheckoutValidationResult> ValidateCheckoutAsync(int userId, CheckoutRequestDto cart)
+        private async Task<CheckoutValidationResult> ValidateCheckoutAsync(int companyId, int userId, CheckoutRequestDto cart)
         {
             if (cart.Items == null || cart.Items.Count == 0)
                 throw new AppException("Cart is empty.");
 
-            // 1. Active Shift
             var activeShift = await _context.Shifts.FirstOrDefaultAsync(s =>
+                s.CompanyId == companyId &&
                 s.UserId == userId &&
                 s.StoreId == cart.StoreId &&
-                s.Status == ShiftStatus.Open);
+                s.Status == ShiftStatus.Open
+            );
 
             if (activeShift == null)
                 throw new AppException("You must open shift before processing sales.");
 
-            // group every product to count total quantity if product repities multiple times in the list
-            var qtyByProduct = cart.Items.GroupBy(i => i.ProductId)
+            var qtyByProduct = cart.Items
+                .GroupBy(i => i.ProductId)
                 .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
-            // 2. Store
-            var store = await _context.Stores.FindAsync(cart.StoreId);
+            var store = await _context.Stores.FirstOrDefaultAsync(s =>
+                s.CompanyId == companyId &&
+                s.StoreId == cart.StoreId &&
+                s.IsActive
+            );
 
             if (store == null)
                 throw new AppException("Invalid store.");
 
-            // 3. Cart discount
             if (cart.CartDiscountPercentage < 0 || cart.CartDiscountPercentage > 100)
-                throw new AppException("Cart discount percentage must be between 0% and 100%");
+                throw new AppException("Cart discount percentage must be between 0% and 100%.");
 
             if (cart.CartDiscountPercentage > store.MaxCartDiscountPercentage)
-                throw new AppException($"Cart discount exceeds the store maximum of {store.MaxCartDiscountPercentage}%");
+                throw new AppException($"Cart discount exceeds the store maximum of {store.MaxCartDiscountPercentage}%.");
 
-            // 4. System settings 
             var negativeSetting = await _context.SystemSettings.FirstOrDefaultAsync(s =>
-                s.SettingKey == "AllowNegativeInventory");
+                s.CompanyId == companyId &&
+                s.SettingKey == "AllowNegativeInventory"
+            );
 
-            bool allowNegative = negativeSetting != null && bool.TryParse(negativeSetting.SettingValue, out bool parsedVal) && parsedVal;
+            bool allowNegative = negativeSetting != null &&
+                                 bool.TryParse(negativeSetting.SettingValue, out bool parsedVal) &&
+                                 parsedVal;
 
             var discountSetting = await _context.SystemSettings.FirstOrDefaultAsync(s =>
-                s.SettingKey == "DiscountPolicy");
+                s.CompanyId == companyId &&
+                s.SettingKey == "DiscountPolicy"
+            );
 
-            string discountPolicy =
-                discountSetting?.SettingValue ?? "Enabled";
+            string discountPolicy = discountSetting?.SettingValue ?? "Enabled";
 
-            // 5. Discount policy
             bool hasManualDiscounts =
-                cart.CartDiscountPercentage > 0 || cart.Items.Any(i => i.ManualItemDiscountPercentage > 0);
+                cart.CartDiscountPercentage > 0 ||
+                cart.Items.Any(i => i.ManualItemDiscountPercentage > 0);
 
             if (hasManualDiscounts && discountPolicy != "Enabled")
             {
                 if (discountPolicy == "Disabled")
-                {
-                    throw new AppException("Manual discounts are currently disabled globally by system settings.");
-                }
+                    throw new AppException("Manual discounts are currently disabled by system settings.");
 
                 if (discountPolicy == "AdminOnly")
                 {
-                    var user = await _context.Users.Include(
-                        u => u.Role)
-                        .FirstOrDefaultAsync(u => u.UserId == userId);
+                    var user = await _context.Users
+                        .Include(u => u.Role)
+                        .FirstOrDefaultAsync(u =>
+                            u.CompanyId == companyId &&
+                            u.UserId == userId
+                        );
 
                     if (user?.Role?.Name != "Admin")
                         throw new AppException("System settings currently restrict manual discounts to Administrator only.");
                 }
             }
 
-            // 6. Validate every cart item
             var products = new List<Product>();
 
             foreach (var item in cart.Items)
             {
-                var product = await _context.Products.FindAsync(item.ProductId);
+                var product = await _context.Products.FirstOrDefaultAsync(p =>
+                    p.CompanyId == companyId &&
+                    p.ProductId == item.ProductId &&
+                    p.IsActive
+                );
 
-                if (product == null || !product.IsActive)
-                    throw new AppException("Invalid Product in cart");
+                if (product == null)
+                    throw new AppException("Invalid product in cart.");
 
-                // Quantity being sold must always be positive.
                 if (item.Quantity <= 0)
                     throw new AppException($"Invalid quantity for {product.Name}.");
 
-                // Prevent selling more stock than available.
                 if (!allowNegative && product.Quantity < qtyByProduct[item.ProductId])
                     throw new AppException($"Insufficient stock for {product.Name}.");
-                
-                // Product price itself must never be negative.
+
                 if (product.Price < 0)
                     throw new AppException($"Price for {product.Name} cannot be negative.");
 
-                // Market discount must be safe.
                 if (product.MarketDiscountRate < 0 || product.MarketDiscountRate > 100)
-                    throw new AppException(
-                        $"Market discount for {product.Name} must be between 0% and 100%.");
+                    throw new AppException($"Market discount for {product.Name} must be between 0% and 100%.");
 
-                // Manual discount must be safe.
                 if (item.ManualItemDiscountPercentage < 0 || item.ManualItemDiscountPercentage > 100)
-                    throw new AppException(
-                        $"Manual discount for {product.Name} must be between 0% and 100%.");
+                    throw new AppException($"Manual discount for {product.Name} must be between 0% and 100%.");
 
-                // Manual discount must also respect the product-specific maximum.
                 if (item.ManualItemDiscountPercentage > product.MaxDiscountPercentage)
-                    throw new AppException(
-                        $"Discount for {product.Name} exceeds the maximum allowed {product.MaxDiscountPercentage}%.");
+                    throw new AppException($"Discount for {product.Name} exceeds the maximum allowed {product.MaxDiscountPercentage}%.");
 
-                // Vart rate check
                 if (product.VatRate < 0 || product.VatRate > 100)
                     throw new AppException($"VAT rate for {product.Name} must be between 0% and 100%.");
-
 
                 products.Add(product);
             }
@@ -596,20 +626,19 @@ namespace NexusERP.Infrastructure.Services
             {
                 var product = products.First(p => p.ProductId == item.ProductId);
 
-                //original price
                 decimal itemSubtotal = product.Price * item.Quantity;
 
-                // 1. Market discount
-                decimal afterMarketDiscount = itemSubtotal * (1m - product.MarketDiscountRate / 100m);
+                decimal afterMarketDiscount =
+                    itemSubtotal * (1m - product.MarketDiscountRate / 100m);
 
-                // 2. Manual item discount
-                decimal afterManualDiscount = afterMarketDiscount * (1m - item.ManualItemDiscountPercentage / 100m);
+                decimal afterManualDiscount =
+                    afterMarketDiscount * (1m - item.ManualItemDiscountPercentage / 100m);
 
-                // 3. Cart discount
-                decimal afterCartDiscount = afterManualDiscount * (1m - cart.CartDiscountPercentage / 100m);
+                decimal afterCartDiscount =
+                    afterManualDiscount * (1m - cart.CartDiscountPercentage / 100m);
 
-                // 4. VAT amount
-                decimal vatAmount = afterCartDiscount * (product.VatRate / (100m + product.VatRate));
+                decimal vatAmount =
+                    afterCartDiscount * (product.VatRate / (100m + product.VatRate));
 
                 result.SubTotal += itemSubtotal;
                 result.DiscountedSubtotal += afterManualDiscount;
@@ -628,20 +657,14 @@ namespace NexusERP.Infrastructure.Services
                 });
             }
 
-            result.SubTotal =
-                RoundToTwoDecimalPlaces(result.SubTotal);
-
-            result.FinalTotal =
-                RoundToTwoDecimalPlaces(result.FinalTotal);
-
-            result.TotalVatAmount =
-                RoundToTwoDecimalPlaces(result.TotalVatAmount);
-
+            result.SubTotal = RoundToTwoDecimalPlaces(result.SubTotal);
+            result.FinalTotal = RoundToTwoDecimalPlaces(result.FinalTotal);
+            result.TotalVatAmount = RoundToTwoDecimalPlaces(result.TotalVatAmount);
 
             return result;
         }
 
-        public async Task<Receipt> ProcessCheckoutAsync(int userId, CheckoutRequestDto cart)
+        public async Task<Receipt> ProcessCheckoutAsync(int companyId, int userId, CheckoutRequestDto cart)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -649,31 +672,27 @@ namespace NexusERP.Infrastructure.Services
             {
                 _context.ChangeTracker.Clear();
 
-                await using var transaction =
-                    await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
                 try
                 {
-                    var validation = await ValidateCheckoutAsync(userId, cart);
+                    var validation = await ValidateCheckoutAsync(companyId, userId, cart);
 
                     var activeShift = validation.ActiveShift;
                     var products = validation.Products;
 
-                    // payment method validation
                     if (!Enum.TryParse<PaymentMethod>(cart.PaymentMethod, true, out var paymentMethod))
-                    {
-                        throw new AppException(
-                            $"Invalid payment method: {cart.PaymentMethod}.");
-                    }
+                        throw new AppException($"Invalid payment method: {cart.PaymentMethod}.");
 
                     var receipt = new Receipt
                     {
+                        CompanyId = companyId,
                         UserId = userId,
                         StoreId = cart.StoreId,
                         ShiftId = activeShift.ShiftId,
                         CartDiscountPercentage = cart.CartDiscountPercentage,
                         PaymentMethod = paymentMethod,
-                        CreatedAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
                     };
 
                     decimal totalCostForProfit = 0;
@@ -692,6 +711,7 @@ namespace NexusERP.Infrastructure.Services
 
                         _context.InventoryTransactions.Add(new InventoryTransaction
                         {
+                            CompanyId = companyId,
                             ProductId = product.ProductId,
                             UserId = userId,
                             StoreId = cart.StoreId,
@@ -704,6 +724,7 @@ namespace NexusERP.Infrastructure.Services
 
                         receipt.Lines.Add(new ReceiptItem
                         {
+                            CompanyId = companyId,
                             ProductId = product.ProductId,
                             Quantity = line.Quantity,
                             UnitPrice = product.Price,
@@ -711,13 +732,14 @@ namespace NexusERP.Infrastructure.Services
                             VatRate = product.VatRate,
                             MarketDiscountPercentage = product.MarketDiscountRate,
                             ManualItemDiscountPercentage = line.ManualItemDiscountPercentage,
-                            LineTotal = line.FinalLineTotal,
+                            LineTotal = line.FinalLineTotal
                         });
                     }
 
                     receipt.TotalCostAmount = totalCostForProfit;
 
                     _context.Receipts.Add(receipt);
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -729,15 +751,12 @@ namespace NexusERP.Infrastructure.Services
                     throw;
                 }
             });
-            
         }
 
-        public async Task<CheckoutQuoteDto> GetCheckoutQuoteAsync(int userId, CheckoutRequestDto cart)
+        public async Task<CheckoutQuoteDto> GetCheckoutQuoteAsync(int companyId, int userId, CheckoutRequestDto cart)
         {
-            var validation = await ValidateCheckoutAsync(userId, cart);
-            var products = validation.Products;
-
-            var calculation = CalculateCheckoutHelper(cart, products);
+            var validation = await ValidateCheckoutAsync(companyId, userId, cart);
+            var calculation = CalculateCheckoutHelper(cart, validation.Products);
 
             return new CheckoutQuoteDto
             {
@@ -745,14 +764,17 @@ namespace NexusERP.Infrastructure.Services
             };
         }
 
-        private async Task<List<ProductResponseDto>> GetPosLayoutProductsAsync(List<int> productIds)
+        private async Task<List<ProductResponseDto>> GetPosLayoutProductsAsync(int companyId, List<int> productIds)
         {
             if (productIds.Count == 0)
                 return new List<ProductResponseDto>();
 
             return await _context.Products
                 .AsNoTracking()
-                .Where(p => productIds.Contains(p.ProductId))
+                .Where(p =>
+                    p.CompanyId == companyId &&
+                    productIds.Contains(p.ProductId)
+                )
                 .Select(p => new ProductResponseDto
                 {
                     ProductId = p.ProductId,
@@ -789,12 +811,17 @@ namespace NexusERP.Infrastructure.Services
                 .ToListAsync();
         }
 
-        public async Task<PosLayoutDto> GetPosLayoutAsync(int storeId)
+        public async Task<PosLayoutDto> GetPosLayoutAsync(int companyId, int storeId)
         {
             var store = await _context.Stores
                 .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.StoreId == storeId)
-                ?? throw new AppException("Store not found.");
+                .FirstOrDefaultAsync(s =>
+                    s.CompanyId == companyId &&
+                    s.StoreId == storeId
+                );
+
+            if (store == null)
+                throw new AppException("Store not found.");
 
             if (string.IsNullOrWhiteSpace(store.PosLayoutJson))
             {
@@ -808,44 +835,20 @@ namespace NexusERP.Infrastructure.Services
 
             try
             {
-                var slots =
-                    JsonSerializer.Deserialize<List<PosLayoutSlotDto>>(
-                        store.PosLayoutJson
-                    ) ?? new List<PosLayoutSlotDto>();
+                var slots = JsonSerializer.Deserialize<List<PosLayoutSlotDto>>(store.PosLayoutJson)
+                            ?? new List<PosLayoutSlotDto>();
 
                 if (slots.Count > MaxPosLayoutProducts)
-                {
-                    throw new AppException(
-                        $"POS layout cannot contain more than {MaxPosLayoutProducts} products."
-                    );
-                }
+                    throw new AppException($"POS layout cannot contain more than {MaxPosLayoutProducts} products.");
 
                 if (slots.Any(s => s.SlotIndex < 0 || s.ProductId <= 0))
-                {
-                    throw new AppException(
-                        "Saved POS layout contains invalid data."
-                    );
-                }
+                    throw new AppException("Saved POS layout contains invalid data.");
 
-                if (
-                    slots.GroupBy(s => s.SlotIndex)
-                        .Any(group => group.Count() > 1)
-                )
-                {
-                    throw new AppException(
-                        "Saved POS layout contains duplicate slot positions."
-                    );
-                }
+                if (slots.GroupBy(s => s.SlotIndex).Any(group => group.Count() > 1))
+                    throw new AppException("Saved POS layout contains duplicate slot positions.");
 
-                if (
-                    slots.GroupBy(s => s.ProductId)
-                        .Any(group => group.Count() > 1)
-                )
-                {
-                    throw new AppException(
-                        "Saved POS layout contains the same product more than once."
-                    );
-                }
+                if (slots.GroupBy(s => s.ProductId).Any(group => group.Count() > 1))
+                    throw new AppException("Saved POS layout contains the same product more than once.");
 
                 var orderedSlots = slots
                     .OrderBy(s => s.SlotIndex)
@@ -856,8 +859,7 @@ namespace NexusERP.Infrastructure.Services
                     .Distinct()
                     .ToList();
 
-                var products =
-                    await GetPosLayoutProductsAsync(productIds);
+                var products = await GetPosLayoutProductsAsync(companyId, productIds);
 
                 var validProductIds = products
                     .Select(p => p.ProductId)
@@ -880,19 +882,26 @@ namespace NexusERP.Infrastructure.Services
             }
         }
 
-        public async Task<PosLayoutDto> SavePosLayoutAsync(int storeId, UpdatePosLayoutDto dto)
+        public async Task<PosLayoutDto> SavePosLayoutAsync(int companyId, int storeId, UpdatePosLayoutDto dto)
         {
-            var store = await _context.Stores.FirstOrDefaultAsync(s => s.StoreId == storeId)
-                ?? throw new AppException("Store not found.");
+            var store = await _context.Stores.FirstOrDefaultAsync(s =>
+                s.CompanyId == companyId &&
+                s.StoreId == storeId
+            );
+
+            if (store == null)
+                throw new AppException("Store not found.");
 
             var slots = dto.Slots ?? new List<PosLayoutSlotDto>();
 
             if (slots.Count > MaxPosLayoutProducts)
                 throw new AppException($"POS layout cannot contain more than {MaxPosLayoutProducts} products.");
 
-            if (slots.Any(s => s.SlotIndex < 0)) throw new AppException("Slot index cannot be negative.");
+            if (slots.Any(s => s.SlotIndex < 0))
+                throw new AppException("Slot index cannot be negative.");
 
-            if (slots.Any(s => s.ProductId <= 0))throw new AppException("POS layout contains an invalid product.");
+            if (slots.Any(s => s.ProductId <= 0))
+                throw new AppException("POS layout contains an invalid product.");
 
             if (slots.GroupBy(s => s.SlotIndex).Any(group => group.Count() > 1))
                 throw new AppException("POS layout contains duplicate slot indices.");
@@ -905,7 +914,7 @@ namespace NexusERP.Infrastructure.Services
                 .Distinct()
                 .ToList();
 
-            var products = await GetPosLayoutProductsAsync(productIds);
+            var products = await GetPosLayoutProductsAsync(companyId, productIds);
 
             if (products.Count != productIds.Count)
                 throw new AppException("POS layout contains an invalid or inactive product.");
@@ -920,7 +929,6 @@ namespace NexusERP.Infrastructure.Services
                 .ToList();
 
             store.PosLayoutJson = JsonSerializer.Serialize(cleanSlots);
-
             store.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -932,6 +940,5 @@ namespace NexusERP.Infrastructure.Services
                 Products = products
             };
         }
-
     }
 }
