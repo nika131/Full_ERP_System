@@ -11,6 +11,11 @@ namespace NexusERP.Domain.Entities
     public class User : IAuditTracked
     {
         public int UserId { get; set; }
+
+        public int? AccountId { get; set; }
+        public Account? Account { get; set; }
+
+
         public string FullName { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;

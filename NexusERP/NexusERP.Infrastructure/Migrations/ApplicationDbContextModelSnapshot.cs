@@ -23,6 +23,101 @@ namespace NexusERP.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("NexusERP.Domain.Entities.Account", b =>
+                {
+                    b.Property<int>("AccountId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AccountId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<bool>("EmailVerified")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("GoogleSubject")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("AccountId");
+
+                    b.HasIndex("GoogleSubject")
+                        .IsUnique()
+                        .HasFilter("[GoogleSubject] IS NOT NULL");
+
+                    b.HasIndex("NormalizedEmail")
+                        .IsUnique();
+
+                    b.ToTable("Accounts");
+                });
+
+            modelBuilder.Entity("NexusERP.Domain.Entities.AuthSession", b =>
+                {
+                    b.Property<Guid>("SessionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ClientType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RefreshTokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SessionId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("RefreshTokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("AccountId", "CompanyId");
+
+                    b.ToTable("AuthSessions");
+                });
+
             modelBuilder.Entity("NexusERP.Domain.Entities.CashMovement", b =>
                 {
                     b.Property<int>("MovementId")
@@ -697,6 +792,9 @@ namespace NexusERP.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
+                    b.Property<int?>("AccountId")
+                        .HasColumnType("int");
+
                     b.Property<int>("CompanyId")
                         .HasColumnType("int");
 
@@ -729,7 +827,13 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.HasKey("UserId");
 
+                    b.HasIndex("AccountId");
+
                     b.HasIndex("RoleId");
+
+                    b.HasIndex("CompanyId", "AccountId")
+                        .IsUnique()
+                        .HasFilter("[AccountId] IS NOT NULL");
 
                     b.HasIndex("CompanyId", "Username")
                         .IsUnique();
@@ -789,6 +893,25 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserAbsences");
+                });
+
+            modelBuilder.Entity("NexusERP.Domain.Entities.AuthSession", b =>
+                {
+                    b.HasOne("NexusERP.Domain.Entities.Account", "Account")
+                        .WithMany("Sessions")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NexusERP.Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("NexusERP.Domain.Entities.CashMovement", b =>
@@ -1068,6 +1191,11 @@ namespace NexusERP.Infrastructure.Migrations
 
             modelBuilder.Entity("NexusERP.Domain.Entities.User", b =>
                 {
+                    b.HasOne("NexusERP.Domain.Entities.Account", "Account")
+                        .WithMany("Users")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("NexusERP.Domain.Entities.Company", "Company")
                         .WithMany("Users")
                         .HasForeignKey("CompanyId")
@@ -1079,6 +1207,8 @@ namespace NexusERP.Infrastructure.Migrations
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Account");
 
                     b.Navigation("Company");
 
@@ -1109,6 +1239,13 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Navigation("ReviewedBy");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("NexusERP.Domain.Entities.Account", b =>
+                {
+                    b.Navigation("Sessions");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("NexusERP.Domain.Entities.Company", b =>

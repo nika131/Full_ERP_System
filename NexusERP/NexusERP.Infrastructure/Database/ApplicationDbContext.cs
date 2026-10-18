@@ -41,6 +41,10 @@ namespace NexusERP.Infrastructure.Database
 
         public DbSet<SystemSetting> SystemSettings { get; set; }
 
+        public DbSet<Account> Accounts { get; set; }
+        public DbSet<AuthSession> AuthSessions { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -95,6 +99,15 @@ namespace NexusERP.Infrastructure.Database
                     .WithMany(c => c.Users)
                     .HasForeignKey(e => e.CompanyId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Account)
+                    .WithMany(a => a.Users)
+                    .HasForeignKey(e => e.AccountId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.CompanyId, e.AccountId })
+                    .IsUnique()
+                    .HasFilter("[AccountId] IS NOT NULL");
 
                 entity.HasIndex(e => new
                 {
@@ -487,6 +500,52 @@ namespace NexusERP.Infrastructure.Database
                 entity.Property(e => e.SettingKey)
                     .HasMaxLength(100);
             });
+
+
+            // ACCOUNT
+            modelBuilder.Entity<Account>(entity =>
+            {
+                entity.HasKey(e => e.AccountId);
+
+                entity.Property(e => e.Email).HasMaxLength(320).IsRequired();
+                entity.Property(e => e.NormalizedEmail).HasMaxLength(320).IsRequired();
+
+                entity.Property(e => e.GoogleSubject).HasMaxLength(255);
+
+                entity.HasIndex(e => e.NormalizedEmail).IsUnique();
+
+                entity.HasIndex(e => e.GoogleSubject)
+                    .IsUnique()
+                    .HasFilter("[GoogleSubject] IS NOT NULL");
+            });
+
+            // AUTH SESSION
+            modelBuilder.Entity<AuthSession>(entity =>
+            {
+                entity.HasKey(e => e.SessionId);
+
+                entity.HasOne(e => e.Account)
+                    .WithMany(a => a.Sessions)
+                    .HasForeignKey(e => e.AccountId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Company)
+                    .WithMany()
+                    .HasForeignKey(e => e.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.Property(e => e.RefreshTokenHash)
+                    .HasMaxLength(64)
+                    .IsRequired();
+
+                entity.Property(e => e.ClientType)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.HasIndex(e => e.RefreshTokenHash).IsUnique();
+                entity.HasIndex(e => new { e.AccountId, e.CompanyId });
+            });
+
 
             // ============================================================
             // DEFAULT DELETE BEHAVIOR
