@@ -68,6 +68,8 @@ builder.Services.AddScoped<IPdfExportService, PdfExportService>();
 builder.Services.AddScoped<IStoreService, StoreService>();
 builder.Services.AddScoped<IPosService, PosService>();
 
+builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
