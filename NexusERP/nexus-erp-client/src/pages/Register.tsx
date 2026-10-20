@@ -40,6 +40,7 @@ export default function Register() {
             <div className="w-full max-w-md">
                 <h1 className="text-center text-3xl font-bold text-emerald-700 mb-2">TenexERP</h1>
                 <p className="text-center text-gray-500 mb-7">Create your account</p>
+                <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left"><div className="font-bold text-emerald-900">🎁 Welcome offer: one month of full access</div><p className="mt-1 text-sm leading-6 text-emerald-800">We’re preparing an introductory month with access to all features. Subscription and billing aren’t enabled yet; we’ll explain the exact start date and terms when the offer becomes active.</p></div>
                 <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
                     {error && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
                     <form onSubmit={submit} className="space-y-4">

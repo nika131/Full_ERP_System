@@ -3,6 +3,9 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import AccountProtectedRoute from './components/AccountProtectedRoute';
 import Login from './pages/Login';
+import Landing from './pages/Landing';
+import AccountSettings from './pages/AccountSettings';
+import AccountDeletion from './pages/AccountDeletion';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import Companies from './pages/Companies';
@@ -29,6 +32,7 @@ function App() {
             <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
             <BrowserRouter>
                 <Routes>
+                    <Route path="/" element={<Landing />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
@@ -42,6 +46,8 @@ function App() {
                     <Route element={<ProtectedRoute />}>
                         <Route element={<MainLayout />}>
                             <Route path="/profile" element={<Profile />} />
+                            <Route path="/settings" element={<AccountSettings />} />
+                            <Route path="/account-deletion" element={<AccountDeletion />} />
                             <Route element={<ProtectedRoute requiredPermission={Permissions.ViewDashboard} />}>
                                 <Route path="/dashboard" element={<Dashboard />} />
                             </Route>
@@ -52,7 +58,7 @@ function App() {
                                 <Route path="/company-admin" element={<CompanyAdministration />} />
                             </Route>
                             <Route element={<ProtectedRoute requiredPermission={Permissions.ManageAbsences} />}>
-                                <Route path="/pending-leaves" element={<PendingLeaves />} />
+                                <Route path="/employees/pending-leaves" element={<PendingLeaves />} />
                             </Route>
                             <Route element={<ProtectedRoute requiredPermission={Permissions.ViewProducts} />}>
                                 <Route path="/inventory" element={<InventoryList />} />
@@ -75,8 +81,7 @@ function App() {
                         </Route>
                     </Route>
 
-                    <Route path="/" element={<Navigate to="/companies" replace />} />
-                    <Route path="*" element={<Navigate to="/companies" replace />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>

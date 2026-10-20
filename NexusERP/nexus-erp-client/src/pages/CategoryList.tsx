@@ -11,9 +11,9 @@ import { useCategoriesQuery, useSaveCategoryMutation, useDeleteCategoryMutation 
 
 export default function CategoryList() {
     const { hasPermission } = useAuth();
-    const canCreate = hasPermission(Permissions.CreateCategorys);
-    const canEdit = hasPermission(Permissions.EditCategorys);
-    const canDelete = hasPermission(Permissions.DeleteCategorys);
+    const canCreate = hasPermission(Permissions.CreateCategories);
+    const canEdit = hasPermission(Permissions.EditCategories);
+    const canDelete = hasPermission(Permissions.DeleteCategories);
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
 

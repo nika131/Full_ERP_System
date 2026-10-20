@@ -137,7 +137,7 @@ export default function EmployeeList() {
                         {canManageAbsences && <div className="bg-emerald-700 p-4 rounded-lg shadow-sm border border-emerald-600 text-white">
                             <p className="text-sm font-medium text-slate-300">Quick Actions</p>
                             <button 
-                                onClick={() => navigate('/pending-leaves')}
+                                onClick={() => navigate('/employees/pending-leaves')}
                             className="mt-2 text-sm font-medium text-white-300 hover:text-emerald-200">
                                 View Pending Leaves →
                             </button>
