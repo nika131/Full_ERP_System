@@ -1,3 +1,5 @@
+import { useAuth } from '../context/AuthContext';
+import { Permissions } from '../constants/permissions';
 import { useEffect, useMemo, useState } from 'react';
 import { type Product } from '../types/product';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
@@ -16,6 +18,13 @@ import apiClient from '../api/apiClient';
 import { useLocation } from 'react-router-dom';
 
 export default function InventoryList() {
+    const { hasPermission } = useAuth();
+    const canCreate = hasPermission(Permissions.CreateProducts);
+    const canEdit = hasPermission(Permissions.EditProducts);
+    const canDelete = hasPermission(Permissions.DeleteProducts);
+    const canStock = hasPermission(Permissions.AdjustStock) || hasPermission(Permissions.PerformInboundTransactions);
+    const canManageSettings = hasPermission(Permissions.ManageSettings);
+    const canViewSettings = hasPermission(Permissions.ViewSettings);
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('')
@@ -112,10 +121,11 @@ export default function InventoryList() {
     };
 
     useEffect(() => {
+        if (!canViewSettings) return;
         apiClient.get('/settings/GlobalLowStockThreshold')
             .then(res => setGlobalThreshold(Number(res.data.value)))
             .catch(err => console.error("Failed to load global threshold", err));
-    }, []);
+    }, [canViewSettings]);
 
     useEffect(() => {
         if (location.state?.triggerLowStock) {
@@ -174,17 +184,17 @@ export default function InventoryList() {
         className: 'text-right w-48',
         render: (item) => (
             <div className="flex justify-end space-x-3">
-                <button 
+                {canStock && <button 
                     onClick={() => { setSelectedStockProduct(item); setIsStockSlideOverOpen(true); }} 
                     className="text-blue-600 hover:text-blue-800 font-medium text-sm">
                     Manage Stock
-                </button>
-                <button onClick={() => handleEditClick(item)} className="text-emerald-600 hover:text-emerald-800 font-medium text-sm">Edit</button>
-                <button onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-800 font-medium text-sm">Delete</button>
+                </button>}
+                {canEdit && <button onClick={() => handleEditClick(item)} className="text-emerald-600 hover:text-emerald-800 font-medium text-sm">Edit</button>}
+                {canDelete && <button onClick={() => handleDeleteClick(item)} className="text-red-600 hover:text-red-800 font-medium text-sm">Delete</button>}
             </div>
         )
         }
-    ], [globalThreshold]);
+    ], [globalThreshold, canStock, canEdit, canDelete]);
 
     return (
         <div className="space-y-4">
@@ -238,21 +248,21 @@ export default function InventoryList() {
                             <span className="hidden lg:inline whitespace-nowrap">Low Stock</span>
                         </button>
 
-                        <button
+                        {canManageSettings && <button
                             onClick={() => setIsSettingsModalOpen(true)}
                             className="w-12 sm:w-auto p-2 flex-none rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 flex items-center justify-center"
                             title="System Settings"
                         >
                             <Settings size={18} />
-                        </button>
+                        </button>}
 
-                        <button 
+                        {canCreate && <button 
                             onClick={handleAddClick}
                             className="flex-1 sm:flex-none bg-emerald-600 text-white px-3 py-2 rounded flex items-center justify-center gap-1 text-sm font-semibold hover:bg-emerald-700 whitespace-nowrap"
                         >
                             <Plus size={16} />
                             <span className="hidden lg:inline">New Product</span>
-                        </button>
+                        </button>}
                     </div>
                 </div>
 

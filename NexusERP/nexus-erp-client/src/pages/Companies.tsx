@@ -1,3 +1,4 @@
+import { CopyCodeButton } from '../components/Ui/CopyCodeButton';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Plus, UserRoundPlus, ArrowRight, LogOut } from 'lucide-react';
@@ -114,7 +115,7 @@ export default function Companies() {
                 {message && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{message}</div>}
                 {created && <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
                     <strong>Save this join code now — it is shown only once.</strong>
-                    <div className="mt-2 flex flex-wrap items-center gap-3"><code className="break-all select-all font-mono text-sm">{created.joinCode}</code><button type="button" className="rounded bg-amber-200 px-2 py-1 text-xs" onClick={() => void navigator.clipboard.writeText(created.joinCode)}>Copy</button></div>
+                    <div className="mt-2 flex flex-wrap items-center gap-3"><code className="break-all select-all font-mono text-sm">{created.joinCode}</code><CopyCodeButton code={created.joinCode} /></div>
                     <p className="mt-2 text-xs">The code expires after 7 days, or immediately when an administrator rotates it.</p>
                 </div>}
 

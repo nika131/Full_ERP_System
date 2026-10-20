@@ -12,6 +12,8 @@ import { useLookupUsersQuery } from "../hooks/queries/useHrQueries";
 import DatePicker from "react-datepicker";
 import { useNavigate } from "react-router-dom";
 import { MultiSelectDropdown } from "../components/Ui/MultiSelectDropdown";
+import { useAuth } from '../context/AuthContext';
+import { Permissions } from '../constants/permissions';
 
 type TransactionCursorState = {
   createdAt: string | null;
@@ -41,6 +43,12 @@ const defaultStart = new Date();
 defaultStart.setDate(defaultEnd.getDate() - 7);
 
 export default function Dashboard() {
+  const { hasPermission } = useAuth();
+  const canViewTransactions = hasPermission(Permissions.ViewAllTransactions) || hasPermission(Permissions.ViewOwnTransactions);
+  const canViewCategories = hasPermission(Permissions.ViewDashboard) || hasPermission(Permissions.ViewCategories);
+  const canViewSuppliers = hasPermission(Permissions.ViewDashboard) || hasPermission(Permissions.ViewSuppliers);
+  const canViewStores = hasPermission(Permissions.ViewDashboard) || hasPermission(Permissions.ViewStores);
+  const canViewEmployees = hasPermission(Permissions.ViewDashboard) || hasPermission(Permissions.ViewUsers);
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>(() => {
     const saved = sessionStorage.getItem('dashboardFilters');
     if (saved) {
@@ -103,10 +111,10 @@ export default function Dashboard() {
   const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery(globalFilters);
   const { data: topProducts = [], isLoading: isTopProductsLoading } = useTopProductsQuery(globalFilters);
 
-  const { data: categories = [] } = useLookupCategoriesQuery();
-  const { data: suppliers = [] } = useSupplierLookupQuery();
-  const { data: storesLookup = [] } = useLookupStoresQuery();
-  const { data: employees = [] } = useLookupUsersQuery();
+  const { data: categories = [] } = useLookupCategoriesQuery(canViewCategories);
+  const { data: suppliers = [] } = useSupplierLookupQuery(canViewSuppliers);
+  const { data: storesLookup = [] } = useLookupStoresQuery(canViewStores);
+  const { data: employees = [] } = useLookupUsersQuery(canViewEmployees);
 
   const navigate = useNavigate();
 
@@ -119,7 +127,8 @@ export default function Dashboard() {
     currentCursor.createdAt,
     currentCursor.transactionId,
     searchTerm,
-    globalFilters
+    globalFilters,
+    canViewTransactions
   );
 
   useEffect(() => {
@@ -306,7 +315,7 @@ export default function Dashboard() {
         </div>
 
         {/* Category Filter */}
-        <div className="flex-1 min-w-40">
+        {canViewCategories && (<div className="flex-1 min-w-40">
           <MultiSelectDropdown 
             placeholder="All Categories"
             options={categories.map(c => ({ id: c.categoryId, name: c.name }))}
@@ -317,10 +326,10 @@ export default function Dashboard() {
               setCurrentIndex(0);
             }}
           />
-        </div>
+        </div>)}
 
         {/*Supplier Filter*/}
-        <div className="flex-1 min-w-40">
+        {canViewSuppliers && (<div className="flex-1 min-w-40">
           <MultiSelectDropdown 
             placeholder="All Suppliers"
             options={suppliers.map(s => ({ id: s.supplierId, name: s.companyName }))}
@@ -331,10 +340,10 @@ export default function Dashboard() {
               setCurrentIndex(0);
             }}
           />
-        </div>
+        </div>)}
         
         {/*Store Filter*/}
-        <div className="flex-1 min-w-40">
+        {canViewStores && (<div className="flex-1 min-w-40">
           <MultiSelectDropdown 
             placeholder="All Stores"
             options={storesLookup.map(s => ({ id: s.storeId, name: s.name }))}
@@ -345,10 +354,10 @@ export default function Dashboard() {
               setCurrentIndex(0);
             }}
           />
-        </div>
+        </div>)}
 
         {/* Employee Custom Dropdown */}
-        <div className="flex-1 min-w-35">
+        {canViewEmployees && (<div className="flex-1 min-w-35">
           <MultiSelectDropdown 
             placeholder="All Employees"
             options={employees.map((e: any) => ({ id: e.userId, name: e.fullName || e.username }))}
@@ -359,7 +368,7 @@ export default function Dashboard() {
               setCurrentIndex(0);
             }}
           />
-        </div>
+        </div>)}
 
         {/*Clear filter */}
         <button
@@ -515,7 +524,7 @@ export default function Dashboard() {
       </div>
 
       {/* SPATIAL STORE MAP */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+      {canViewStores && <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
           <div className="flex justify-between items-center mb-6">
               <div>
                   <h3 className="text-lg font-bold text-slate-800">Operational Territory</h3>
@@ -533,10 +542,10 @@ export default function Dashboard() {
                 selectedStoreIds={globalFilters.storeIds}
                 onStoreClick={toggleStoreFilter}/>
           </div>
-      </div>
+      </div>}
 
       {/* BOTTOM ZONE: TRANSACTION LEDGER */}
-      <div className="space-y-4">
+      {canViewTransactions && (<div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <h3 className="text-lg font-bold text-slate-800">Transaction Ledger</h3>
 
@@ -561,6 +570,7 @@ export default function Dashboard() {
           onPrevious={handlePrevious}
         />
       </div>
+      )}
     </div>
   );
 }

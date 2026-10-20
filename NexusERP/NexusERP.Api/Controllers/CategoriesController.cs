@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using NexusERP.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
@@ -10,7 +11,7 @@ namespace NexusERP.Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    [Authorize(Policy = "RequireManageCategories")]
+    
     public class CategoriesController : Controller
     {
         private readonly ICategoryRepository _repository;
@@ -21,6 +22,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = Permissions.ViewCategories)]
         public async Task<IActionResult> GetPaged([FromQuery] int Page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
         {
             if (pageSize > 100) pageSize = 100;
@@ -44,6 +46,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("lookup")]
+        [Authorize(Policy = "RequireCategoryLookup")]
         public async Task<IActionResult> GetLookupList()
         {
             var categories = await _repository.GetAllActive(User.GetCurrentCompanyId());
@@ -60,6 +63,10 @@ namespace NexusERP.Api.Controllers
         [HttpPost("upsert")]
         public async Task<IActionResult> SaveCategory([FromBody] CategoryUpsertDto dto)
         {
+            string requiredPermission = dto.CategoryId == 0 ? Permissions.CreateCategories : Permissions.EditCategories;
+            if (!User.HasPermission(requiredPermission))
+                return StatusCode(403, new { message = "You do not have permission to create or edit categories." });
+
             var category = new Category
             {
                 CategoryId = dto.CategoryId,
@@ -72,6 +79,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = Permissions.DeleteCategories)]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             await _repository.Delete(id, User.GetCurrentUserId(), User.GetCurrentCompanyId());

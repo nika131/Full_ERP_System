@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Constants;
@@ -79,6 +79,7 @@ namespace NexusERP.Infrastructure.Services
                 };
 
                 _context.Roles.Add(adminRole);
+                _context.Roles.AddRange(RoleTemplates.CreateDefaultRoles(company.CompanyId));
                 await _context.SaveChangesAsync();
 
                 // Temporary legacy password, deliberately unrelated to the Account password.

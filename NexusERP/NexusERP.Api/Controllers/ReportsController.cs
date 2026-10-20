@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
@@ -27,6 +27,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "RequireReadTransactions")]
         public async Task<IActionResult> GetTransactions([FromQuery] int pageSize = 50, [FromQuery] DateTime? lastCreatedAt = null, [FromQuery] int? lastTransactionId = null, [FromQuery] int? productId = null, [FromQuery] int? supplierId = null, [FromQuery] int? storeId = null, [FromQuery] int? categoryId = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string? searchTerm = null, [FromQuery] string typeFilter = "All")
         {
             if (pageSize > 100) pageSize = 100;
@@ -74,7 +75,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("shifts")]
-        [Authorize(Policy = "RequireManageShifts")]
+        [Authorize(Policy = Permissions.ViewShifts)]
         public async Task<IActionResult> GetShifts([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? storeId = null)
         {
             if (pageSize > 100) pageSize = 100;
@@ -83,7 +84,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("receipts")]
-        [Authorize(Policy = "RequireViewAllTransactions")]
+        [Authorize(Policy = Permissions.ViewReceipts)]
         public async Task<IActionResult> GetReceipts([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
         {
             if (pageSize > 100) pageSize = 100;

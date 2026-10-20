@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using NexusERP.Application.DTOs;
@@ -31,7 +31,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("register")]
-        [Authorize(Policy = "RequireManageUsers")]
+        [Authorize(Policy = Permissions.CreateUsers)]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
             int currentUserId = User.GetCurrentUserId();

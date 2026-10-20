@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using NexusERP.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NexusERP.Api.Extensions;
@@ -21,6 +22,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("{key}")]
+        [Authorize(Policy = Permissions.ViewSettings)]
         public async Task<IActionResult> GetSettings(string key)
         {
             int companyId = User.GetCurrentCompanyId();
@@ -42,6 +44,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPut("{key}")]
+        [Authorize(Policy = Permissions.ManageSettings)]
         public async Task<IActionResult> UpdateSetting(string key, [FromBody] UpdateSettingDto dto)
         {
             int companyId = User.GetCurrentCompanyId();

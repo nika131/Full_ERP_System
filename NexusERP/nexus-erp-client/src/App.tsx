@@ -45,25 +45,31 @@ function App() {
                             <Route element={<ProtectedRoute requiredPermission={Permissions.ViewDashboard} />}>
                                 <Route path="/dashboard" element={<Dashboard />} />
                             </Route>
-                            <Route element={<ProtectedRoute requiredPermission={Permissions.ManageUsers} />}>
+                            <Route element={<ProtectedRoute requiredAnyPermissions={[Permissions.ViewUsers, Permissions.ManageRoles]} />}>
                                 <Route path="/employees" element={<EmployeeList />} />
+                            </Route>
+                            <Route element={<ProtectedRoute requiredAnyPermissions={[Permissions.ManageJoinRequests, Permissions.ManageJoinCodes]} />}>
                                 <Route path="/company-admin" element={<CompanyAdministration />} />
+                            </Route>
+                            <Route element={<ProtectedRoute requiredPermission={Permissions.ManageAbsences} />}>
                                 <Route path="/pending-leaves" element={<PendingLeaves />} />
                             </Route>
                             <Route element={<ProtectedRoute requiredPermission={Permissions.ViewProducts} />}>
                                 <Route path="/inventory" element={<InventoryList />} />
                             </Route>
-                            <Route element={<ProtectedRoute requiredPermission={Permissions.ManageSuppliers} />}>
+                            <Route element={<ProtectedRoute requiredPermission={Permissions.ViewSuppliers} />}>
                                 <Route path="/suppliers" element={<SupplierList />} />
                             </Route>
-                            <Route element={<ProtectedRoute requiredPermission={Permissions.ManageCategories} />}>
+                            <Route element={<ProtectedRoute requiredPermission={Permissions.ViewCategories} />}>
                                 <Route path="/categories" element={<CategoryList />} />
                             </Route>
                             <Route element={<ProtectedRoute requiredPermission={Permissions.ViewAuditLogs} />}>
                                 <Route path="/logs" element={<AuditLogsList />} />
                             </Route>
-                            <Route element={<ProtectedRoute requiredPermission={Permissions.ViewDashboard} />}>
+                            <Route element={<ProtectedRoute requiredPermission={Permissions.ViewStores} />}>
                                 <Route path="/stores" element={<StoreList />} />
+                            </Route>
+                            <Route element={<ProtectedRoute requiredPermission={Permissions.ViewShifts} />}>
                                 <Route path="/shiftAuditList" element={<ShiftAuditList />} />
                             </Route>
                         </Route>

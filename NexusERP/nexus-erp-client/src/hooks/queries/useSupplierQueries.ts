@@ -30,8 +30,9 @@ export const useDeleteSupplierMutation = () => {
     });
 };
 
-export const useSupplierLookupQuery = () => {
+export const useSupplierLookupQuery = (enabled: boolean = true) => {
     return useQuery({
+        enabled,
         queryKey: ['suppliers', 'lookup'],
         queryFn: () => supplierService.getLookupSuppliers(),
         staleTime: 5 * 60 * 1000, 

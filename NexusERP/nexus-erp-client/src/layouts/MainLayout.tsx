@@ -76,7 +76,7 @@ export default function MainLayout() {
                     </Link>
                 )}
 
-                {canAccess(Permissions.ManageSuppliers) && (
+                {canAccess(Permissions.ViewSuppliers) && (
                     <Link to="/suppliers" 
                         onClick={() => setIsSidebarOpen(false)}
                         className={`block px-4 py-2 rounded transition-colors ${isActive('/suppliers') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
@@ -84,7 +84,7 @@ export default function MainLayout() {
                     </Link>
                 )}
 
-                {canAccess(Permissions.ManageCategories) && (
+                {canAccess(Permissions.ViewCategories) && (
                     <Link to="/categories" 
                         onClick={() => setIsSidebarOpen(false)}
                         className={`block px-4 py-2 rounded transition-colors ${isActive('/categories') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
@@ -92,7 +92,7 @@ export default function MainLayout() {
                     </Link>
                 )}
                 
-                {canAccess(Permissions.ManageUsers) && (
+                {(canAccess(Permissions.ManageJoinRequests) || canAccess(Permissions.ManageJoinCodes)) && (
                     <Link to="/company-admin"
                         onClick={() => setIsSidebarOpen(false)}
                         className={`block px-4 py-2 rounded transition-colors ${isActive('/company-admin') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
@@ -100,7 +100,7 @@ export default function MainLayout() {
                     </Link>
                 )}
 
-                {canAccess(Permissions.ManageUsers) && (
+                {(canAccess(Permissions.ViewUsers) || canAccess(Permissions.ManageRoles)) && (
                     <Link to="/employees" 
                         onClick={() => setIsSidebarOpen(false)}
                         className={`block px-4 py-2 rounded transition-colors ${isActive('/employees') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
@@ -108,7 +108,7 @@ export default function MainLayout() {
                     </Link>
                 )}
 
-                {canAccess(Permissions.ViewDashboard) && (
+                {canAccess(Permissions.ViewStores) && (
                     <Link to="/stores" 
                         onClick={() => setIsSidebarOpen(false)}
                         className={`block px-4 py-2 rounded transition-colors ${isActive('/stores') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
@@ -116,7 +116,7 @@ export default function MainLayout() {
                     </Link>
                 )}
 
-                {canAccess(Permissions.ViewDashboard) && (
+                {canAccess(Permissions.ViewShifts) && (
                     <Link to="/shiftAuditList" 
                         onClick={() => setIsSidebarOpen(false)}
                         className={`block px-4 py-2 rounded transition-colors ${isActive('/shiftAuditList') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
@@ -124,6 +124,13 @@ export default function MainLayout() {
                     </Link>
                 )}
             
+                {canAccess(Permissions.ManageAbsences) && (
+                    <Link to="/pending-leaves" onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/pending-leaves') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Pending Leave Requests
+                    </Link>
+                )}
+
                 {canAccess(Permissions.ViewAuditLogs) && (
                     <Link to="/logs" 
                         onClick={() => setIsSidebarOpen(false)}

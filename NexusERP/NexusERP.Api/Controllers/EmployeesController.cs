@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using NexusERP.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
@@ -10,7 +11,7 @@ namespace NexusERP.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Policy = "RequireManageUsers")]
+    [Authorize]
     public class EmployeesController : Controller
     {
         private readonly IUserRepository _repository;
@@ -21,6 +22,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = Permissions.ViewUsers)]
         public async Task<IActionResult> GetEmployees([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null, [FromQuery] string roleFilter = "All")
         {
             if (pageSize > 100) pageSize = 100;
@@ -36,7 +38,7 @@ namespace NexusERP.Api.Controllers
                 Username = u.Username,
                 RoleId = u.RoleId,
                 RoleName = u.Role?.Name ?? "Unassigned",
-                PosPin = u.PosPin,
+                PosPin = User.HasPermission(Permissions.EditUsers) ? u.PosPin : null,
                 CreatedAt = u.CreatedAt
             }).ToList();
 
@@ -50,6 +52,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Policy = Permissions.EditUsers)]
         public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeUpdateDto dto)
         {
             int currentUserId = User.GetCurrentUserId();
@@ -73,6 +76,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = Permissions.DeleteUsers)]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
             int currentUserId = User.GetCurrentUserId();
@@ -87,6 +91,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("{id}/salary")]
+        [Authorize(Policy = Permissions.ViewSalary)]
         public async Task<IActionResult> GetSalaryHistory(int id)
         {
             int companyId = User.GetCurrentCompanyId();
@@ -126,6 +131,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("{id}/salary")]
+        [Authorize(Policy = Permissions.ManageSalary)]
         public async Task<IActionResult> AddSalaryRecord(int id, [FromBody] SalaryRecordCreateDto dto)
         {
             int currentUserId = User.GetCurrentUserId();
@@ -147,6 +153,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("lookup")]
+        [Authorize(Policy = "RequireEmployeeLookup")]
         public async Task<IActionResult> GetLookupUsers()
         {
             int companyId = User.GetCurrentCompanyId();

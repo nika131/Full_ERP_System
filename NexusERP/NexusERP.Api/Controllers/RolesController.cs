@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
@@ -22,7 +22,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        [Authorize(Policy = "RequireManageUsers")]
+        [Authorize(Policy = Permissions.ManageRoles)]
         public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
         {
             if (pageSize > 100) pageSize = 100;
@@ -64,20 +64,16 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("permissions")]
-        [Authorize(Policy = "RequireManageUsers")]
+        [Authorize(Policy = Permissions.ManageRoles)]
         public IActionResult GetAvailablePermissions()
         {
-            var permissions = typeof(Permissions)
-                .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
-                .Where(fi => fi.IsLiteral && !fi.IsInitOnly)
-                .Select(fi => fi.GetRawConstantValue()?.ToString())
-                .ToList();
+            var permissions = Permissions.GetAllPermissions();
 
             return Ok(permissions);
         }
 
         [HttpPost("upsert")]
-        [Authorize(Policy = "RequireManageUsers")]
+        [Authorize(Policy = Permissions.ManageRoles)]
         public async Task<IActionResult> SaveRole([FromBody] RoleUpsertDto dto)
         {
             var role = new Role
@@ -93,7 +89,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "RequireManageUsers")]
+        [Authorize(Policy = Permissions.ManageRoles)]
         public async Task<IActionResult> DeleteRole(int id)
         {
             await _repository.Delete(id, User.GetCurrentUserId(), User.GetCurrentCompanyId());

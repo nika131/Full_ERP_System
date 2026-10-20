@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using NexusERP.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
@@ -25,6 +26,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("request")]
+        [Authorize(Policy = Permissions.RequestAbsences)]
         public async Task<IActionResult> RequestLeave([FromBody] LeaveRequestDto dto)
         {
             if (!Enum.TryParse<AbsenceType>(dto.Type, true, out var type))
@@ -44,6 +46,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("my-history")]
+        [Authorize(Policy = Permissions.ViewAbsences)]
         public async Task<IActionResult> GetMyHistory()
         {
             var absences = await _repository.GetMyAbsencesAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId());

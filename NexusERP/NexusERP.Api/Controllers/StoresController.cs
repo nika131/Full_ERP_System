@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using NexusERP.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
@@ -20,6 +21,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("paged")]
+        [Authorize(Policy = Permissions.ViewStores)]
         public async Task<ActionResult<PagedResult<StoreDto>>> GetPagedStores([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null)
         {
             if (pageSize > 100) pageSize = 100;
@@ -30,6 +32,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "RequireStoreLookup")]
         public async Task<ActionResult<IEnumerable<StoreDto>>> GetAllStores()
         {
             var stores = await _storeService.GetAllStoresAsync(User.GetCurrentCompanyId());
@@ -38,6 +41,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Policy = Permissions.ViewStores)]
         public async Task<ActionResult<StoreDto>> GetStoreById(int id)
         {
             var store = await _storeService.GetStoreByIdAsync(User.GetCurrentCompanyId(), id);
@@ -48,6 +52,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = Permissions.CreateStores)]
         public async Task<ActionResult<StoreDto>> CreateStore([FromBody] CreateStoreDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -58,6 +63,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Policy = Permissions.EditStores)]
         public async Task<IActionResult> UpdateStore(int id, [FromBody] UpdateStoreDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -68,6 +74,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("nearby")]
+        [Authorize(Policy = Permissions.ViewStores)]
         public async Task<ActionResult<IEnumerable<StoreDto>>> GetStoresNearby([FromQuery] double latitude, [FromQuery] double longitude, [FromQuery] double radiusInMeters = 50000)
         {
             var stores = await _storeService.GetStoresNearbyAsync(User.GetCurrentCompanyId(), latitude, longitude, radiusInMeters);

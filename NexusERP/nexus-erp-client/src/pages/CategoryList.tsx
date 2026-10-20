@@ -1,3 +1,5 @@
+import { useAuth } from '../context/AuthContext';
+import { Permissions } from '../constants/permissions';
 import { useMemo, useState } from "react";
 import type { CategoryResponse } from "../types/category";
 import type { CategoryFormData } from "../schemas/categorySchema";
@@ -8,6 +10,10 @@ import { CategoryForm } from "../components/forms/CategoryForm";
 import { useCategoriesQuery, useSaveCategoryMutation, useDeleteCategoryMutation } from "../hooks/queries/useCategoryQueries";
 
 export default function CategoryList() {
+    const { hasPermission } = useAuth();
+    const canCreate = hasPermission(Permissions.CreateCategorys);
+    const canEdit = hasPermission(Permissions.EditCategorys);
+    const canDelete = hasPermission(Permissions.DeleteCategorys);
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -53,21 +59,21 @@ export default function CategoryList() {
             header: 'Actions', accessor: 'actions', className: 'text-center w-32',
             render: (item) => (
                 <div>
-                    <button onClick={() => { setSelectedCategory(item); setIsSlideOverOpen(true); }} className="text-emerald-600 hover:text-emerald-800 font-medium mr-3">Edit</button>
-                    <button onClick={() => { setSelectedCategory(item); setIsDeleteDialogOpen(true); }} className="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                    {canEdit && <button onClick={() => { setSelectedCategory(item); setIsSlideOverOpen(true); }} className="text-emerald-600 hover:text-emerald-800 font-medium mr-3">Edit</button>}
+                    {canDelete && <button onClick={() => { setSelectedCategory(item); setIsDeleteDialogOpen(true); }} className="text-red-600 hover:text-red-800 font-medium">Delete</button>}
                 </div>
             )
         }
-    ], []);
+    ], [canEdit, canDelete]);
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800">Categories</h2>
-                <button onClick={() => { setSelectedCategory(null); setIsSlideOverOpen(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                {canCreate && <button onClick={() => { setSelectedCategory(null); setIsSlideOverOpen(true); }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium">
                     + Add Category
-                </button>
+                </button>}
             </div>
 
             {/* Filters */}

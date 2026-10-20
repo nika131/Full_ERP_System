@@ -30,8 +30,9 @@ export const useDeleteCategoryMutation = () => {
     });
 };
 
-export const useLookupCategoriesQuery = () => {
+export const useLookupCategoriesQuery = (enabled: boolean = true) => {
     return useQuery({
+        enabled,
         queryKey: ['lookupCategories'],
         queryFn: ()  => categoryService.getLookupCategories(),
         staleTime: 5 * 60 * 1000,

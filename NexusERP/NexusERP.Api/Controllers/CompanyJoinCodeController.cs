@@ -1,4 +1,5 @@
-﻿
+using NexusERP.Domain.Constants;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,7 @@ namespace NexusERP.Api.Controllers
 {
     [ApiController]
     [Route("api/companies/join-code")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "RequireManageUsers")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = Permissions.ManageJoinCodes)]
     public class CompanyJoinCodeController : ControllerBase
     {
         private readonly ICompanyJoinCodeService _service;

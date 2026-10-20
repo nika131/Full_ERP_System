@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using NexusERP.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
@@ -22,6 +23,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("shift/open")]
+        [Authorize(Policy = Permissions.OpenCloseShift)]
         public async Task<IActionResult> OpenShift([FromBody] OpenShiftDto dto)
         {
             var shift = await _posService.OpenShiftAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), dto);
@@ -34,6 +36,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("shift/{shiftId}/close")]
+        [Authorize(Policy = Permissions.OpenCloseShift)]
         public async Task<IActionResult> CloseShift(int shiftId, [FromBody] CloseShiftDto dto)
         {
             var shift = await _posService.CloseShiftAsync(User.GetCurrentCompanyId(), shiftId, User.GetCurrentUserId(), dto);
@@ -46,6 +49,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("shift/{shiftId}/cash-movement")]
+        [Authorize(Policy = Permissions.PerformCashMovements)]
         public async Task<IActionResult> AddCashMovement(int shiftId, [FromBody] CashMovementDto dto)
         {
             await _posService.AddCashMovementAsync(User.GetCurrentCompanyId(), shiftId, User.GetCurrentUserId(), dto);
@@ -54,6 +58,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("checkout")]
+        [Authorize(Policy = Permissions.PerformSales)]
         public async Task<IActionResult> ProcessCheckout([FromBody] CheckoutRequestDto dto)
         {
             var receipt = await _posService.ProcessCheckoutAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), dto);
@@ -67,6 +72,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("verify-pin")]
+        [Authorize(Policy = Permissions.ViewPos)]
         public async Task<IActionResult> VerifyPosPin([FromBody] VerifyPinDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Pin) || dto.Pin.Length != 4)
@@ -84,6 +90,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("shift/current")]
+        [Authorize(Policy = Permissions.ViewPos)]
         public async Task<IActionResult> GetCurrentShift([FromQuery] int storeId)
         {
             var shift = await _posService.GetCurrentShiftAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), storeId);
@@ -99,6 +106,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("shift/history")]
+        [Authorize(Policy = Permissions.ViewShifts)]
         public async Task<IActionResult> GetShiftHistory([FromQuery] int storeId)
         {
             var history = await _posService.GetShiftHistoryAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), storeId);
@@ -107,6 +115,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("shift/{shiftId}/receipts")]
+        [Authorize(Policy = Permissions.ViewReceipts)]
         public async Task<IActionResult> GetShiftReceipts(int shiftId)
         {
             var receipts = await _posService.GetShiftReceiptsAsync(User.GetCurrentCompanyId(), shiftId, User.GetCurrentUserId());
@@ -115,6 +124,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("receipts/{receiptId}")]
+        [Authorize(Policy = Permissions.ViewReceipts)]
         public async Task<IActionResult> GetReceiptDetail(int receiptId)
         {
             var detail = await _posService.GetReceiptDetailAsync(User.GetCurrentCompanyId(), receiptId, User.GetCurrentUserId());
@@ -123,6 +133,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("switchable-users")]
+        [Authorize(Policy = Permissions.ViewPos)]
         public async Task<IActionResult> GetSwitchableUsers()
         {
             var users = await _userRepository.GetLookupUsersAsync(User.GetCurrentCompanyId());
@@ -131,6 +142,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("checkout/quote")]
+        [Authorize(Policy = Permissions.PerformSales)]
         public async Task<IActionResult> GetCheckoutQuote([FromBody] CheckoutRequestDto dto)
         {
             var quote = await _posService.GetCheckoutQuoteAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), dto);
@@ -139,6 +151,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("layout")]
+        [Authorize(Policy = Permissions.ViewPos)]
         public async Task<IActionResult> GetPosLayout([FromQuery] int storeId)
         {
             var layout = await _posService.GetPosLayoutAsync(User.GetCurrentCompanyId(), storeId);
@@ -147,6 +160,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPut("layout/{storeId:int}")]
+        [Authorize(Policy = Permissions.ManagePosLayout)]
         public async Task<IActionResult> SavePosLayout(int storeId, [FromBody] UpdatePosLayoutDto dto)
         {
             var layout = await _posService.SavePosLayoutAsync(User.GetCurrentCompanyId(), storeId, dto);

@@ -1,3 +1,5 @@
+import { useAuth } from '../context/AuthContext';
+import { Permissions } from '../constants/permissions';
 import { useMemo, useState } from 'react';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import { SlideOver } from '../components/Ui/SlideOver';
@@ -8,6 +10,9 @@ import type { StoreResponse } from '../api/storeService';
 import type { StoreFormData } from '../schemas/storeSchema';
 
 export default function StoreList() {
+    const { hasPermission } = useAuth();
+    const canCreate = hasPermission(Permissions.CreateStores);
+    const canEdit = hasPermission(Permissions.EditStores);
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
@@ -80,24 +85,24 @@ export default function StoreList() {
             className: 'text-right w-48',
             render: (item) => (
                 <div className="flex justify-end space-x-3">
-                    <button onClick={() => handleEditClick(item)} className="text-emerald-600 hover:text-emerald-800 font-medium text-sm">Edit</button>
-                    <button onClick={() => handleToggleActive(item)} className={`${item.isActive ? 'text-red-600 hover:text-red-800' : 'text-blue-600 hover:text-blue-800'} font-medium text-sm`}>
+                    {canEdit && <button onClick={() => handleEditClick(item)} className="text-emerald-600 hover:text-emerald-800 font-medium text-sm">Edit</button>}
+                    {canEdit && <button onClick={() => handleToggleActive(item)} className={`${item.isActive ? 'text-red-600 hover:text-red-800' : 'text-blue-600 hover:text-blue-800'} font-medium text-sm`}>
                         {item.isActive ? 'Deactivate' : 'Activate'}
-                    </button>
+                    </button>}
                 </div>
             )
         }
-    ], []);
+    ], [canEdit]);
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800">Store Management</h2>
-                <button 
+                {canCreate && <button 
                     onClick={handleAddClick}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
                 + Add Store
-                </button>
+                </button>}
             </div>
 
             {/* Global Store Map */}

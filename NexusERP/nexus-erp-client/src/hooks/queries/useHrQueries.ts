@@ -5,21 +5,29 @@ import { absenceService } from "../../api/absenceService";
 import type { EmployeeProfileFormData } from "../../schemas/hrSchema";
 import { authService } from "../../api/authService";
 
-export const useEmployeesQuery = (page: number, limit: number, search: string, roleFilter: string) => {
+export const useEmployeesQuery = (page: number, limit: number, search: string, roleFilter: string, enabled: boolean = true) => {
     return useQuery({
         queryKey: ['employees', { page, limit, search, roleFilter }],
+        enabled,
         queryFn: ({ signal }) => employeeService.getEmployees(page, limit, search, roleFilter, signal),
         staleTime: 60 * 1000,
     });
 };
 
-export const useLookupUsersQuery = () => {
+export const useLookupUsersQuery = (enabled: boolean = true) => {
     return useQuery({
+        enabled,
         queryKey: ['users', 'lookup'],
         queryFn: () => employeeService.getLookupUsers(),
         staleTime: 5 * 60 * 1000,
     });
 };
+
+export const useRoleLookupQuery = () => useQuery({
+    queryKey: ['roles', 'lookup'],
+    queryFn: () => roleService.getLookupRoles(),
+    staleTime: 5 * 60 * 1000,
+});
 
 export const useRolesQuery = () => {
     return useQuery({
@@ -29,8 +37,9 @@ export const useRolesQuery = () => {
     });
 };
 
-export const usePendingLeavQuery = () => {
+export const usePendingLeavQuery = (enabled: boolean = true) => {
     return useQuery({
+        enabled,
         queryKey: ['pendingLeaves'],
         queryFn: ({ signal }) => absenceService.getPendingRequests(signal),
         staleTime: 0,

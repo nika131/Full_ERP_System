@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
@@ -298,7 +298,7 @@ namespace NexusERP.Infrastructure.Services
                     u.Role.CompanyId == companyId
                 );
 
-            if (reviewer == null || !reviewer.Role.Permissions.Contains(Permissions.ManageUsers))
+            if (reviewer == null || !reviewer.Role.Permissions.Contains(Permissions.ManageJoinRequests))
                 throw new UnauthorizedAccessException("You are not authorized to review join requests.");
 
             return reviewer;

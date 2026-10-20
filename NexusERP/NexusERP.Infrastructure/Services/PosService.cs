@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using NexusERP.Domain.Constants;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
@@ -542,6 +543,20 @@ namespace NexusERP.Infrastructure.Services
             bool allowNegative = negativeSetting != null &&
                                  bool.TryParse(negativeSetting.SettingValue, out bool parsedVal) &&
                                  parsedVal;
+
+            // Both quote and final checkout pass this validation; do not authorize only at the controller.
+            if (cart.CartDiscountPercentage > 0 || cart.Items.Any(i => i.ManualItemDiscountPercentage > 0))
+            {
+                var cashier = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u =>
+                    u.CompanyId == companyId && u.UserId == userId && u.IsActive && u.Role.IsActive &&
+                    u.Role.CompanyId == companyId);
+                if (cashier == null)
+                    throw new UnauthorizedAccessException("Cashier does not have an active company role.");
+                if (cart.CartDiscountPercentage > 0 && !cashier.Role.Permissions.Contains(Permissions.ApplyCartDiscount))
+                    throw new AppException("You do not have permission to apply cart discounts.");
+                if (cart.Items.Any(i => i.ManualItemDiscountPercentage > 0) && !cashier.Role.Permissions.Contains(Permissions.ApplyItemDiscount))
+                    throw new AppException("You do not have permission to apply item discounts.");
+            }
 
             var discountSetting = await _context.SystemSettings.FirstOrDefaultAsync(s =>
                 s.CompanyId == companyId &&

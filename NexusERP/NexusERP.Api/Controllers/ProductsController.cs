@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
@@ -25,6 +25,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = Permissions.ViewProducts)]
         public async Task<IActionResult> GetProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = null, [FromQuery] string? categoryName = null, [FromQuery] string? supplierName = null, [FromQuery] bool lowStockOnly = false, [FromQuery] string? excludeIds = null)
         {
             if (pageSize > 100) pageSize = 100;
@@ -86,9 +87,12 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("upsert")]
-        [Authorize(Policy = "RequireProductUpsert")]
         public async Task<IActionResult> SaveProduct([FromBody] ProductUpsertDto dto)
         {
+            var requiredPermission = dto.ProductId == 0 ? Permissions.CreateProducts : Permissions.EditProducts;
+            if (!User.HasPermission(requiredPermission))
+                return StatusCode(403, new { message = "You do not have permission to create or edit products." });
+
             var product = new Product
             {
                 ProductId = dto.ProductId,
@@ -124,8 +128,8 @@ namespace NexusERP.Api.Controllers
             if (parsedAction == TransactionAction.Sale)
                 return BadRequest(new { message = "Sales must now be processed through the POS Checkout system to generate a valid Receipt." });
 
-            if (!User.HasPermission(Permissions.PerformInboundTransactions))
-                return StatusCode(403, "Missing Inbound Inventory permission.");
+            if (!User.HasPermission(Permissions.PerformInboundTransactions) && !User.HasPermission(Permissions.AdjustStock))
+                return StatusCode(403, new { message = "You do not have permission to adjust inventory stock." });
 
             var transactionEntity = new InventoryTransaction
             {
@@ -145,7 +149,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Policy = "RequireProductDelete")]
+        [Authorize(Policy = Permissions.DeleteProducts)]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             await _repository.Delete(id, User.GetCurrentUserId(), User.GetCurrentCompanyId());
@@ -154,6 +158,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet("lowOnStock")]
+        [Authorize(Policy = Permissions.ViewProducts)]
         public async Task<IActionResult> GetProductsLowOnStock()
         {
             var products = await _repository.GetProductsLowOnStock(User.GetCurrentCompanyId());
@@ -162,9 +167,11 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("upload-image")]
-        [Authorize(Policy = "RequireProductUpsert")]
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
+            if (!User.HasPermission(Permissions.CreateProducts) && !User.HasPermission(Permissions.EditProducts))
+                return StatusCode(403, new { message = "You do not have permission to upload product images." });
+
             if (file == null || file.Length == 0)
                 return BadRequest(new { message = "No file uploaded." });
 

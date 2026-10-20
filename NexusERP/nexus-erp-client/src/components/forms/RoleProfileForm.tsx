@@ -3,11 +3,11 @@ import type { EmployeeResponse } from "../../types/employee";
 import { useForm } from "react-hook-form";
 import { employeeUpdateSchema, type EmployeeUpdateFormSchema } from "../../schemas/hrSchema";
 import toast from "react-hot-toast";
-import { useRolesQuery, useUpdateEmployeeMutation } from "../../hooks/queries/useHrQueries";
+import { useRoleLookupQuery, useUpdateEmployeeMutation } from "../../hooks/queries/useHrQueries";
 import { RefreshCw } from "lucide-react";
 
 export const RoleForm = ({ employee, onSuccess }: { employee: EmployeeResponse, onSuccess: () => void }) => {
-    const { data: roles = [], isLoading: isLoadingRoles } = useRolesQuery();
+    const { data: roles = [], isLoading: isLoadingRoles } = useRoleLookupQuery();
     const updateMutation = useUpdateEmployeeMutation();
 
     const { 

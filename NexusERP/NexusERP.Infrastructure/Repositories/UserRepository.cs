@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using NexusERP.Domain.Constants;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
@@ -35,6 +36,15 @@ namespace NexusERP.Infrastructure.Repositories
 
                     if (!roleExists)
                         throw new AppException("The selected role does not belong to this company.");
+
+                    var selectedRole = await _context.Roles.AsNoTracking().FirstAsync(r => r.RoleId == user.RoleId && r.CompanyId == companyId);
+                    var actor = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == actorUserId && u.CompanyId == companyId && u.IsActive);
+                    if (actor == null || !actor.Role.IsActive || !actor.Role.Permissions.Contains(Permissions.CreateUsers))
+                        throw new UnauthorizedAccessException("You do not have permission to create employees.");
+                    if (!actor.Role.Permissions.Contains(Permissions.AssignRoles))
+                        throw new UnauthorizedAccessException("You do not have permission to assign employee roles.");
+                    if (selectedRole.IsSystemRole || selectedRole.Permissions.Except(actor.Role.Permissions).Any())
+                        throw new AppException("You cannot assign this role.");
 
                     var usernameExists = await _context.Users.AnyAsync(u =>
                         u.CompanyId == companyId &&
@@ -91,6 +101,18 @@ namespace NexusERP.Infrastructure.Repositories
 
             if (!roleExists)
                 throw new AppException("The selected role does not belong to this company.");
+
+            var selectedRoleForUpdate = await _context.Roles.AsNoTracking().FirstAsync(r => r.RoleId == user.RoleId && r.CompanyId == companyId);
+            var updater = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == actorUserId && u.CompanyId == companyId && u.IsActive);
+            if (updater == null || !updater.Role.IsActive || !updater.Role.Permissions.Contains(Permissions.EditUsers))
+                throw new UnauthorizedAccessException("You do not have permission to edit employees.");
+            if (existingUser.RoleId != user.RoleId)
+            {
+                if (!updater.Role.Permissions.Contains(Permissions.AssignRoles))
+                    throw new UnauthorizedAccessException("You do not have permission to assign employee roles.");
+                if (selectedRoleForUpdate.IsSystemRole || selectedRoleForUpdate.Permissions.Except(updater.Role.Permissions).Any())
+                    throw new AppException("You cannot assign this role.");
+            }
 
             var usernameExists = await _context.Users.AnyAsync(u =>
                 u.CompanyId == companyId &&

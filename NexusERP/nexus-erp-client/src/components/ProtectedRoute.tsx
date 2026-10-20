@@ -3,14 +3,16 @@ import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
     requiredPermission?: string;
+    requiredAnyPermissions?: string[];
 }
 
-export const ProtectedRoute = ({ requiredPermission }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ requiredPermission, requiredAnyPermissions }: ProtectedRouteProps) => {
     const { isAuthenticated, isAccountAuthenticated, isLoading, hasPermission } = useAuth();
 
     if (isLoading) return null;
     if (!isAccountAuthenticated) return <Navigate to="/login" replace />;
     if (!isAuthenticated) return <Navigate to="/companies" replace />;
+    if (requiredAnyPermissions?.length && !requiredAnyPermissions.some(hasPermission)) return <Navigate to="/profile" replace />;
     if (requiredPermission && !hasPermission(requiredPermission)) return <Navigate to="/profile" replace />;
     return <Outlet />;
 };

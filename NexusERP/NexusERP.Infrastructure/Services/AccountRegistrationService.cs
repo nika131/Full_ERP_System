@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NexusERP.Application.DTOs;
@@ -42,6 +42,11 @@ namespace NexusERP.Infrastructure.Services
 
             if (dto.Password.Length < 8 || Encoding.UTF8.GetByteCount(dto.Password) > 72)
                 throw new AppException("Password must contain at least 8 characters and no more than 72 UTF-8 bytes.");
+
+            if (dto.Password.Distinct().Count() == 1 || dto.Password.All(char.IsDigit) ||
+                new[] { "password", "qwerty", "abcdefgh", "12345678", "admin123", "letmein" }
+                    .Any(weak => dto.Password.StartsWith(weak, StringComparison.OrdinalIgnoreCase)))
+                throw new AppException("Choose a less predictable password. Avoid common words, sequences and repeated characters.");
 
             bool exists = await _context.Accounts.AnyAsync(a => a.NormalizedEmail == normalizedEmail);
 

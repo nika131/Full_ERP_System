@@ -1,3 +1,4 @@
+import { PermissionGroups } from '../../constants/permissions';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
@@ -13,7 +14,7 @@ interface RoleEditorFormProps {
 }
 
 export const RoleEditorForm = ({ role, availablePermissions, onSuccess, onCancel }: RoleEditorFormProps) => {
-    const isAdmin = role?.name === 'Admin';
+    const isAdmin = role?.isSystemRole === true;
     const upsertMutation = useUpsertRoleMutation();
 
     const { register, handleSubmit, formState: { errors } } = useForm<RoleFormData>({
@@ -80,18 +81,20 @@ export const RoleEditorForm = ({ role, availablePermissions, onSuccess, onCancel
                     </div>
                     
                     <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-md border ${errors.permissions ? 'border-red-300' : 'border-slate-200'}`}>
-                        {availablePermissions.map(perm => (
-                            <label key={perm} className={`flex items-center space-x-3 p-2 bg-white border border-slate-200 rounded transition-colors ${isAdmin ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer hover:border-blue-400'}`}>
-                                <input 
-                                    type="checkbox" 
-                                    value={perm}
-                                    {...register('permissions')}
-                                    disabled={isAdmin}
-                                    className="h-4 w-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 disabled:opacity-50"
-                                />
-                                <span className="text-sm text-slate-700 font-medium">{perm}</span>
-                            </label>
-                        ))}
+                        {Object.entries(PermissionGroups).map(([group, entries]) => {
+                            const allowed = entries.filter(item => availablePermissions.includes(item.permission));
+                            if (!allowed.length) return null;
+                            return <fieldset key={group} className="rounded-lg border border-slate-200 bg-white p-3">
+                                <legend className="px-1 font-semibold text-slate-700 text-sm">{group}</legend>
+                                <div className="grid gap-2">
+                                    {allowed.map(({ permission, label }) => <label key={permission} className="flex items-center gap-2 text-sm text-slate-700">
+                                        <input type="checkbox" value={permission} {...register('permissions')} disabled={isAdmin}
+                                            className="h-4 w-4 rounded border-slate-300 accent-emerald-600" />
+                                        {label}
+                                    </label>)}
+                                </div>
+                            </fieldset>;
+                        })}
                     </div>
                     {isAdmin && (
                         <p className="text-xs text-amber-600 mt-3 font-medium bg-amber-50 p-2 rounded border border-amber-200">

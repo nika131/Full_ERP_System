@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using NexusERP.Domain.Constants;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Exceptions;
@@ -61,6 +62,22 @@ namespace NexusERP.Infrastructure.Repositories
 
                 try
                 {
+                    var actor = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u =>
+                        u.UserId == userId && u.CompanyId == companyId && u.IsActive && u.Role.IsActive);
+
+                    if (actor == null || !actor.Role.Permissions.Contains(Permissions.ManageRoles))
+                        throw new UnauthorizedAccessException("You do not have permission to manage roles.");
+
+                    if (string.IsNullOrWhiteSpace(role.Name) || role.Name.Trim().Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                        throw new AppException("The protected Admin role cannot be created or modified.");
+
+                    if (role.Permissions == null || role.Permissions.Count == 0 ||
+                        role.Permissions.Except(Permissions.GetAllPermissions(), StringComparer.Ordinal).Any())
+                        throw new AppException("Select one or more valid permissions.");
+
+                    if (role.Permissions.Except(actor.Role.Permissions, StringComparer.Ordinal).Any())
+                        throw new AppException("You cannot grant permissions you do not possess.");
+
                     bool isNew = role.RoleId == 0;
 
                     bool nameExists = await _context.Roles.AnyAsync(r =>

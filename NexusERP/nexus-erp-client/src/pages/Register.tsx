@@ -10,6 +10,7 @@ export default function Register() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [busy, setBusy] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
 
     if (isAccountAuthenticated) return <Navigate to="/companies" replace />;
@@ -18,7 +19,11 @@ export default function Register() {
         event.preventDefault();
         setError('');
         if (password !== confirmPassword) return setError('Passwords do not match.');
-        if (password.length < 10) return setError('Password must contain at least 10 characters.');
+        if (password.length < 8) return setError('Password must contain at least 8 characters.');
+        if (new TextEncoder().encode(password).length > 72) return setError('Password must not exceed 72 UTF-8 bytes.');
+        const trivial = /^(.)\1{7,}$/.test(password) || /^[0-9]+$/.test(password) ||
+            /^(password|qwerty|abcdefgh|12345678|123456789|admin123|letmein)/i.test(password);
+        if (trivial) return setError('Please choose a less predictable password. Avoid common words, sequences or repeated characters.');
         setBusy(true);
         try {
             const result = await authService.registerAccount(email.trim(), password);
@@ -42,8 +47,10 @@ export default function Register() {
                             <input required type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5" />
                         </label>
                         <label className="block text-sm font-medium text-gray-700">Password
-                            <input required type="password" autoComplete="new-password" minLength={10} value={password} onChange={e => setPassword(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5" />
+                            <input required type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={8} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5" />
                         </label>
+                        <p className="mt-1 text-xs text-gray-500">At least 8 characters. A short phrase is fine; avoid passwords like 12345678 or ********.</p>
+                        <label className="flex items-center gap-2 text-xs text-gray-600"><input type="checkbox" checked={showPassword} onChange={e => setShowPassword(e.target.checked)}/> Show password</label>
                         <label className="block text-sm font-medium text-gray-700">Confirm password
                             <input required type="password" autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5" />
                         </label>

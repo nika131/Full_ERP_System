@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Services;
@@ -34,7 +34,7 @@ namespace NexusERP.Infrastructure.Services
                     u.Role.CompanyId == companyId
                 );
 
-            if (actor == null || !actor.Role.Permissions.Contains(Permissions.ManageUsers))
+            if (actor == null || !actor.Role.Permissions.Contains(Permissions.ManageJoinCodes))
                 throw new UnauthorizedAccessException("You are not authorized to manage company join codes.");
 
             var company = await _context.Companies.FirstOrDefaultAsync(c =>

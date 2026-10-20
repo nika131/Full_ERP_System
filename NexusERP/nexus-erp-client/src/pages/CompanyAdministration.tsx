@@ -1,3 +1,6 @@
+import { Permissions } from '../constants/permissions';
+import { useAuth } from '../context/AuthContext';
+import { CopyCodeButton } from '../components/Ui/CopyCodeButton';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
@@ -5,6 +8,9 @@ import { companyAdminService, type RoleOption } from '../api/companyAdminService
 import { apiErrorMessage, type JoinRequestSummary } from '../api/authService';
 
 export default function CompanyAdministration() {
+    const { hasPermission } = useAuth();
+    const canReview = hasPermission(Permissions.ManageJoinRequests);
+    const canRotate = hasPermission(Permissions.ManageJoinCodes);
     const [requests, setRequests] = useState<JoinRequestSummary[]>([]);
     const [roles, setRoles] = useState<RoleOption[]>([]);
     const [selectedRoles, setSelectedRoles] = useState<Record<number, number>>({});
@@ -15,6 +21,7 @@ export default function CompanyAdministration() {
     const [error, setError] = useState('');
 
     const reload = useCallback(async () => {
+        if (!canReview) return;
         try {
             const [pending, options] = await Promise.all([companyAdminService.getPending(), companyAdminService.getRoles()]);
             setRequests(pending);
@@ -22,7 +29,7 @@ export default function CompanyAdministration() {
         } catch (err: unknown) {
             setError(apiErrorMessage(err, 'Unable to retrieve pending requests.'));
         }
-    }, []);
+    }, [canReview]);
 
     useEffect(() => { void reload(); }, [reload]);
 
@@ -65,18 +72,18 @@ export default function CompanyAdministration() {
             </div>
             {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
             {message && <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{message}</div>}
-            <section className="rounded-xl border border-gray-200 bg-white p-6">
+            {canRotate && <section className="rounded-xl border border-gray-200 bg-white p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div><h2 className="text-lg font-semibold text-gray-900">Company join code</h2><p className="mt-1 text-sm text-gray-500">Codes expire after 7 days. Rotation invalidates the previous code.</p></div>
                     <button type="button" disabled={busyRotation} onClick={() => { void rotate(); }} className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"><RefreshCw size={16} /> {busyRotation ? 'Generating...' : 'Generate new code'}</button>
                 </div>
                 {newCode && <div className="mt-4 rounded-lg bg-amber-50 p-4 text-amber-950">
                     <strong>Copy this code now. It cannot be retrieved later.</strong>
-                    <div className="mt-2 flex flex-wrap gap-2"><code className="select-all break-all font-mono text-sm">{newCode.code}</code><button className="rounded bg-amber-200 px-2 py-1 text-xs" onClick={() => void navigator.clipboard.writeText(newCode.code)}>Copy</button></div>
+                    <div className="mt-2 flex flex-wrap gap-2"><code className="select-all break-all font-mono text-sm">{newCode.code}</code><CopyCodeButton code={newCode.code} /></div>
                     <p className="mt-2 text-xs">Expires: {new Date(newCode.expires).toLocaleString()}</p>
                 </div>}
-            </section>
-            <section className="rounded-xl border border-gray-200 bg-white p-6">
+            </section>}
+            {canReview && <section className="rounded-xl border border-gray-200 bg-white p-6">
                 <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-900">Pending join requests ({requests.length})</h2><button onClick={() => void reload()} className="text-sm font-medium text-emerald-700 hover:underline">Refresh</button></div>
                 {roles.length === 0 && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Create a non-system employee role using <Link className="font-semibold underline" to="/employees">Employees / Roles</Link> before approving requests.</p>}
                 {requests.length === 0 ? <p className="text-sm text-gray-500">No pending join requests.</p> : <div className="space-y-4">
@@ -92,7 +99,7 @@ export default function CompanyAdministration() {
                         </div>
                     </div>)}
                 </div>}
-            </section>
+            </section>}
         </div>
     );
 }

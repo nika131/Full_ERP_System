@@ -1,3 +1,5 @@
+import { useAuth } from '../context/AuthContext';
+import { Permissions } from '../constants/permissions';
 import { useMemo, useState } from 'react';
 import { type SupplierResponse } from '../types/supplier';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
@@ -8,6 +10,10 @@ import type { SupplierFormData } from '../schemas/supplierSchema';
 import { useSuppliersQuery, useSaveSupplierMutation, useDeleteSupplierMutation } from '../hooks/queries/useSupplierQueries';
 
 export default function SupplierList() {
+    const { hasPermission } = useAuth();
+    const canCreate = hasPermission(Permissions.CreateSuppliers);
+    const canEdit = hasPermission(Permissions.EditSuppliers);
+    const canDelete = hasPermission(Permissions.DeleteSuppliers);
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -58,31 +64,31 @@ export default function SupplierList() {
             className: 'text-center w-32',
             render: (item) => (
                 <div>
-                    <button 
+                    {canEdit && <button 
                         onClick={() => { setSelectedSupplier(item); setIsSlideOverOpen(true); }}
                         className="text-emerald-600 hover:text-emerald-800 font-medium mr-3 transition-colors">
                         Edit
-                    </button>
-                    <button 
+                    </button>}
+                    {canDelete && <button 
                         onClick={() => { setSelectedSupplier(item); setIsDeleteDialogOpen(true); }}
                         className="text-red-600 hover:text-red-800 font-medium transition-colors">
                         Delete
-                    </button>
+                    </button>}
                 </div>
             )
         }
-    ], []);
+    ], [canEdit, canDelete]);
 
     return (
         <div className="space-y-6">
             {/* Header Area */}
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800">Suppliers</h2>
-                <button 
+                {canCreate && <button 
                     onClick={() => { setSelectedSupplier(null); setIsSlideOverOpen(true); }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
                     + Add Supplier
-                </button>
+                </button>}
             </div>
 
             {/* Filter Area */}

@@ -1,3 +1,6 @@
+import { roleService } from '../../api/roleService';
+import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { useState } from 'react';
 import { User } from 'lucide-react';
 import type { RoleResponse } from '../../types/role';
@@ -6,6 +9,7 @@ import { useRolesQuery, usePermissionsQuery } from '../../hooks/queries/useHrQue
 
 export const RolesManager = () => {
     const { data: roles = [], isLoading: isLoadingRoles } = useRolesQuery();
+    const queryClient = useQueryClient();
     const { data: availablePermissions = [], isLoading: isLoadingPerms } = usePermissionsQuery();
 
     const [selectedRole, setSelectedRole] = useState<RoleResponse | null>(null);
@@ -25,6 +29,16 @@ export const RolesManager = () => {
         setIsEditing(false);
     };
 
+    const handleDelete = async (role: RoleResponse) => {
+        if (role.isSystemRole || !window.confirm(`Delete role "${role.name}"? Employees using it must be reassigned first.`)) return;
+        try {
+            await roleService.deleteRole(role.roleId);
+            await queryClient.invalidateQueries({ queryKey: ['roles'] });
+            setIsEditing(false);
+            toast.success('Role deleted.');
+        } catch { /* API client displays the server's error message. */ }
+    };
+
     if (isLoadingRoles || isLoadingPerms) return <div className="p-8 text-center text-slate-500">Loading roles...</div>;
 
     return (
@@ -32,7 +46,7 @@ export const RolesManager = () => {
             {/* Left Column: Role List */}
             <div className="col-span-1 bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
                 <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 shrink-0">
-                    <h3 className="font-bold text-slate-800">System Roles</h3>
+                    <h3 className="font-bold text-slate-800">Company Roles</h3>
                     <button onClick={handleCreateNew} className="text-sm bg-emerald-600 text-white px-3 py-1.5 rounded hover:bg-emerald-700">
                         + New Role
                     </button>
@@ -44,8 +58,12 @@ export const RolesManager = () => {
                             onClick={() => handleEdit(role)}
                             className={`p-4 cursor-pointer hover:bg-emerald-50 transition-colors ${selectedRole?.roleId === role.roleId && isEditing ? 'bg-emerald-50 border-l-4 border-emerald-600' : 'border-l-4 border-transparent'}`}
                         >
-                            <p className="font-bold text-slate-800">{role.name}</p>
-                            <p className="text-xs text-slate-500 mt-1">{role.permissions.length} permissions</p>
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="font-bold text-slate-800">{role.name}</p>
+                                {!role.isSystemRole && <button type="button" onClick={event => { event.stopPropagation(); void handleDelete(role); }}
+                                    className="rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50">Delete</button>}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">{role.permissions.length} permissions {role.isSystemRole ? '· Protected' : '· Editable'}</p>
                         </li>
                     ))}
                 </ul>

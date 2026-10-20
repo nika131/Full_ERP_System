@@ -1,3 +1,5 @@
+import { useAuth } from '../context/AuthContext';
+import { Permissions } from '../constants/permissions';
 import { useMemo, useState } from "react";
 import { DataTable, type ColumnDef } from "../components/Ui/DataTable";
 import { SlideOver } from "../components/Ui/SlideOver";
@@ -8,25 +10,33 @@ import { RolesManager } from "../components/hr/RolesManager";
 import { useNavigate } from "react-router-dom";
 import { InviteEmployeeModal } from "../components/hr/InviteEmployeeModal";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEmployeesQuery, useRolesQuery, usePendingLeavQuery, useDeleteEmployeeMutation } from "../hooks/queries/useHrQueries";
+import { useEmployeesQuery, useRoleLookupQuery, usePendingLeavQuery, useDeleteEmployeeMutation } from "../hooks/queries/useHrQueries";
 
 export default function EmployeeList() {
+    const { hasPermission } = useAuth();
+    const canRoles = hasPermission(Permissions.ManageRoles);
+    const canCreate = hasPermission(Permissions.CreateUsers);
+    const canEdit = hasPermission(Permissions.EditUsers);
+    const canDelete = hasPermission(Permissions.DeleteUsers);
+    const canManageAbsences = hasPermission(Permissions.ManageAbsences);
+    const canViewSalary = hasPermission(Permissions.ViewSalary);
+    const canManageSalary = hasPermission(Permissions.ManageSalary);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
     const [page, setPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('All');
-    const [activeView, setActiveView] = useState<'Directory' | 'Roles'>('Directory');
+    const [activeView, setActiveView] = useState<'Directory' | 'Roles'>(hasPermission(Permissions.ViewUsers) ? 'Directory' : 'Roles');
     
     const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<EmployeeResponse | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
-    const { data: employeesData, isLoading: isLoadingEmployees } = useEmployeesQuery(page, 10, searchTerm, roleFilter);
-    const { data: roles = [] } = useRolesQuery();
-    const { data: pendingLeaves = [] } = usePendingLeavQuery();
+    const { data: employeesData, isLoading: isLoadingEmployees } = useEmployeesQuery(page, 10, searchTerm, roleFilter, hasPermission(Permissions.ViewUsers));
+    const { data: roles = [] } = useRoleLookupQuery();
+    const { data: pendingLeaves = [] } = usePendingLeavQuery(canManageAbsences);
     const deleteEmployeeMutation = useDeleteEmployeeMutation();
 
     const employees = employeesData?.items || [];
@@ -59,24 +69,24 @@ export default function EmployeeList() {
             )
         },
         { 
-            header: 'Current Salary', 
+            header: canViewSalary ? 'Current Salary' : '', 
             accessor: 'salary',
-            render: (item) => item.salary ? <span className="text-emerald-700 font-medium">${item.salary.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span> : <span className="text-slate-400">Not Set</span>
+            render: (item) => !canViewSalary ? null : item.salary ? <span className="text-emerald-700 font-medium">${item.salary.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span> : <span className="text-slate-400">Not Set</span>
         },
         {
             header: 'Actions', accessor: 'actions', className: 'text-right w-40',
             render: (item) => (
                 <div className="flex justify-end gap-3">
-                    <button onClick={() => { setSelectedEmployee(item); setIsSlideOverOpen(true); }} className="text-emerald-600 hover:text-emerald-800 font-medium">
+                    {(canEdit || canViewSalary || canManageSalary) && <button onClick={() => { setSelectedEmployee(item); setIsSlideOverOpen(true); }} className="text-emerald-600 hover:text-emerald-800 font-medium">
                         Manage
-                    </button>
-                    <button onClick={() => { setSelectedEmployee(item); setIsDeleteDialogOpen(true); }} className="text-red-600 hover:text-red-800 font-medium">
+                    </button>}
+                    {canDelete && <button onClick={() => { setSelectedEmployee(item); setIsDeleteDialogOpen(true); }} className="text-red-600 hover:text-red-800 font-medium">
                         Revoke
-                    </button>
+                    </button>}
                 </div>
             )
         }
-    ], []);
+    ], [canEdit, canDelete, canViewSalary, canManageSalary]);
 
     return (
         <div className="space-y-6">
@@ -92,16 +102,16 @@ export default function EmployeeList() {
                     >
                         Employee Directory
                     </button>
-                    <button 
+                    {canRoles && <button 
                         onClick={() => setActiveView('Roles')}
                         className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeView === 'Roles' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Roles & Permissions
-                    </button>
+                    </button>}
                 </div>
             </div>
 
-            {activeView === 'Directory' ? (
+            {activeView === 'Directory' && hasPermission(Permissions.ViewUsers) ? (
                 <>
                     {/* HR Statistics Row */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -109,7 +119,7 @@ export default function EmployeeList() {
                             <p className="text-sm font-medium text-slate-500">Total Active Employees</p>
                             <p className="text-2xl font-bold text-slate-800 mt-1">{totalCount}</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                        {canManageAbsences && <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                             <p className="text-sm font-medium text-slate-500">Pending Leave Approvals</p>
                             <div className="flex justify-center items-center gap-2 mt-2">
                                 <p className={`text-2xl font-bold leading-none ${pendingLeavesCount > 0 ? 'text-amber-600' : 'text-slate-800'}`}>
@@ -123,15 +133,15 @@ export default function EmployeeList() {
                                     </span>
                                 )}
                             </div>
-                        </div>
-                        <div className="bg-emerald-700 p-4 rounded-lg shadow-sm border border-emerald-600 text-white">
+                        </div>}
+                        {canManageAbsences && <div className="bg-emerald-700 p-4 rounded-lg shadow-sm border border-emerald-600 text-white">
                             <p className="text-sm font-medium text-slate-300">Quick Actions</p>
                             <button 
                                 onClick={() => navigate('/pending-leaves')}
                             className="mt-2 text-sm font-medium text-white-300 hover:text-emerald-200">
                                 View Pending Leaves →
                             </button>
-                        </div>
+                        </div>}
                     </div>
 
                     {/* Filters */}
@@ -161,12 +171,12 @@ export default function EmployeeList() {
                                 ))}
                             </select>
                             
-                            <button 
+                            {canCreate && <button 
                                 onClick={() => setIsInviteModalOpen(true)}
                                 className="flex-1 md:flex-none whitespace-nowrap bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700"
                             >
                                 + Invite Employee
-                            </button>
+                            </button>}
                         </div>
 
                     </div>
@@ -204,7 +214,7 @@ export default function EmployeeList() {
                     />
                 </>
             ) : (
-                <RolesManager />
+                canRoles ? <RolesManager /> : null
             )}
 
             
