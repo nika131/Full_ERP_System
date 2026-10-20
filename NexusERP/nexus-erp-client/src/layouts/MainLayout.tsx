@@ -5,15 +5,24 @@ import { useState } from 'react';
 import { Menu } from 'lucide-react';
 
 export default function MainLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, switchCompany, companyId } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch {
+      // The Account context clears local tokens even if remote revocation fails.
+    }
     navigate('/login');
+  };
+
+  const handleSwitchCompany = () => {
+    switchCompany();
+    navigate('/companies');
   };
 
   const canAccess = (permission: string) => user?.permissions?.includes(permission);
@@ -84,6 +93,14 @@ export default function MainLayout() {
                 )}
                 
                 {canAccess(Permissions.ManageUsers) && (
+                    <Link to="/company-admin"
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`block px-4 py-2 rounded transition-colors ${isActive('/company-admin') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
+                        Company access
+                    </Link>
+                )}
+
+                {canAccess(Permissions.ManageUsers) && (
                     <Link to="/employees" 
                         onClick={() => setIsSidebarOpen(false)}
                         className={`block px-4 py-2 rounded transition-colors ${isActive('/employees') ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
@@ -138,8 +155,15 @@ export default function MainLayout() {
                         <div className="text-sm font-medium text-gray-900">{user?.username}</div>
                         <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">{user?.role}</div>
                     </div>
-                    <button 
-                        onClick={handleLogout}
+                    <button
+                        onClick={handleSwitchCompany}
+                        className="px-3 py-1.5 text-sm bg-emerald-50 text-emerald-800 rounded hover:bg-emerald-100 transition-colors border border-emerald-200"
+                        title={companyId ? `Current company: ${companyId}` : 'Switch company'}
+                    >
+                        Switch company
+                    </button>
+                    <button
+                        onClick={() => { void handleLogout(); }}
                         className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors border border-gray-300"
                     >
                         Logout
