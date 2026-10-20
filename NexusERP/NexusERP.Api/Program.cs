@@ -1,18 +1,19 @@
+using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using NexusERP.Api.Middleware;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
+using NexusERP.Domain.Constants;
 using NexusERP.Infrastructure.Database;
 using NexusERP.Infrastructure.Repositories;
 using NexusERP.Infrastructure.Services;
+using System.Security.Claims;
 using System.Text;
-using NexusERP.Domain.Constants;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
-using DocumentFormat.OpenXml.InkML;
-using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,13 +72,12 @@ builder.Services.AddScoped<IPosService, PosService>();
 builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationService>();
 builder.Services.AddScoped<IAccountRegistrationService, AccountRegistrationService>();
 builder.Services.AddScoped<IVerificationEmailSender, SmtpVerificationEmailSender>();
+builder.Services.AddScoped<ICompanyAccessService, CompanyAccessService>();
 
 builder.Services.AddScoped<IAccountSessionService, AccountSessionService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key is misssing in the appsettings.json");
 
@@ -148,6 +148,117 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         }
     };
 });
+
+
+builder.Services.AddAuthentication()
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.MapInboundClaims = true;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                string? tokenType = context.Principal?.FindFirst("token_type")?.Value;
+
+                // Keep existing employee and POS tokens working temporarily.
+                if (tokenType == null)
+                    return;
+
+                if (tokenType != "company" ||
+                    !int.TryParse(context.Principal?.FindFirst("account_id")?.Value, out int accountId) ||
+                    !int.TryParse(context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out int userId) ||
+                    !int.TryParse(context.Principal?.FindFirst("CompanyId")?.Value, out int companyId) ||
+                    !int.TryParse(context.Principal?.FindFirst("role_id")?.Value, out int roleId) ||
+                    !Guid.TryParse(context.Principal?.FindFirst("session_id")?.Value, out Guid sessionId))
+                {
+                    context.Fail("Invalid company token.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+
+                bool validSession = await db.AuthSessions.AsNoTracking().AnyAsync(s =>
+                    s.SessionId == sessionId &&
+                    s.AccountId == accountId &&
+                    s.CompanyId == null &&
+                    s.RevokedAt == null &&
+                    s.ExpiresAt > DateTime.UtcNow &&
+                    s.Account.IsActive &&
+                    s.Account.EmailVerified
+                );
+
+                if (!validSession)
+                {
+                    context.Fail("Your account session is invalid or revoked.");
+                    return;
+                }
+
+                var membership = await db.Users
+                    .AsNoTracking()
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u =>
+                        u.UserId == userId &&
+                        u.AccountId == accountId &&
+                        u.CompanyId == companyId &&
+                        u.RoleId == roleId &&
+                        u.IsActive &&
+                        u.Company.IsActive &&
+                        u.Role.IsActive &&
+                        u.Role.CompanyId == companyId
+                    );
+
+                if (membership == null)
+                {
+                    context.Fail("Your company membership is no longer valid.");
+                    return;
+                }
+
+                var tokenPermissions = context.Principal!.FindAll("Permission")
+                    .Select(c => c.Value)
+                    .ToHashSet(StringComparer.Ordinal);
+
+                var currentPermissions = membership.Role.Permissions
+                    .ToHashSet(StringComparer.Ordinal);
+
+                if (!tokenPermissions.SetEquals(currentPermissions) ||
+                    context.Principal.FindFirst(ClaimTypes.Role)?.Value != membership.Role.Name)
+                    context.Fail("Company permissions changed. Please select the company again.");
+            },
+
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    message = "Invalid or expired ERP session. Please sign in or select your company again."
+                });
+            },
+
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    message = "You do not have permission to perform this action."
+                });
+            }
+        };
+    });
+
 
 
 builder.Services.AddAuthorization(options =>
