@@ -45,8 +45,13 @@ namespace NexusERP.Infrastructure.Services
             if (account == null)
                 throw new UnauthorizedAccessException("A verified account is required.");
 
+
+            DateTime validAfter = DateTime.UtcNow.Subtract(CompanyJoinCodePolicy.ValidityPeriod);
+
             var company = await _context.Companies.AsNoTracking().FirstOrDefaultAsync(c =>
-                c.JoinCodeHash == codeHash && c.IsActive
+                c.JoinCodeHash == codeHash &&
+                c.JoinCodeCreatedAt >= validAfter &&
+                c.IsActive
             );
 
             if (company == null)
