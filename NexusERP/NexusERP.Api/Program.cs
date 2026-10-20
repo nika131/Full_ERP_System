@@ -75,6 +75,7 @@ builder.Services.AddScoped<IVerificationEmailSender, SmtpVerificationEmailSender
 builder.Services.AddScoped<ICompanyAccessService, CompanyAccessService>();
 
 builder.Services.AddScoped<IAccountSessionService, AccountSessionService>();
+builder.Services.AddScoped<ICompanyJoinRequestService, CompanyJoinRequestService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

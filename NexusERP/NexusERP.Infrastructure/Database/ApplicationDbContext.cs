@@ -44,6 +44,7 @@ namespace NexusERP.Infrastructure.Database
         public DbSet<Account> Accounts { get; set; }
         public DbSet<AuthSession> AuthSessions { get; set; }
 
+        public DbSet<CompanyJoinRequest> CompanyJoinRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -86,6 +87,48 @@ namespace NexusERP.Infrastructure.Database
                     .IsUnique()
                     .HasFilter("[JoinCodeHash] IS NOT NULL");
             });
+
+
+            modelBuilder.Entity<CompanyJoinRequest>(entity =>
+            {
+                entity.HasKey(e => e.JoinRequestId);
+
+                entity.HasOne(e => e.Account)
+                    .WithMany()
+                    .HasForeignKey(e => e.AccountId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Company)
+                    .WithMany()
+                    .HasForeignKey(e => e.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.ReviewedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReviewedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.Property(e => e.FullName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(e => e.Username)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(e => e.Status)
+                    .HasConversion<int>();
+
+                entity.Property(e => e.RowVersion)
+                    .IsRowVersion();
+
+                entity.HasIndex(e => new { e.AccountId, e.CompanyId })
+                    .IsUnique()
+                    .HasFilter("[Status] = 0");
+
+                entity.HasIndex(e => new { e.CompanyId, e.Status });
+            });
+
 
             // ============================================================
             // USER
