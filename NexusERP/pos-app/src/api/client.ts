@@ -1,101 +1,56 @@
 import axios from "axios";
-import * as SecureStore from "expo-secure-store";
+import { DeviceEventEmitter } from "react-native";
+import { posSession, tokenExpiresSoon, tokenType } from "./posSession";
 
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  "http://192.168.100.3:5116/api";
-
-export const TOKEN_KEY = "pos_auth_token";
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.100.3:5116/api";
+export const TOKEN_KEY = "pos_active_cashier_v2";
 
 interface ApiErrorPayload {
-  Message?: unknown;
-  message?: unknown;
-  error?: unknown;
-  title?: unknown;
+  Message?: unknown; message?: unknown; error?: unknown; title?: unknown;
   errors?: Record<string, string | string[]>;
 }
 
-let webToken: string | null = null;
+export const getStoredToken = posSession.getActive;
+export const setStoredToken = posSession.setActive;
+export const deleteStoredToken = posSession.clearActive;
 
-export async function getStoredToken(): Promise<string | null> {
-  if (typeof window !== "undefined") {
-    return webToken;
-  }
-
-  return SecureStore.getItemAsync(TOKEN_KEY);
-}
-
-export async function setStoredToken(token: string): Promise<void> {
-  if (typeof window !== "undefined") {
-    webToken = token;
-    return;
-  }
-
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
-}
-
-export async function deleteStoredToken(): Promise<void> {
-  if (typeof window !== "undefined") {
-    webToken = null;
-    return;
-  }
-
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
-}
-
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 15000,
-});
+const apiClient = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
 
 apiClient.interceptors.request.use(async (config) => {
-  const token = await getStoredToken();
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  let token = await posSession.getActive();
+  if (token && tokenType(token) === "company" && tokenExpiresSoon(token)) {
+    try { token = await posSession.ownerCompanyAccess(); }
+    catch (err) { DeviceEventEmitter.emit("tenexerp-pos-session-lost"); throw err; }
   }
-
+  if (token && tokenType(token) === "pos_cashier" && tokenExpiresSoon(token, 0)) {
+    DeviceEventEmitter.emit("tenexerp-pos-session-lost");
+    throw new Error("Cashier session expired. Ask the terminal owner to sign in again.");
+  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
+});
+
+apiClient.interceptors.response.use(response => response, error => {
+  if (axios.isAxiosError(error) && error.response?.status === 401 &&
+      !String(error.config?.url ?? "").includes("/verify-pin"))
+    DeviceEventEmitter.emit("tenexerp-pos-session-lost");
+  return Promise.reject(error);
 });
 
 export function getErrorMessage(err: unknown): string {
   if (axios.isAxiosError<ApiErrorPayload | string>(err)) {
     const data = err.response?.data;
-
-    if (typeof data === "string" && data.trim()) {
-      return data;
-    }
-
+    if (typeof data === "string" && data.trim()) return data;
     if (data && typeof data === "object") {
-      const directMessage =
-        data.Message ?? data.message ?? data.error ?? data.title;
-
-      if (directMessage != null) {
-        return String(directMessage);
-      }
-
+      const message = data.Message ?? data.message ?? data.error ?? data.title;
+      if (message != null) return String(message);
       if (data.errors && typeof data.errors === "object") {
-        const messages = Object.values(data.errors)
-          .flatMap((value) => (Array.isArray(value) ? value : [value]))
-          .filter(Boolean)
-          .map(String);
-
-        if (messages.length > 0) {
-          return messages.join("\n");
-        }
+        const messages = Object.values(data.errors).flatMap(v => Array.isArray(v) ? v : [v]).filter(Boolean).map(String);
+        if (messages.length) return messages.join("\n");
       }
     }
-
-    if (err.message) {
-      return err.message;
-    }
   }
-
-  if (err instanceof Error) {
-    return err.message;
-  }
-
-  return "Something went wrong. Please try again.";
+  return err instanceof Error ? err.message : "Something went wrong. Please try again.";
 }
 
 export default apiClient;
