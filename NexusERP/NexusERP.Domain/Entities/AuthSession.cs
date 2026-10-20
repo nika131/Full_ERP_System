@@ -8,8 +8,8 @@ namespace NexusERP.Domain.Entities
         public int AccountId { get; set; }
         public Account Account { get; set; } = null!;
 
-        public int CompanyId { get; set; }
-        public Company Company { get; set; } = null!;
+        public int? CompanyId { get; set; }
+        public Company? Company { get; set; }
 
         public string RefreshTokenHash { get; set; } = string.Empty;
         public string ClientType { get; set; } = string.Empty;

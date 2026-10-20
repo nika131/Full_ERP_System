@@ -72,6 +72,8 @@ builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationServi
 builder.Services.AddScoped<IAccountRegistrationService, AccountRegistrationService>();
 builder.Services.AddScoped<IVerificationEmailSender, SmtpVerificationEmailSender>();
 
+builder.Services.AddScoped<IAccountSessionService, AccountSessionService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -79,20 +81,74 @@ builder.Services.AddSwaggerGen();
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key is misssing in the appsettings.json");
 
+var accountJwtKey = builder.Configuration["AccountJwt:Key"]
+    ?? throw new InvalidOperationException("Account JWT key is missing.");
+
+if (Encoding.UTF8.GetByteCount(accountJwtKey) < 32 || accountJwtKey == jwtKey)
+    throw new InvalidOperationException("Account JWT key must be at least 32 bytes and different from the ERP JWT key.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
+
+.AddJwtBearer(AccountJwtConstants.AuthenticationScheme, options =>
+{
+    options.MapInboundClaims = false;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = AccountJwtConstants.Issuer,
+        ValidAudience = AccountJwtConstants.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(accountJwtKey)),
+        ClockSkew = TimeSpan.FromSeconds(30)
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
         {
-            options.TokenValidationParameters = new TokenValidationParameters
+            string? accountValue = context.Principal?.FindFirst("account_id")?.Value;
+            string? sessionValue = context.Principal?.FindFirst("session_id")?.Value;
+            string? tokenType = context.Principal?.FindFirst("token_type")?.Value;
+
+            if (tokenType != "account" ||
+                !int.TryParse(accountValue, out int accountId) ||
+                !Guid.TryParse(sessionValue, out Guid sessionId))
             {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                ValidAudience = builder.Configuration["Jwt:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-            };
-        });
+                context.Fail("Invalid account token.");
+                return;
+            }
+
+            var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+
+            bool sessionIsValid = await db.AuthSessions.AsNoTracking().AnyAsync(s =>
+                s.SessionId == sessionId &&
+                s.AccountId == accountId &&
+                s.CompanyId == null &&
+                s.RevokedAt == null &&
+                s.ExpiresAt > DateTime.UtcNow &&
+                s.Account.IsActive &&
+                s.Account.EmailVerified
+            );
+
+            if (!sessionIsValid)
+                context.Fail("Account session has expired or was revoked.");
+        },
+
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = "Your session is invalid or expired. Please sign in again."
+            });
+        }
+    };
+});
+
 
 builder.Services.AddAuthorization(options =>
 {
