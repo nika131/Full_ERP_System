@@ -1,6 +1,7 @@
+import { useUrlNumber, useUrlString, useUrlQuery } from '../hooks/useUrlState';
 import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import { SlideOver } from '../components/Ui/SlideOver';
 import { StoreForm } from '../components/forms/StoreForm';
@@ -13,10 +14,13 @@ export default function StoreList() {
     const { hasPermission } = useAuth();
     const canCreate = hasPermission(Permissions.CreateStores);
     const canEdit = hasPermission(Permissions.EditStores);
-    const [page, setPage] = useState(1);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
-    const [selectedStore, setSelectedStore] = useState<StoreResponse | null>(null);
+    const { patch } = useUrlQuery();
+    const [page, setPage] = useUrlNumber('page');
+    const [searchTerm] = useUrlString('search');
+    const [dialog, setDialog] = useUrlString('dialog');
+    const itemId = Number(dialog.split(':')[1]) || 0;
+    const setIsSlideOverOpen = (open: boolean) => setDialog(open ? 'create' : '');
+
 
     // Hardcode a default map center (Tbilisi) to show all locations
     const mapCenter: [number, number] = [41.7151, 44.8271];
@@ -29,18 +33,16 @@ export default function StoreList() {
     const updateMutation = useUpdateStoreMutation();
 
     const stores = pagedData?.items || [];
+    const selectedStore = stores.find(store => store.storeId === itemId) ?? null;
+    const isSlideOverOpen = (dialog === 'create' && canCreate) || (dialog.startsWith('edit:') && canEdit && !!selectedStore);
     const totalCount = pagedData?.totalCount || 0;
     const totalPages = Math.ceil(totalCount / 10);
 
     const handleAddClick = () => {
-        setSelectedStore(null);
         setIsSlideOverOpen(true);
     };
 
-    const handleEditClick = (store: StoreResponse) => {
-        setSelectedStore(store);
-        setIsSlideOverOpen(true);
-    };
+    const handleEditClick = (store: StoreResponse) => setDialog(`edit:${store.storeId}`);
 
     const handleFormSubmit = async (formData: StoreFormData) => {
         try {
@@ -126,10 +128,7 @@ export default function StoreList() {
                     type="text" 
                     placeholder="Search stores by name or address..." 
                     value={searchTerm}
-                    onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setPage(1); 
-                    }}
+                    onChange={(e) => patch({ search: e.target.value, page: null })}
                     className="w-full px-3 py-2 outline-none text-sm bg-transparent"
                 />
             </div>

@@ -1,16 +1,25 @@
 import { CopyCodeButton } from '../components/Ui/CopyCodeButton';
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useUrlString } from '../hooks/useUrlState';
 import { Building2, Plus, UserRoundPlus, ArrowRight, LogOut } from 'lucide-react';
 import { apiErrorMessage, authService, type CompanySummary, type CreatedCompany, type JoinRequestSummary } from '../api/authService';
 import { useAuth } from '../context/AuthContext';
 
 export default function Companies() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const next = searchParams.get('next');
+    const safeNext = next && next.startsWith('/') && !next.startsWith('//') && !next.includes('\\') ? next : null;
+    const targetCompanyValue = safeNext ? new URLSearchParams(safeNext.split('?')[1]?.split('#')[0] ?? '').get('company') : null;
+    const targetCompanyId = targetCompanyValue && /^[1-9]\d*$/.test(targetCompanyValue) ? Number(targetCompanyValue) : null;
+    const autoSelectionAttempt = useRef<string | null>(null);
     const { selectCompany, switchCompany, logout } = useAuth();
     const [companies, setCompanies] = useState<CompanySummary[]>([]);
     const [requests, setRequests] = useState<JoinRequestSummary[]>([]);
-    const [view, setView] = useState<'list' | 'create' | 'join'>('list');
+    const [viewParam, setViewParam] = useUrlString('view', 'list');
+    const view: 'list' | 'create' | 'join' = viewParam === 'create' || viewParam === 'join' ? viewParam : 'list';
+    const setView = (value: 'list' | 'create' | 'join') => setViewParam(value);
     const [companyName, setCompanyName] = useState('');
     const [fullName, setFullName] = useState('');
     const [username, setUsername] = useState('');
@@ -37,12 +46,31 @@ export default function Companies() {
 
     useEffect(() => { void load(); }, [load]);
 
+    useEffect(() => {
+        if (loading || busy || !safeNext || !targetCompanyId || !companies.some(c => c.companyId === targetCompanyId)) return;
+        const key = `${targetCompanyId}:${safeNext}`;
+        if (autoSelectionAttempt.current === key) return;
+        autoSelectionAttempt.current = key;
+        void (async () => {
+            try {
+                await selectCompany(targetCompanyId);
+                navigate(safeNext, { replace: true });
+            } catch (err: unknown) {
+                setError(apiErrorMessage(err, 'Unable to open the company in your shared link.'));
+            }
+        })();
+    }, [busy, companies, loading, navigate, safeNext, selectCompany, targetCompanyId]);
+
     const enter = async (companyId: number) => {
         setBusy(true);
         setError('');
         try {
+            if (targetCompanyId && targetCompanyId !== companyId) {
+                setError('This shared link belongs to another company. Select that company to continue.');
+                return;
+            }
             await selectCompany(companyId);
-            navigate('/profile');
+            navigate(safeNext ?? '/profile');
         } catch (err: unknown) {
             setError(apiErrorMessage(err, 'Unable to enter this company.'));
         } finally {
@@ -108,9 +136,11 @@ export default function Companies() {
                         <h1 className="text-2xl font-bold text-emerald-700">TenexERP</h1>
                         <p className="mt-1 text-sm text-gray-500">Choose a company or join a team</p>
                     </div>
-                    <button type="button" onClick={() => { void signOut(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"><LogOut size={16} /> Sign out</button>
+                    <div className="flex items-center gap-4"><Link to="/settings" className="text-sm font-semibold text-emerald-800 hover:underline">Settings & support</Link><button type="button" onClick={() => { void signOut(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"><LogOut size={16} /> Sign out</button></div>
                 </header>
 
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><span><strong>Your first 30 days are on us.</strong> Explore the full TenexERP experience with no credit card. Future subscription options are coming later.</span><Link to="/settings" className="font-bold underline">View account</Link></div>
+                {next && <p className="mb-4 rounded-lg border border-lime-200 bg-lime-50 p-3 text-sm text-lime-800">Choose the company linked to your shared page to continue. Your access permissions will be checked.</p>}
                 {error && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
                 {message && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{message}</div>}
                 {created && <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">

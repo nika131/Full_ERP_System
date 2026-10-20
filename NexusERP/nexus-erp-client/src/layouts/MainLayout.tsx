@@ -1,9 +1,11 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
-import { useState } from 'react';
-import { Menu, Settings, Bug, Lightbulb, Boxes, UserRound, LayoutDashboard, Package, Truck, Tags, ShieldCheck, UsersRound, Store, CalendarClock, ScrollText } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Menu, Settings, Bug, Lightbulb, Boxes, UserRound, LayoutDashboard, Package, Truck, Tags, ShieldCheck, UsersRound, Store, CalendarClock, ScrollText, Link2, Check } from 'lucide-react';
 import FeedbackDialog from '../components/FeedbackDialog';
+import { useUrlString } from '../hooks/useUrlState';
+import toast from 'react-hot-toast';
 
 export default function MainLayout() {
   const { user, logout, switchCompany, companyId } = useAuth();
@@ -11,7 +13,10 @@ export default function MainLayout() {
   const location = useLocation();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [feedbackKind, setFeedbackKind] = useState<'bug' | 'idea' | null>(null);
+  const [feedbackParam, setFeedbackParam] = useUrlString('feedback');
+  const feedbackKind = feedbackParam === 'bug' || feedbackParam === 'idea' ? feedbackParam : null;
+  const setFeedbackKind = (value: 'bug' | 'idea' | null) => setFeedbackParam(value ?? '');
+  const [copied, setCopied] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -30,6 +35,9 @@ export default function MainLayout() {
   const canAccess = (permission: string) => user?.permissions?.includes(permission);
 
   const isActive = (path: string) => location.pathname.startsWith(path);
+  // Reset the copy confirmation when the address changes.
+  const currentPage = location.pathname + location.search;
+  useEffect(() => setCopied(false), [currentPage]);
 
   return (
     <div className="flex h-screen bg-gray-50 relative overflow-hidden">
@@ -111,6 +119,14 @@ export default function MainLayout() {
 
                 {/* Right side: fast feedback and user menu */}
                 <div className="flex items-center gap-2 sm:gap-4">
+                    <button type="button" onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(window.location.href);
+                        setCopied(true);
+                      } catch { setCopied(false); toast.error('Could not copy this page link.'); }
+                    }} title={copied ? 'Page link copied' : 'Copy page link'} aria-label={copied ? 'Page link copied' : 'Copy page link'} className={`rounded-lg p-2 ${copied ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'}`}>
+                      {copied ? <Check size={19}/> : <Link2 size={19}/>}
+                    </button>
                     <button type="button" onClick={() => setFeedbackKind('bug')} title="Report a problem" aria-label="Report a problem" className="rounded-lg p-2 text-gray-500 hover:bg-rose-50 hover:text-rose-700"><Bug size={19}/></button>
                     <button type="button" onClick={() => setFeedbackKind('idea')} title="Suggest a feature" aria-label="Suggest a feature" className="rounded-lg p-2 text-gray-500 hover:bg-amber-50 hover:text-amber-700"><Lightbulb size={19}/></button>
                     <Link to="/settings" title="Settings" aria-label="Settings" className="rounded-lg p-2 text-gray-500 hover:bg-emerald-50 hover:text-emerald-700"><Settings size={19}/></Link>

@@ -12,7 +12,10 @@ export default function Login() {
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
 
-    if (isAccountAuthenticated) return <Navigate to="/companies" replace />;
+    if (isAccountAuthenticated) {
+        const intended = new URLSearchParams(location.search).get('next');
+        return <Navigate to={intended?.startsWith('/') && !intended.startsWith('//') && !intended.includes('\\') ? `/companies?next=${encodeURIComponent(intended)}` : '/companies'} replace />;
+    }
 
     const submit = async (event: FormEvent) => {
         event.preventDefault();
@@ -20,7 +23,8 @@ export default function Login() {
         setBusy(true);
         try {
             await loginAccount(email.trim(), password);
-            navigate('/companies', { replace: true });
+            const intended = new URLSearchParams(location.search).get('next');
+            navigate(intended?.startsWith('/') && !intended.startsWith('//') && !intended.includes('\\') ? `/companies?next=${encodeURIComponent(intended)}` : '/companies', { replace: true });
         } catch (err: unknown) {
             setError(apiErrorMessage(err, 'Unable to sign in.'));
         } finally {

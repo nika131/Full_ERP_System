@@ -1,6 +1,7 @@
+import { useUrlNumber, useUrlString, useUrlQuery } from '../hooks/useUrlState';
 import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { type SupplierResponse } from '../types/supplier';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import { SlideOver } from '../components/Ui/SlideOver';
@@ -14,18 +15,23 @@ export default function SupplierList() {
     const canCreate = hasPermission(Permissions.CreateSuppliers);
     const canEdit = hasPermission(Permissions.EditSuppliers);
     const canDelete = hasPermission(Permissions.DeleteSuppliers);
-    const [page, setPage] = useState(1);
-    const [searchTerm, setSearchTerm] = useState('');
+    const { patch } = useUrlQuery();
+    const [page, setPage] = useUrlNumber('page');
+    const [searchTerm] = useUrlString('search');
 
-    const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
-    const [selectedSupplier, setSelectedSupplier] = useState<SupplierResponse | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [dialog, setDialog] = useUrlString('dialog');
+    const itemId = Number(dialog.split(':')[1]) || 0;
+    const setIsSlideOverOpen = (open: boolean) => setDialog(open ? 'create' : '');
+    const setIsDeleteDialogOpen = (_open: boolean) => setDialog('');
 
     const { data, isLoading, isError } = useSuppliersQuery(page, 10, searchTerm);
     const saveMutation = useSaveSupplierMutation();
     const deleteMutation = useDeleteSupplierMutation();
 
     const suppliers = data?.items || [];
+    const selectedSupplier = (data?.items ?? []).find(item => item.supplierId === itemId) ?? null;
+    const isSlideOverOpen = (dialog === 'create' && canCreate) || (dialog.startsWith('edit:') && canEdit && !!selectedSupplier);
+    const isDeleteDialogOpen = dialog.startsWith('delete:') && canDelete && !!selectedSupplier;
     const totalPages = data?.totalPages || 1;
     const totalCount = data?.totalCount || 0;
 
@@ -46,7 +52,6 @@ export default function SupplierList() {
         try {
             await deleteMutation.mutateAsync(selectedSupplier.supplierId);
             setIsDeleteDialogOpen(false);
-            setSelectedSupplier(null);
         } catch (err) {
             console.error(err);
         }
@@ -65,12 +70,12 @@ export default function SupplierList() {
             render: (item) => (
                 <div>
                     {canEdit && <button 
-                        onClick={() => { setSelectedSupplier(item); setIsSlideOverOpen(true); }}
+                        onClick={() => { setDialog(`edit:${item.supplierId}`); }}
                         className="text-emerald-600 hover:text-emerald-800 font-medium mr-3 transition-colors">
                         Edit
                     </button>}
                     {canDelete && <button 
-                        onClick={() => { setSelectedSupplier(item); setIsDeleteDialogOpen(true); }}
+                        onClick={() => { setDialog(`delete:${item.supplierId}`); }}
                         className="text-red-600 hover:text-red-800 font-medium transition-colors">
                         Delete
                     </button>}
@@ -85,7 +90,7 @@ export default function SupplierList() {
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800">Suppliers</h2>
                 {canCreate && <button 
-                    onClick={() => { setSelectedSupplier(null); setIsSlideOverOpen(true); }}
+                    onClick={() => { setIsSlideOverOpen(true); }}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
                     + Add Supplier
                 </button>}
@@ -97,7 +102,7 @@ export default function SupplierList() {
                     type="text" 
                     placeholder="Search by company, contact, or email..." 
                     value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                    onChange={(e) => { patch({ search: e.target.value, page: null }); }}
                     className="w-full px-3 py-2 outline-none text-sm bg-transparent"
                 />
             </div>
@@ -139,7 +144,7 @@ export default function SupplierList() {
                 title="Delete Supplier"
                 message={`Are you sure you want to delete "${selectedSupplier?.companyName}"?`}
                 onConfirm={handleConfirmDelete}
-                onCancel={() => { setIsDeleteDialogOpen(false); setSelectedSupplier(null); }}
+                onCancel={() => { setIsDeleteDialogOpen(false); }}
                 isProcessing={deleteMutation.isPending}
             />
         </div>

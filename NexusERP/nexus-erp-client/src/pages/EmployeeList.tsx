@@ -1,13 +1,14 @@
 import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { DataTable, type ColumnDef } from "../components/Ui/DataTable";
 import { SlideOver } from "../components/Ui/SlideOver";
 import { ConfirmDialog } from "../components/Ui/ConfirmDialog";
 import type { EmployeeResponse } from "../types/employee";
 import { EmployeeManagerForm } from "../components/hr/EmployeeManagerForm";
 import { RolesManager } from "../components/hr/RolesManager";
-import { useNavigate } from "react-router-dom";
+import PendingLeaves from './PendingLeaves';
+import { useUrlNumber, useUrlString, useUrlQuery } from '../hooks/useUrlState';
 import { InviteEmployeeModal } from "../components/hr/InviteEmployeeModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEmployeesQuery, useRoleLookupQuery, usePendingLeavQuery, useDeleteEmployeeMutation } from "../hooks/queries/useHrQueries";
@@ -21,18 +22,19 @@ export default function EmployeeList() {
     const canManageAbsences = hasPermission(Permissions.ManageAbsences);
     const canViewSalary = hasPermission(Permissions.ViewSalary);
     const canManageSalary = hasPermission(Permissions.ManageSalary);
-    const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    const [page, setPage] = useState(1);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [roleFilter, setRoleFilter] = useState('All');
-    const [activeView, setActiveView] = useState<'Directory' | 'Roles'>(hasPermission(Permissions.ViewUsers) ? 'Directory' : 'Roles');
+    const { patch } = useUrlQuery();
+    const [page, setPage] = useUrlNumber('page', 1);
+    const [searchTerm] = useUrlString('search');
+    const [roleFilter] = useUrlString('role', 'All');
+    const [viewParam, setViewParam] = useUrlString('tab', hasPermission(Permissions.ViewUsers) ? 'directory' : hasPermission(Permissions.ManageRoles) ? 'roles' : 'leaves');
+    const activeView: 'Directory' | 'Roles' | 'Leaves' = viewParam === 'roles' && canRoles ? 'Roles' : viewParam === 'leaves' && canManageAbsences ? 'Leaves' : hasPermission(Permissions.ViewUsers) ? 'Directory' : canRoles ? 'Roles' : 'Leaves';
+    const setActiveView = (value: 'Directory' | 'Roles' | 'Leaves') => setViewParam(value.toLowerCase());
     
-    const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] = useState<EmployeeResponse | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [dialog, setDialog] = useUrlString('dialog');
+    const isInviteModalOpen = dialog === 'invite' && canCreate;
+    const setIsInviteModalOpen = (open: boolean) => setDialog(open ? 'invite' : '');
 
     const { data: employeesData, isLoading: isLoadingEmployees } = useEmployeesQuery(page, 10, searchTerm, roleFilter, hasPermission(Permissions.ViewUsers));
     const { data: roles = [] } = useRoleLookupQuery();
@@ -40,16 +42,21 @@ export default function EmployeeList() {
     const deleteEmployeeMutation = useDeleteEmployeeMutation();
 
     const employees = employeesData?.items || [];
+    const [dialogAction, rawId] = dialog.split(':');
+    const requestedEmployeeId = Number(rawId);
+    const selectedEmployee = employees.find(e => e.userId === requestedEmployeeId) ?? null;
+    const isSlideOverOpen = dialogAction === 'manage' && !!selectedEmployee && (canEdit || canViewSalary || canManageSalary);
+    const isDeleteDialogOpen = dialogAction === 'delete' && !!selectedEmployee && canDelete;
     const totalPages = employeesData?.totalPages || 1;
     const totalCount = employeesData?.totalCount || 0;
     const pendingLeavesCount = pendingLeaves.length;
+
 
     const handleConfirmDelete = async () => {
         if (!selectedEmployee) return;
         try {
             await deleteEmployeeMutation.mutateAsync(selectedEmployee.userId);
-            setIsDeleteDialogOpen(false);
-            setSelectedEmployee(null);
+            setDialog('');
         } catch (err) {
             console.error("Deletion failed", err);
         }
@@ -77,10 +84,10 @@ export default function EmployeeList() {
             header: 'Actions', accessor: 'actions', className: 'text-right w-40',
             render: (item) => (
                 <div className="flex justify-end gap-3">
-                    {(canEdit || canViewSalary || canManageSalary) && <button onClick={() => { setSelectedEmployee(item); setIsSlideOverOpen(true); }} className="text-emerald-600 hover:text-emerald-800 font-medium">
+                    {(canEdit || canViewSalary || canManageSalary) && <button onClick={() => { setDialog(`manage:${item.userId}`); }} className="text-emerald-600 hover:text-emerald-800 font-medium">
                         Manage
                     </button>}
-                    {canDelete && <button onClick={() => { setSelectedEmployee(item); setIsDeleteDialogOpen(true); }} className="text-red-600 hover:text-red-800 font-medium">
+                    {canDelete && <button onClick={() => { setDialog(`delete:${item.userId}`); }} className="text-red-600 hover:text-red-800 font-medium">
                         Revoke
                     </button>}
                 </div>
@@ -96,17 +103,24 @@ export default function EmployeeList() {
                 <h2 className="text-2xl font-bold text-slate-800">Employee Directory</h2>
                 
                 <div className="flex bg-slate-100 p-1 rounded-lg w-full sm:w-auto">
-                    <button 
+                    {hasPermission(Permissions.ViewUsers) && <button
                         onClick={() => setActiveView('Directory')}
                         className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeView === 'Directory' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Employee Directory
-                    </button>
+                    </button>}
                     {canRoles && <button 
                         onClick={() => setActiveView('Roles')}
                         className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeView === 'Roles' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Roles & Permissions
+                    </button>}
+                    {canManageAbsences && <button
+                        type="button"
+                        onClick={() => setActiveView('Leaves')}
+                        className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all ${activeView === 'Leaves' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        Leave requests {pendingLeavesCount>0?`(${pendingLeavesCount})`:''}
                     </button>}
                 </div>
             </div>
@@ -137,7 +151,7 @@ export default function EmployeeList() {
                         {canManageAbsences && <div className="bg-emerald-700 p-4 rounded-lg shadow-sm border border-emerald-600 text-white">
                             <p className="text-sm font-medium text-slate-300">Quick Actions</p>
                             <button 
-                                onClick={() => navigate('/employees/pending-leaves')}
+                                onClick={() => setActiveView('Leaves')}
                             className="mt-2 text-sm font-medium text-white-300 hover:text-emerald-200">
                                 View Pending Leaves →
                             </button>
@@ -152,7 +166,7 @@ export default function EmployeeList() {
                                 type="text" 
                                 placeholder="Search employees..." 
                                 value={searchTerm} 
-                                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }} 
+                                onChange={(e) => { patch({ search: e.target.value, page: null }); }} 
                                 className="w-full px-3 py-2 outline-none text-sm bg-transparent" 
                             />
                         </div>
@@ -161,7 +175,7 @@ export default function EmployeeList() {
                             <select 
                                 className="flex-1 md:flex-none bg-white px-3 py-2 rounded-md shadow-sm border border-slate-200 text-sm outline-none" 
                                 value={roleFilter} 
-                                onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+                                onChange={(e) => { patch({ role: e.target.value === 'All' ? null : e.target.value, page: null }); }}
                             >
                                 <option value="All">All Roles</option>
                                 {roles.map((role) => (
@@ -191,15 +205,15 @@ export default function EmployeeList() {
                         onPageChange={setPage} 
                     />
                     
-                    <SlideOver isOpen={isSlideOverOpen} onClose={() => setIsSlideOverOpen(false)} title={`Manage ${selectedEmployee?.fullName || 'Employee'}`}>
+                    <SlideOver isOpen={isSlideOverOpen} onClose={() => { setDialog(''); }} title={`Manage ${selectedEmployee?.fullName || 'Employee'}`}>
                         {selectedEmployee && (
                             <EmployeeManagerForm 
                                 employee={selectedEmployee} 
                                 onSuccess={() => { 
-                                    setIsSlideOverOpen(false); 
+                                                                        setDialog(''); 
                                     queryClient.invalidateQueries({ queryKey: ['employees'] });
                                 }} 
-                                onCancel={() => setIsSlideOverOpen(false)} 
+                                onCancel={() => { setDialog(''); }} 
                             />
                         )}
                     </SlideOver>
@@ -209,12 +223,12 @@ export default function EmployeeList() {
                         title="Revoke Access" 
                         message={`Are you sure you want to permanently revoke access for "${selectedEmployee?.fullName}"?`} 
                         onConfirm={handleConfirmDelete} 
-                        onCancel={() => { setIsDeleteDialogOpen(false); setSelectedEmployee(null); }} 
+                        onCancel={() => { setDialog(''); }} 
                         isProcessing={deleteEmployeeMutation.isPending} 
                     />
                 </>
             ) : (
-                canRoles ? <RolesManager /> : null
+                activeView === 'Leaves' && canManageAbsences ? <PendingLeaves /> : canRoles ? <RolesManager /> : null
             )}
 
             

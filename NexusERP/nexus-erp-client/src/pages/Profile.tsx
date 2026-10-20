@@ -1,5 +1,5 @@
 import { Permissions } from '../constants/permissions';
-import { useState } from 'react';
+import { useUrlBoolean } from '../hooks/useUrlState';
 import { useAuth } from '../context/AuthContext';
 import { LeaveRequestForm } from '../components/hr/LeaveRequestForm';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,7 +11,7 @@ export default function Profile() {
     const canRequestAbsences = hasPermission(Permissions.RequestAbsences);
     const queryClient = useQueryClient();
     
-    const [isRequesting, setIsRequesting] = useState(false);
+    const [isRequesting, setIsRequesting] = useUrlBoolean('requestLeave');
 
     const { data: history = [], isLoading: isLoadingHistory } = useMyLeaveHistoryQuery(canViewAbsences);
     const { data: salaryHistory = [], isLoading: isLoadingSalary } = useMySalaryHistoryQuery();

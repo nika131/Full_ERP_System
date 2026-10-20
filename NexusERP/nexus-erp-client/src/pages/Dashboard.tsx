@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import type { Transaction } from "../types/transaction";
 import { CursorDataTable, type ColumnDef } from "../components/Ui/CursorDataTable";
 import { AlertCircle, DollarSign, FilterX, Package, TrendingUp } from "lucide-react";
@@ -14,11 +14,8 @@ import { useNavigate } from "react-router-dom";
 import { MultiSelectDropdown } from "../components/Ui/MultiSelectDropdown";
 import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
-
-type TransactionCursorState = {
-  createdAt: string | null;
-  transactionId: number | null;
-};
+import { useUrlQuery } from '../hooks/useUrlState';
+import { useUrlCursor } from '../hooks/useUrlCursor';
 
 export type DashboardFilters = {
   startDate: string | null;
@@ -42,6 +39,26 @@ const defaultEnd = new Date();
 const defaultStart = new Date();
 defaultStart.setDate(defaultEnd.getDate() - 7);
 
+const initialFilters: DashboardFilters = {
+    startDate: defaultStart.toISOString().slice(0, 10), endDate: defaultEnd.toISOString().slice(0, 10),
+    startHour: '', endHour: '', storeIds: [], categoryIds: [], supplierIds: [], employeeIds: []
+};
+
+function readFilters(raw: string | null): DashboardFilters {
+    if (!raw || raw.length > 5000) return initialFilters;
+    try {
+        const value = JSON.parse(raw) as Record<string, unknown>;
+        const date = (key: string, fallback: string | null) => typeof value[key] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value[key] as string) ? value[key] as string : fallback;
+        const time = (key: string) => typeof value[key] === 'string' && (/^([01]\d|2[0-3]):(00|30)$/).test(value[key] as string) ? value[key] as string : '';
+        const ids = (key: string) => Array.isArray(value[key]) ? (value[key] as unknown[]).filter(v => typeof v === 'number' && Number.isSafeInteger(v) && v > 0).slice(0, 100) as number[] : [];
+        return {
+            startDate: date('startDate', initialFilters.startDate), endDate: date('endDate', initialFilters.endDate),
+            startHour: time('startHour'), endHour: time('endHour'), storeIds: ids('storeIds'),
+            categoryIds: ids('categoryIds'), supplierIds: ids('supplierIds'), employeeIds: ids('employeeIds')
+        };
+    } catch { return initialFilters; }
+}
+
 export default function Dashboard() {
   const { hasPermission } = useAuth();
   const canViewTransactions = hasPermission(Permissions.ViewAllTransactions) || hasPermission(Permissions.ViewOwnTransactions);
@@ -49,63 +66,22 @@ export default function Dashboard() {
   const canViewSuppliers = hasPermission(Permissions.ViewDashboard) || hasPermission(Permissions.ViewSuppliers);
   const canViewStores = hasPermission(Permissions.ViewDashboard) || hasPermission(Permissions.ViewStores);
   const canViewEmployees = hasPermission(Permissions.ViewDashboard) || hasPermission(Permissions.ViewUsers);
-  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>(() => {
-    const saved = sessionStorage.getItem('dashboardFilters');
-    if (saved) {
-      const parsed = JSON.parse(saved) as DashboardFilters;
-      return [
-        parsed.startDate ? new Date(parsed.startDate) : defaultStart,
-        parsed.endDate ? new Date(parsed.endDate) : defaultEnd
-      ]
-    }
-    return [defaultStart, defaultEnd]
-  });
-  const [startDate, endDate] = dateRange;
-
-  const [globalFilters, setGlobalFilters] = useState<DashboardFilters>(() => {
-    const saved = sessionStorage.getItem('dashboardFilters');
-    if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-            startDate: parsed.startDate || defaultStart.toISOString().split('T')[0],
-            endDate: parsed.endDate || defaultEnd.toISOString().split('T')[0],
-            startHour: parsed.startHour || '',
-            endHour: parsed.endHour || '',
-            storeIds: Array.isArray(parsed.storeIds) ? parsed.storeIds : [],
-            categoryIds: Array.isArray(parsed.categoryIds) ? parsed.categoryIds : [],
-            supplierIds: Array.isArray(parsed.supplierIds) ? parsed.supplierIds : [],
-            employeeIds: Array.isArray(parsed.employeeIds) ? parsed.employeeIds : []
-        };
-    }
-
-    return {
-        startDate: defaultStart.toISOString().split('T')[0],
-        endDate: defaultEnd.toISOString().split('T')[0],
-        startHour: '',
-        endHour: '',
-        storeIds: [],
-        categoryIds: [],
-        supplierIds: [],
-        employeeIds: []
-    };
-  });
-
-  const [cursorHistory, setCursorHistory] = useState<TransactionCursorState[]>([{ createdAt: null, transactionId: null }]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const [searchTerm, setSearchTerm] = useState(() => {
-    return sessionStorage.getItem('dashboaredSearch') || '';
-  });
-
-  useEffect(() => {
-    sessionStorage.setItem('dashboardFilters', JSON.stringify(globalFilters))
-  }, [globalFilters])
-
-  useEffect(() => {
-    sessionStorage.setItem('dashboardSearch', searchTerm)
-  }, [searchTerm])
-
-  const [mapCenter] = useState<[number, number]>([41.7151, 44.8271]);
+  const { params, patch } = useUrlQuery();
+  const filterParam = params.get('filters');
+  const globalFilters = useMemo(() => readFilters(filterParam), [filterParam]);
+  useEffect(() => { if (!filterParam) patch({ filters: JSON.stringify(initialFilters) }); }, [filterParam, patch]);
+  // The date picker is controlled by URL values, not by a second state variable.
+  const parseDate = (raw: string | null) => raw ? new Date(raw + 'T12:00:00') : null;
+  const startDate = parseDate(globalFilters.startDate);
+  const endDate = parseDate(globalFilters.endDate);
+  const setGlobalFilters = (change: DashboardFilters | ((prev: DashboardFilters) => DashboardFilters)) => {
+      const next = typeof change === 'function' ? change(globalFilters) : change;
+      patch({ filters: JSON.stringify(next), cursorPage: null, cursorTrail: null });
+  };
+  const searchTerm = params.get('search') ?? '';
+  const setSearchTerm = (val: string) => patch({ search: val, cursorPage: null, cursorTrail: null });
+  const ledger = useUrlCursor();
+  const mapCenter: [number, number] = [41.7151, 44.8271];
 
   const { data: stats, isLoading: isStatsLoading } = useDashboardStatsQuery(globalFilters);
   const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery(globalFilters);
@@ -120,7 +96,7 @@ export default function Dashboard() {
 
   const isLoadingStats = isStatsLoading || isChartLoading || isTopProductsLoading;
 
-  const currentCursor = cursorHistory[currentIndex]
+  const currentCursor = { createdAt: ledger.cursor.createdAt, transactionId: ledger.cursor.id }
 
   const { data: transactionsData, isLoading: isLoadingLedger } = useTransactionsQuery(
     10,
@@ -131,69 +107,22 @@ export default function Dashboard() {
     canViewTransactions
   );
 
-  useEffect(() => {
-    if (transactionsData?.hasMorePages && cursorHistory.length === currentIndex + 1) {
-      setCursorHistory(prev => [
-        ...prev,
-        { 
-          createdAt: transactionsData.nextCreatedAt ?? null, 
-          transactionId: transactionsData.nextTransactionId ?? null 
-        } 
-      ]);
-    }
-  }, [transactionsData, currentIndex, cursorHistory.length]);
-
-  useEffect(() => {
-    setCursorHistory([{ createdAt: null, transactionId: null }]);
-    setCurrentIndex(0);
-  }, [globalFilters]);
-
-  const handleSearchChange = (val: string) => {
-    setSearchTerm(val);
-    setCursorHistory([{ createdAt: null, transactionId: null }]);
-    setCurrentIndex(0);
-  };
-
-  const handleNext = () => setCurrentIndex(prev => prev + 1);
-  const handlePrevious = () => setCurrentIndex(prev => prev - 1);
+  const handleSearchChange = (val: string) => setSearchTerm(val);
+  const handleNext = () => ledger.next({ createdAt: transactionsData?.nextCreatedAt ?? null, id: transactionsData?.nextTransactionId ?? null });
+  const handlePrevious = () => ledger.previous();
 
   const clearFilters = () => {
-    const today = new Date()
-    setDateRange([today, today]);
-    setSearchTerm('')
-
-    setGlobalFilters({
-      startDate: today.toISOString().split('T')[0],
-      endDate: today.toISOString().split('T')[0],
-      startHour: '',
-      endHour: '',
-      storeIds: [],
-      categoryIds: [],
-      supplierIds: [],
-      employeeIds: [],
-    })
-
-    sessionStorage.removeItem('dashboardSearch')
-  }
+    const today = new Date().toISOString().slice(0, 10);
+    patch({ filters: JSON.stringify({ ...initialFilters, startDate: today, endDate: today }), search: null, cursorTrail: null, cursorPage: null });
+  };
 
   const transactions = transactionsData?.items || [];
   const hasMorePages = transactionsData?.hasMorePages || false;
 
-  const toggleStoreFilter = (storeId: number) => {
-    setGlobalFilters(prev => {
-      const isSelected = prev.storeIds.includes(storeId);
-
-      return {
-        ...prev,
-        storeIds: isSelected
-          ? prev.storeIds.filter(id => id !== storeId)
-          : [...prev.storeIds, storeId]
-      };
-    })
-
-    setCursorHistory([{ createdAt: null, transactionId: null }])
-    setCurrentIndex(0)
-  }
+  const toggleStoreFilter = (storeId: number) => setGlobalFilters(prev => ({
+    ...prev,
+    storeIds: prev.storeIds.includes(storeId) ? prev.storeIds.filter(id => id !== storeId) : [...prev.storeIds, storeId]
+  }));
 
   const isSingleDay = globalFilters.startDate !== '' && globalFilters.startDate === globalFilters.endDate;
 
@@ -250,7 +179,6 @@ export default function Dashboard() {
               startDate={startDate}
               endDate={endDate}
               onChange={(update: [Date | null, Date | null]) => {
-                  setDateRange(update);
                   const [newStart, newEnd] = update;
                   setGlobalFilters(prev => ({
                     ...prev,
@@ -271,8 +199,6 @@ export default function Dashboard() {
             value={globalFilters.startHour || ''}
             onChange={(e) => {
               setGlobalFilters(prev => ({ ...prev, startHour: e.target.value }));
-              setCursorHistory([{ createdAt: null, transactionId: null }]);
-              setCurrentIndex(0);
             }}
             className="w-full text-sm outline-none bg-transparent text-slate-700 cursor-pointer text-center appearance-none px-2"
           >
@@ -295,8 +221,6 @@ export default function Dashboard() {
             value={globalFilters.endHour || ''}
             onChange={(e) => {
               setGlobalFilters(prev => ({ ...prev, endHour: e.target.value }));
-              setCursorHistory([{ createdAt: null, transactionId: null }]);
-              setCurrentIndex(0);
             }}
             className="w-full text-sm outline-none bg-transparent text-slate-700 cursor-pointer text-center appearance-none px-2"
           >
@@ -322,8 +246,6 @@ export default function Dashboard() {
             selectedIds={globalFilters.categoryIds}
             onChange={(ids) => {
               setGlobalFilters(prev => ({ ...prev, categoryIds: ids }));
-              setCursorHistory([{ createdAt: null, transactionId: null }]);
-              setCurrentIndex(0);
             }}
           />
         </div>)}
@@ -336,8 +258,6 @@ export default function Dashboard() {
             selectedIds={globalFilters.supplierIds}
             onChange={(ids) => {
               setGlobalFilters(prev => ({ ...prev, supplierIds: ids }));
-              setCursorHistory([{ createdAt: null, transactionId: null }]);
-              setCurrentIndex(0);
             }}
           />
         </div>)}
@@ -350,8 +270,6 @@ export default function Dashboard() {
             selectedIds={globalFilters.storeIds}
             onChange={(ids) => {
               setGlobalFilters(prev => ({ ...prev, storeIds: ids }));
-              setCursorHistory([{ createdAt: null, transactionId: null }]);
-              setCurrentIndex(0);
             }}
           />
         </div>)}
@@ -364,8 +282,6 @@ export default function Dashboard() {
             selectedIds={globalFilters.employeeIds}
             onChange={(ids) => {
               setGlobalFilters(prev => ({ ...prev, employeeIds: ids }));
-              setCursorHistory([{ createdAt: null, transactionId: null }]);
-              setCurrentIndex(0);
             }}
           />
         </div>)}
@@ -424,7 +340,7 @@ export default function Dashboard() {
 
         {/* Card 4: Alerts */}
         <div 
-          onClick={() => navigate('/inventory', { state: { triggerLowStock: true } })}
+          onClick={() => navigate('/inventory?lowStock=1')}
           title="Click to view low stock products"
           className={`bg-white p-6 rounded-lg shadow-sm border border-slate-200 flex items-center space-x-4 cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-md active:translate-y-0 active:shadow-sm ${
             stats?.lowStockCount && stats.lowStockCount > 0 ? 'hover:border-red-300' : 'hover:border-emerald-300'
@@ -565,7 +481,7 @@ export default function Dashboard() {
           columns={columns}
           isLoading={isLoadingLedger}
           hasMorePages={hasMorePages}
-          isFirstPage={currentIndex === 0}
+          isFirstPage={ledger.isFirstPage}
           onNext={handleNext}
           onPrevious={handlePrevious}
         />

@@ -1,7 +1,7 @@
 import { roleService } from '../../api/roleService';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { useState } from 'react';
+import { useUrlString } from '../../hooks/useUrlState';
 import { User } from 'lucide-react';
 import type { RoleResponse } from '../../types/role';
 import { RoleEditorForm } from '../forms/RoleEditorForm';
@@ -12,21 +12,20 @@ export const RolesManager = () => {
     const queryClient = useQueryClient();
     const { data: availablePermissions = [], isLoading: isLoadingPerms } = usePermissionsQuery();
 
-    const [selectedRole, setSelectedRole] = useState<RoleResponse | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
+    const [roleParam, setRoleParam] = useUrlString('roleEditor');
+    const selectedRole: RoleResponse | null = roles.find(role => String(role.roleId) === roleParam) ?? null;
+    const isEditing = roleParam === 'new' || !!selectedRole;
 
     const handleCreateNew = () => {
-        setSelectedRole(null);
-        setIsEditing(true);
+        setRoleParam('new');
     };
 
     const handleEdit = (role: RoleResponse) => {
-        setSelectedRole(role);
-        setIsEditing(true);
+        setRoleParam(String(role.roleId));
     };
 
     const handleSuccess = () => {
-        setIsEditing(false);
+        setRoleParam('');
     };
 
     const handleDelete = async (role: RoleResponse) => {
@@ -34,7 +33,7 @@ export const RolesManager = () => {
         try {
             await roleService.deleteRole(role.roleId);
             await queryClient.invalidateQueries({ queryKey: ['roles'] });
-            setIsEditing(false);
+            setRoleParam('');
             toast.success('Role deleted.');
         } catch { /* API client displays the server's error message. */ }
     };
@@ -76,7 +75,7 @@ export const RolesManager = () => {
                         <User className="w-16 h-16 text-slate-300 mb-4" />
                         <h3 className="text-lg font-medium text-slate-700">No Role Selected</h3>
                         <p className="text-sm text-slate-500 mt-2 max-w-sm text-center">
-                            Select a system role from the list to modify its permissions, or create a brand new role.
+                            Select a role to review or edit it, or create a new role. System roles are protected from changes.
                         </p>
                     </div>
                 ) : (
@@ -85,7 +84,7 @@ export const RolesManager = () => {
                         role={selectedRole} 
                         availablePermissions={availablePermissions}
                         onSuccess={handleSuccess}
-                        onCancel={() => setIsEditing(false)}
+                        onCancel={() => setRoleParam('')}
                     />
                 )}
             </div>

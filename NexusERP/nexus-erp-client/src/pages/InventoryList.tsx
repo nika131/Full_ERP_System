@@ -15,7 +15,7 @@ import { useSupplierLookupQuery } from '../hooks/queries/useSupplierQueries';
 import { AlertTriangle, Plus, Settings } from 'lucide-react';
 import { GlobalSettingsModal } from '../components/Ui/GlobalSettingsModal';
 import apiClient from '../api/apiClient';
-import { useLocation } from 'react-router-dom';
+import { useUrlNumber, useUrlString, useUrlQuery } from '../hooks/useUrlState';
 
 export default function InventoryList() {
     const { hasPermission } = useAuth();
@@ -25,24 +25,19 @@ export default function InventoryList() {
     const canStock = hasPermission(Permissions.AdjustStock) || hasPermission(Permissions.PerformInboundTransactions);
     const canManageSettings = hasPermission(Permissions.ManageSettings);
     const canViewSettings = hasPermission(Permissions.ViewSettings);
-    const [page, setPage] = useState(1);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('')
-    const [supplierFilter, setSupplierFilter] = useState('')
-    const [lowStockOnly, setLowStockOnly] = useState(false);
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-
-    const [isSildeOverOpen, setIsSlideOverOpen] = useState(false);
-    const [selectedProduct, setSelectedProduct]= useState<Product | null>(null);
-
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-    const [isStockSlideOverOpen, setIsStockSlideOverOpen] = useState(false);
-    const [selectedStockProduct, setSelectedStockProduct] = useState<Product | null>(null);
-
+    const { patch } = useUrlQuery();
+    const [page, setPage] = useUrlNumber('page');
+    const [searchTerm] = useUrlString('search');
+    const [categoryFilter] = useUrlString('category');
+    const [supplierFilter] = useUrlString('supplier');
+    const { params } = useUrlQuery();
+    const lowStockOnly = params.get('lowStock') === '1';
+    const [dialog, setDialog] = useUrlString('dialog');
+    const itemId = Number(dialog.split(':')[1]) || 0;
+    const closeDialog = () => setDialog('');
     const [globalThreshold, setGlobalThreshold] = useState(5);
 
-    const location = useLocation();
+
 
     const { data: productsData, isLoading, isError } = useProductsQuery(
         page, 
@@ -64,15 +59,17 @@ export default function InventoryList() {
     const totalCount = productsData?.totalCount || 0;
     const totalValue = productsData?.totalValue || 0;
 
-    const handleAddClick = () => {
-        setSelectedProduct(null);
-        setIsSlideOverOpen(true);
-    }
+    const selectedProduct = dialog.startsWith('edit:') || dialog.startsWith('delete:')
+        ? products.find(product => product.productId === itemId) ?? null : null;
+    const selectedStockProduct = dialog.startsWith('stock:')
+        ? products.find(product => product.productId === itemId) ?? null : null;
+    const isSlideOverOpen = dialog === 'create' && canCreate || dialog.startsWith('edit:') && canEdit && !!selectedProduct;
+    const isDeleteDialogOpen = dialog.startsWith('delete:') && canDelete && !!selectedProduct;
+    const isStockSlideOverOpen = dialog.startsWith('stock:') && canStock && !!selectedStockProduct;
+    const isSettingsModalOpen = dialog === 'settings' && canManageSettings;
 
-    const handleEditClick = (product: Product) => {
-        setSelectedProduct(product);
-        setIsSlideOverOpen(true);
-    };
+    const handleAddClick = () => setDialog('create');
+    const handleEditClick = (product: Product) => setDialog(`edit:${product.productId}`);
 
     const handleFormSubmit = async (FormData: ProductFormData) => {
         try {
@@ -81,27 +78,21 @@ export default function InventoryList() {
                 productId: selectedProduct?.productId
             };
             await saveProductMutation.mutateAsync(payload);
-            setIsSlideOverOpen(false);
+            closeDialog();
         } catch (err) {
             console.error("Failed to save", err);
         }
     }
 
-    const handleDeleteClick = (product: Product) => {
-        setSelectedProduct(product);
-        setIsDeleteDialogOpen(true);
-    }
+    const handleDeleteClick = (product: Product) => setDialog(`delete:${product.productId}`);
 
     const handleConfirmDelete = async () => {
         if (!selectedProduct) return;
         try {
             await deleteProductMutation.mutateAsync(selectedProduct.productId);
-            setIsDeleteDialogOpen(false);
-            setSelectedProduct(null);
-        } catch (err) {
-            console.error("Failed to delete product", err);
-        }
-    }
+            closeDialog();
+        } catch (err) { console.error('Failed to delete product', err); }
+    };
 
     const handleStockSubmit = async (formData: StockFormData) => {
         if (!selectedStockProduct) return;
@@ -114,7 +105,7 @@ export default function InventoryList() {
                 transactionType: formData.transactionType,
                 quantity: formData.quantity 
             });
-            setIsStockSlideOverOpen(false);
+            closeDialog();
         } catch (err) {
             console.error("Transaction failed", err);
         }
@@ -127,14 +118,7 @@ export default function InventoryList() {
             .catch(err => console.error("Failed to load global threshold", err));
     }, [canViewSettings]);
 
-    useEffect(() => {
-        if (location.state?.triggerLowStock) {
-            setLowStockOnly(true)
-            setPage(1)
 
-            window.history.replaceState({}, document.title)
-        }
-    }, [location.state])
 
     const columns = useMemo<ColumnDef<Product>[]>(() => [
         { header: 'ID', accessor: 'productId', className: 'w-16' },
@@ -185,7 +169,7 @@ export default function InventoryList() {
         render: (item) => (
             <div className="flex justify-end space-x-3">
                 {canStock && <button 
-                    onClick={() => { setSelectedStockProduct(item); setIsStockSlideOverOpen(true); }} 
+                    onClick={() => setDialog(`stock:${item.productId}`)} 
                     className="text-blue-600 hover:text-blue-800 font-medium text-sm">
                     Manage Stock
                 </button>}
@@ -223,8 +207,7 @@ export default function InventoryList() {
                         placeholder="Search name or ID..." 
                         value={searchTerm}
                         onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setPage(1);
+                            patch({ search: e.target.value, page: null });
                         }}
                         className="w-full sm:flex-1 border border-slate-300 rounded p-2 text-sm outline-none"
                     />
@@ -234,8 +217,7 @@ export default function InventoryList() {
                         
                         <button
                             onClick={() => {
-                                setLowStockOnly(!lowStockOnly);
-                                setPage(1);
+                                patch({ lowStock: !lowStockOnly, page: null });
                             }}
                             className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-semibold transition-colors border ${
                                 lowStockOnly 
@@ -249,7 +231,7 @@ export default function InventoryList() {
                         </button>
 
                         {canManageSettings && <button
-                            onClick={() => setIsSettingsModalOpen(true)}
+                            onClick={() => setDialog('settings')}
                             className="w-12 sm:w-auto p-2 flex-none rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 flex items-center justify-center"
                             title="System Settings"
                         >
@@ -271,7 +253,7 @@ export default function InventoryList() {
                     <select
                         className="flex-1 w-1/2 bg-white px-3 py-2 rounded border border-slate-300 text-sm outline-none" 
                         value={categoryFilter}
-                        onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+                        onChange={(e) => patch({ category: e.target.value, page: null })}
                     >
                         <option value="">All Categories</option>
                         {categories.map((category) => (
@@ -282,7 +264,7 @@ export default function InventoryList() {
                     <select
                         className="flex-1 w-1/2 bg-white px-3 py-2 rounded border border-slate-300 text-sm outline-none" 
                         value={supplierFilter}
-                        onChange={(e) => { setSupplierFilter(e.target.value); setPage(1); }}
+                        onChange={(e) => patch({ supplier: e.target.value, page: null })}
                     >
                         <option value="">All Suppliers</option>
                         {suppliers.map((supplier) => (
@@ -309,30 +291,35 @@ export default function InventoryList() {
                 onPageChange={(newPage) => setPage(newPage)}
             />
 
+            {dialog.includes(':') && itemId > 0 && !selectedProduct && !selectedStockProduct && !isLoading && (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    This item is not on the current results page. Change the page or filters to find it; your shared link remains intact.
+                </p>
+            )}
             {/* Edit/Create Modal */}
             <SlideOver
-                isOpen={isSildeOverOpen}
-                onClose={() => setIsSlideOverOpen(false)}
+                isOpen={isSlideOverOpen}
+                onClose={closeDialog}
                 title={selectedProduct ? `Edit ${selectedProduct.name}` : "Create New Product"}
             >
                 <ProductForm
                     initialData={selectedProduct}
                     onSubmit={handleFormSubmit}
-                    onCancel={() => setIsSlideOverOpen(false)}
+                    onCancel={closeDialog}
                 />
             </SlideOver>
 
             {/* Stock Adjustment Modal */}
             <SlideOver 
                 isOpen={isStockSlideOverOpen} 
-                onClose={() => setIsStockSlideOverOpen(false)} 
+                onClose={closeDialog} 
                 title="Inventory Adjustment"
             >
                 {selectedStockProduct && (
                     <StockManagementForm 
                         product={selectedStockProduct} 
                         onSubmit={handleStockSubmit} 
-                        onCancel={() => setIsStockSlideOverOpen(false)} 
+                        onCancel={closeDialog} 
                     />
                 )}
             </SlideOver>
@@ -343,16 +330,13 @@ export default function InventoryList() {
                 title="Delete Product"
                 message={`Are you sure you want to delete "${selectedProduct?.name}"? This action cannot be undone.`}
                 onConfirm={handleConfirmDelete}
-                onCancel={() => {
-                setIsDeleteDialogOpen(false);
-                setSelectedProduct(null);
-                }}
+                onCancel={closeDialog}
                 isProcessing={deleteProductMutation.isPending}
             />
 
             {/* Global Settings Modal (Hidden by default) */}
             {isSettingsModalOpen && (
-                <GlobalSettingsModal onClose={() => setIsSettingsModalOpen(false)} />
+                <GlobalSettingsModal onClose={closeDialog} />
             )}
             
         </div>
