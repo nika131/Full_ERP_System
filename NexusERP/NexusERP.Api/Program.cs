@@ -69,6 +69,8 @@ builder.Services.AddScoped<IStoreService, StoreService>();
 builder.Services.AddScoped<IPosService, PosService>();
 
 builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationService>();
+builder.Services.AddScoped<IAccountRegistrationService, AccountRegistrationService>();
+builder.Services.AddScoped<IVerificationEmailSender, SmtpVerificationEmailSender>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

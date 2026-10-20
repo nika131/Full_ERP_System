@@ -14,6 +14,14 @@ namespace NexusERP.Domain.Entities
         public string? GoogleSubject { get; set; }
 
         public bool EmailVerified { get; set; }
+
+        public string? EmailVerificationCodeHash { get; set; }
+        public DateTime? EmailVerificationExpiresAt { get; set; }
+        public DateTime? EmailVerificationSentAt { get; set; }
+        public int EmailVerificationAttempts { get; set; }
+        public DateTime? EmailVerificationWindowStart { get; set; }
+        public int EmailVerificationSentCount { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; }

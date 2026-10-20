@@ -517,6 +517,8 @@ namespace NexusERP.Infrastructure.Database
                 entity.HasIndex(e => e.GoogleSubject)
                     .IsUnique()
                     .HasFilter("[GoogleSubject] IS NOT NULL");
+
+                entity.Property(e => e.EmailVerificationCodeHash).HasMaxLength(64);
             });
 
             // AUTH SESSION

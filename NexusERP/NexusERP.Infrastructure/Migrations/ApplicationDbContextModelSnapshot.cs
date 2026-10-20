@@ -39,6 +39,25 @@ namespace NexusERP.Infrastructure.Migrations
                         .HasMaxLength(320)
                         .HasColumnType("nvarchar(320)");
 
+                    b.Property<int>("EmailVerificationAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EmailVerificationCodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("EmailVerificationExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EmailVerificationSentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmailVerificationSentCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EmailVerificationWindowStart")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("EmailVerified")
                         .HasColumnType("bit");
 
