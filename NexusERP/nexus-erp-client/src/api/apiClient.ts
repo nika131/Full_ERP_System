@@ -1,62 +1,56 @@
-import axios from 'axios';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
 import toast from 'react-hot-toast';
+import { authService } from './authService';
+import { expiresSoon, tokenStorage } from './tokenStorage';
 
 const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
 });
 
-apiClient.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('jwt_token');
-        if(token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+apiClient.interceptors.request.use(async (config) => {
+    let token = tokenStorage.getCompanyAccess();
+    if (token && expiresSoon(token)) token = await authService.refreshCompanyAccess();
+    if (token) {
+        config.headers = AxiosHeaders.from(config.headers);
+        config.headers.set('Authorization', `Bearer ${token}`);
     }
-);
+    return config;
+});
 
 apiClient.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    (error) => {
-        if (error.response ) {
-            const status = error.response.status;
-            const message = error.response.data?.message || 'An unexpected error occurred.';
-
-            switch (status) {
-                case 400:
-                    toast.error(message);
-                    break;
-                case 401:
-                    toast.error('Session expired. Please log in again');
-                    localStorage.removeItem('jwt_token');
-                    window.location.href = '/login';
-                    break;
-                case 403:
-                    toast.error('Access Denied: You do not have permission for this action.');
-                    break;
-                case 409:
-                    toast.error(`Data Conflict: ${message}`);
-                    break;
-                case 429:
-                    toast.error("Rate limit exceeded.")
-                    break;
-                case 500:
-                    toast.error('A critical server error occurred.')
-                    break;
-                default:
-                    toast.error(message);
+    (response) => response,
+    async (error: AxiosError<{ message?: string; Message?: string }>) => {
+        const original = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
+        if (error.response?.status === 401 && original && !original._retried && tokenStorage.getCompanyId()) {
+            original._retried = true;
+            try {
+                const fresh = await authService.refreshCompanyAccess();
+                original.headers = AxiosHeaders.from(original.headers);
+                original.headers.set('Authorization', `Bearer ${fresh}`);
+                return await apiClient(original);
+            } catch {
+                tokenStorage.clearCompany();
             }
-        } else if (error.request) {
-            toast.error('Cannot connect to the server. Check your connection.');
         }
+
+        // React Query cancels unused requests during navigation/refetch. This is not a network outage.
+        if (axios.isCancel(error) || error.code === 'ERR_CANCELED' || error.config?.signal?.aborted)
+            return Promise.reject(error);
+
+        const status = error.response?.status;
+        const message = error.response?.data?.message ?? error.response?.data?.Message ?? 'An unexpected error occurred.';
+        if (status === 401) {
+            tokenStorage.clearCompany();
+            toast.error('ERP access expired. Please select your company again.');
+            window.location.assign('/companies');
+        } else if (status === 403) {
+            if (error.config?.method?.toLowerCase() !== 'get') toast.error(message);
+        }
+        else if (status === 429) toast.error('Rate limit exceeded. Please try again later.');
+        else if (status && error.config?.method?.toLowerCase() !== 'get') toast.error(message);
+        else if (!status && error.code === 'ERR_NETWORK' && error.config?.method?.toLowerCase() !== 'get')
+            toast.error('Cannot connect to the server. Check your connection.');
 
         return Promise.reject(error);
     }

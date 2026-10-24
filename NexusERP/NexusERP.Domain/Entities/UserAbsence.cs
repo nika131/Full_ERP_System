@@ -26,6 +26,9 @@ namespace NexusERP.Domain.Entities
         public User? ReviewedBy { get; set; }
         public string? ReviewerComments { get; set; }
 
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

@@ -1,92 +1,48 @@
 import { create } from "zustand";
-import { posService } from "../api/posService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const STORAGE_KEY = "pos_terminal_store_id";
+import { posService } from "../api/posService";
 
 interface TerminalState {
+  companyId: number | null;
+  loadedCompanyId: number | null;
   storeId: number | null;
   storeName: string | null;
   maxCartDiscountPercentage: number;
   isLoaded: boolean;
-  load: () => Promise<void>;
-  setStore: (
-    storeId: number,
-    storeName: string,
-    maxCartDiscountPercentage: number
-  ) => Promise<void>;
+  load: (companyId: number) => Promise<void>;
+  setStore: (storeId: number, storeName: string, maxCartDiscountPercentage: number) => Promise<void>;
   clearStore: () => Promise<void>;
+  reset: () => void;
 }
+const storageKey = (companyId: number) => `pos_terminal_store_v2_${companyId}`;
+const blank = { companyId: null, loadedCompanyId: null, storeId: null, storeName: null, maxCartDiscountPercentage: 0, isLoaded: false };
 
-export const useTerminalStore = create<TerminalState>((set) => ({
-  storeId: null,
-  storeName: null,
-  maxCartDiscountPercentage: 0,
-  isLoaded: false,
-
-  load: async () => {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-
-    if (!raw) {
-      set({ isLoaded: true });
-      return;
-    }
-
-    const parsed = JSON.parse(raw);
-    const stores = await posService.getStores();
-
-    const currentStore = stores.find(
-      (store) => store.storeId === parsed.storeId
-    );
-
-      if (!currentStore) {
-        await AsyncStorage.removeItem(STORAGE_KEY);
-
-        set({
-          storeId: null,
-          storeName: null,
-          isLoaded: true,
-        });
-
-        return;
-      }
-
-      set({
-        storeId: currentStore.storeId,
-        storeName: currentStore.name,
-        maxCartDiscountPercentage:
-          currentStore.maxCartDiscountPercentage ?? 0,
-        isLoaded: true,
-      });
+export const useTerminalStore = create<TerminalState>((set, get) => ({
+  ...blank,
+  reset: () => set(blank),
+  load: async (companyId) => {
+    set({ ...blank, companyId });
+    try {
+      const [raw, stores] = await Promise.all([AsyncStorage.getItem(storageKey(companyId)), posService.getStores()]);
+      if (get().companyId !== companyId) return;
+      const previousId = raw ? Number(JSON.parse(raw).storeId) : 0;
+      const store = stores.find(s => s.storeId === previousId);
+      set({ companyId, loadedCompanyId: companyId, storeId: store?.storeId ?? null,
+        storeName: store?.name ?? null, maxCartDiscountPercentage: store?.maxCartDiscountPercentage ?? 0, isLoaded: true });
+      if (previousId && !store) await AsyncStorage.removeItem(storageKey(companyId));
     } catch {
-      set({ isLoaded: true });
+      if (get().companyId === companyId) set({ companyId, loadedCompanyId: companyId, isLoaded: true });
     }
   },
-
-  setStore: async (
-    storeId,
-    storeName,
-    maxCartDiscountPercentage
-  ) => {
-    await AsyncStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        storeId,
-        storeName,
-        maxCartDiscountPercentage,
-      })
-    );
-
-    set({
-      storeId,
-      storeName,
-      maxCartDiscountPercentage,
-    });
+  setStore: async (storeId, storeName, maxCartDiscountPercentage) => {
+    const companyId = get().companyId;
+    if (!companyId) throw new Error("Select a company before choosing a store.");
+    await AsyncStorage.setItem(storageKey(companyId), JSON.stringify({ storeId }));
+    set({ storeId, storeName, maxCartDiscountPercentage });
   },
-
   clearStore: async () => {
-    await AsyncStorage.removeItem(STORAGE_KEY);
-    set({ storeId: null, storeName: null });
+    const companyId = get().companyId;
+    if (companyId) await AsyncStorage.removeItem(storageKey(companyId));
+    set({ storeId: null, storeName: null, maxCartDiscountPercentage: 0 });
   },
 }));

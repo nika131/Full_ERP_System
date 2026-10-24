@@ -7,6 +7,7 @@ namespace NexusERP.Application.DTOs
         public int RoleId { get; set; }
         public string Name { get; set; } = string.Empty;
         public List<string> Permissions { get; set; } = new();
+        public bool IsSystemRole { get; set; }
     }
 
     public class RoleUpsertDto
@@ -23,5 +24,6 @@ namespace NexusERP.Application.DTOs
     {
         public int RoleId { get; set; }
         public string Name { get; set; } = string.Empty;
+        public bool IsSystemRole { get; set; }
     }
 }

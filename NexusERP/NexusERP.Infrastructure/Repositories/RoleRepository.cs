@@ -1,14 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using NexusERP.Domain.Constants;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -21,16 +17,14 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<PagedResult<Role>> GetPaged(int pageNumber, int pageSize, string? searchTerm)
+        public async Task<PagedResult<Role>> GetPaged(int companyId, int pageNumber, int pageSize, string? searchTerm)
         {
             var baseQuery = _context.Roles
-                .Where(r => r.IsActive)
+                .Where(r => r.CompanyId == companyId && r.IsActive)
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
                 baseQuery = baseQuery.Where(r => r.Name.Contains(searchTerm));
-            }
 
             var totalCount = await baseQuery.CountAsync();
 
@@ -49,16 +43,16 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public async Task<IEnumerable<Role>> GetAllActive()
+        public async Task<IEnumerable<Role>> GetAllActive(int companyId)
         {
             return await _context.Roles
                 .AsNoTracking()
-                .Where(r => r.IsActive)
+                .Where(r => r.CompanyId == companyId && r.IsActive)
                 .OrderBy(r => r.Name)
                 .ToListAsync();
         }
 
-        public async Task Upsert(Role role, int userId)
+        public async Task Upsert(Role role, int userId, int companyId)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -68,39 +62,76 @@ namespace NexusERP.Infrastructure.Repositories
 
                 try
                 {
+                    var actor = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u =>
+                        u.UserId == userId && u.CompanyId == companyId && u.IsActive && u.Role.IsActive);
+
+                    if (actor == null || !actor.Role.Permissions.Contains(Permissions.ManageRoles))
+                        throw new UnauthorizedAccessException("You do not have permission to manage roles.");
+
+                    if (string.IsNullOrWhiteSpace(role.Name) || role.Name.Trim().Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                        throw new AppException("The protected Admin role cannot be created or modified.");
+
+                    if (role.Permissions == null || role.Permissions.Count == 0 ||
+                        role.Permissions.Except(Permissions.GetAllPermissions(), StringComparer.Ordinal).Any())
+                        throw new AppException("Select one or more valid permissions.");
+
+                    if (role.Permissions.Except(actor.Role.Permissions, StringComparer.Ordinal).Any())
+                        throw new AppException("You cannot grant permissions you do not possess.");
+
                     bool isNew = role.RoleId == 0;
-                    string action = isNew ? "Create" : "Edit";
-                    string changes = isNew ? $"Created role '{role.Name}'" : $"Updated role '{role.Name}' with {role.Permissions.Count} permissions";
+
+                    bool nameExists = await _context.Roles.AnyAsync(r =>
+                        r.CompanyId == companyId &&
+                        r.IsActive &&
+                        r.Name == role.Name &&
+                        r.RoleId != role.RoleId
+                    );
+
+                    if (nameExists)
+                        throw new AppException("A role with this name already exists.");
 
                     if (isNew)
                     {
+                        role.CompanyId = companyId;
+                        role.IsSystemRole = false;
                         role.IsActive = true;
+
                         _context.Roles.Add(role);
-                        await _context.SaveChangesAsync();
                     }
                     else
                     {
-                        var existing = await _context.Roles.FindAsync(role.RoleId);
+                        var existing = await _context.Roles.FirstOrDefaultAsync(r =>
+                            r.RoleId == role.RoleId &&
+                            r.CompanyId == companyId &&
+                            r.IsActive
+                        );
 
-                        if (existing == null || !existing.IsActive)
-                            throw new Exception("Role not found");
+                        if (existing == null)
+                            throw new AppException("Role not found.");
+
+                        if (existing.IsSystemRole)
+                            throw new AppException("System roles cannot be edited.");
 
                         existing.Name = role.Name;
                         existing.Permissions = role.Permissions;
-                        await _context.SaveChangesAsync();
                     }
+
+                    await _context.SaveChangesAsync();
 
                     var audit = new SystemAuditLog
                     {
+                        CompanyId = companyId,
                         UserId = userId,
                         EntityType = "Role",
                         EntityId = role.RoleId,
-                        Action = action,
-                        ChangesMade = changes
+                        Action = isNew ? "Create" : "Edit",
+                        ChangesMade = isNew
+                            ? $"Created role '{role.Name}'"
+                            : $"Updated role '{role.Name}' with {role.Permissions.Count} permissions"
                     };
 
-
                     _context.SystemAuditLogs.Add(audit);
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                 }
@@ -112,21 +143,34 @@ namespace NexusERP.Infrastructure.Repositories
             });
         }
 
-        public async Task Delete(int id, int userId)
+        public async Task Delete(int id, int userId, int companyId)
         {
-            var role = await _context.Roles.FindAsync(id);
+            var role = await _context.Roles.FirstOrDefaultAsync(r =>
+                r.RoleId == id &&
+                r.CompanyId == companyId &&
+                r.IsActive
+            );
 
-            if (role == null || !role.IsActive)
-                throw new AppException("Role not Found");
+            if (role == null)
+                throw new AppException("Role not found.");
 
-            bool isRoleInUse = await _context.Users.AnyAsync(u => u.RoleId == id && u.IsActive);
+            if (role.IsSystemRole)
+                throw new AppException("System roles cannot be deleted.");
+
+            bool isRoleInUse = await _context.Users.AnyAsync(u =>
+                u.CompanyId == companyId &&
+                u.RoleId == id &&
+                u.IsActive
+            );
+
             if (isRoleInUse)
-                throw new AppException("Cannot delete thie role. It is currently assigned to active users.");
+                throw new AppException("Cannot delete this role. It is currently assigned to active users.");
 
             role.IsActive = false;
 
             var audit = new SystemAuditLog
             {
+                CompanyId = companyId,
                 UserId = userId,
                 EntityType = "Role",
                 EntityId = role.RoleId,

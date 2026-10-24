@@ -4,6 +4,6 @@ namespace NexusERP.Application.Interfaces.Services
 {
     public interface IInventoryService
     {
-        Task ProcessTransaction(InventoryTransaction transaction, int userId, string transactionType);
+        Task ProcessTransaction(InventoryTransaction transaction, int userId, int companyId, string transactionType);
     }
 }

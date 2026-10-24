@@ -4,11 +4,11 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IAbsenceRepository
     {
-        Task<UserAbsence> SubmitRequestAsync(UserAbsence absence);
-        Task ReviewRequestAsync(UserAbsence absence);
-        Task<UserAbsence?> GetByIdAsync(int absenceId);
-        Task<IEnumerable<UserAbsence>> GetMyAbsencesAsync(int userId);
-        Task<IEnumerable<UserAbsence>> GetPendingRequestsAsync();
-        Task<bool> HasOverlappingAbsenceAsync(int userId, DateTime start, DateTime end);
+        Task<UserAbsence> SubmitRequestAsync(int companyId, UserAbsence absence);
+        Task ReviewRequestAsync(int companyId, UserAbsence absence);
+        Task<UserAbsence?> GetByIdAsync(int companyId, int absenceId);
+        Task<IEnumerable<UserAbsence>> GetMyAbsencesAsync(int companyId, int userId);
+        Task<IEnumerable<UserAbsence>> GetPendingRequestsAsync(int companyId);
+        Task<bool> HasOverlappingAbsenceAsync(int companyId, int userId, DateTime start, DateTime end);
     }
 }

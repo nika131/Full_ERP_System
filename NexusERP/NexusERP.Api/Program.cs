@@ -1,18 +1,19 @@
+using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using NexusERP.Api.Middleware;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
+using NexusERP.Domain.Constants;
 using NexusERP.Infrastructure.Database;
 using NexusERP.Infrastructure.Repositories;
 using NexusERP.Infrastructure.Services;
+using System.Security.Claims;
 using System.Text;
-using NexusERP.Domain.Constants;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
-using DocumentFormat.OpenXml.InkML;
-using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,27 +69,199 @@ builder.Services.AddScoped<IPdfExportService, PdfExportService>();
 builder.Services.AddScoped<IStoreService, StoreService>();
 builder.Services.AddScoped<IPosService, PosService>();
 
+builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationService>();
+builder.Services.AddScoped<IAccountRegistrationService, AccountRegistrationService>();
+builder.Services.AddScoped<IVerificationEmailSender, SmtpVerificationEmailSender>();
+builder.Services.AddScoped<ICompanyAccessService, CompanyAccessService>();
+
+builder.Services.AddScoped<IAccountSessionService, AccountSessionService>();
+builder.Services.AddScoped<ICompanyJoinRequestService, CompanyJoinRequestService>();
+builder.Services.AddScoped<ICompanyJoinCodeService, CompanyJoinCodeService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key is misssing in the appsettings.json");
 
+var accountJwtKey = builder.Configuration["AccountJwt:Key"]
+    ?? throw new InvalidOperationException("Account JWT key is missing.");
+
+if (Encoding.UTF8.GetByteCount(accountJwtKey) < 32 || accountJwtKey == jwtKey)
+    throw new InvalidOperationException("Account JWT key must be at least 32 bytes and different from the ERP JWT key.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
+
+.AddJwtBearer(AccountJwtConstants.AuthenticationScheme, options =>
+{
+    options.MapInboundClaims = false;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = AccountJwtConstants.Issuer,
+        ValidAudience = AccountJwtConstants.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(accountJwtKey)),
+        ClockSkew = TimeSpan.FromSeconds(30)
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
         {
-            options.TokenValidationParameters = new TokenValidationParameters
+            string? accountValue = context.Principal?.FindFirst("account_id")?.Value;
+            string? sessionValue = context.Principal?.FindFirst("session_id")?.Value;
+            string? tokenType = context.Principal?.FindFirst("token_type")?.Value;
+
+            if (tokenType != "account" ||
+                !int.TryParse(accountValue, out int accountId) ||
+                !Guid.TryParse(sessionValue, out Guid sessionId))
             {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                ValidAudience = builder.Configuration["Jwt:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-            };
-        });
+                context.Fail("Invalid account token.");
+                return;
+            }
+
+            var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+
+            bool sessionIsValid = await db.AuthSessions.AsNoTracking().AnyAsync(s =>
+                s.SessionId == sessionId &&
+                s.AccountId == accountId &&
+                s.CompanyId == null &&
+                s.RevokedAt == null &&
+                s.ExpiresAt > DateTime.UtcNow &&
+                s.Account.IsActive &&
+                s.Account.EmailVerified
+            );
+
+            if (!sessionIsValid)
+                context.Fail("Account session has expired or was revoked.");
+        },
+
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = "Your session is invalid or expired. Please sign in again."
+            });
+        }
+    };
+});
+
+
+builder.Services.AddAuthentication()
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.MapInboundClaims = true;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                string? tokenType = context.Principal?.FindFirst("token_type")?.Value;
+
+                // Keep existing employee and POS tokens working temporarily.
+                if (tokenType == null)
+                    return;
+
+                if (tokenType != "company" ||
+                    !int.TryParse(context.Principal?.FindFirst("account_id")?.Value, out int accountId) ||
+                    !int.TryParse(context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out int userId) ||
+                    !int.TryParse(context.Principal?.FindFirst("CompanyId")?.Value, out int companyId) ||
+                    !int.TryParse(context.Principal?.FindFirst("role_id")?.Value, out int roleId) ||
+                    !Guid.TryParse(context.Principal?.FindFirst("session_id")?.Value, out Guid sessionId))
+                {
+                    context.Fail("Invalid company token.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+
+                bool validSession = await db.AuthSessions.AsNoTracking().AnyAsync(s =>
+                    s.SessionId == sessionId &&
+                    s.AccountId == accountId &&
+                    s.CompanyId == null &&
+                    s.RevokedAt == null &&
+                    s.ExpiresAt > DateTime.UtcNow &&
+                    s.Account.IsActive &&
+                    s.Account.EmailVerified
+                );
+
+                if (!validSession)
+                {
+                    context.Fail("Your account session is invalid or revoked.");
+                    return;
+                }
+
+                var membership = await db.Users
+                    .AsNoTracking()
+                    .Include(u => u.Role)
+                    .FirstOrDefaultAsync(u =>
+                        u.UserId == userId &&
+                        u.AccountId == accountId &&
+                        u.CompanyId == companyId &&
+                        u.RoleId == roleId &&
+                        u.IsActive &&
+                        u.Company.IsActive &&
+                        u.Role.IsActive &&
+                        u.Role.CompanyId == companyId
+                    );
+
+                if (membership == null)
+                {
+                    context.Fail("Your company membership is no longer valid.");
+                    return;
+                }
+
+                var tokenPermissions = context.Principal!.FindAll("Permission")
+                    .Select(c => c.Value)
+                    .ToHashSet(StringComparer.Ordinal);
+
+                var currentPermissions = membership.Role.Permissions
+                    .ToHashSet(StringComparer.Ordinal);
+
+                if (!tokenPermissions.SetEquals(currentPermissions) ||
+                    context.Principal.FindFirst(ClaimTypes.Role)?.Value != membership.Role.Name)
+                    context.Fail("Company permissions changed. Please select the company again.");
+            },
+
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    message = "Invalid or expired ERP session. Please sign in or select your company again."
+                });
+            },
+
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    message = "You do not have permission to perform this action."
+                });
+            }
+        };
+    });
+
+
 
 builder.Services.AddAuthorization(options =>
 {
@@ -110,6 +283,27 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequirePerformCashMovements", policy => policy.RequireClaim("Permission", Permissions.PerformCashMovements));
     options.AddPolicy("RequireManageShifts", policy => policy.RequireClaim("Permission", Permissions.ManageShifts));
     options.AddPolicy("RequirePerformSales", policy => policy.RequireClaim("Permission", Permissions.PerformSales));
+    options.AddPolicy("RequireReadTransactions", policy => policy.RequireAssertion(ctx =>
+        ctx.User.HasClaim("Permission", Permissions.ViewOwnTransactions) ||
+        ctx.User.HasClaim("Permission", Permissions.ViewAllTransactions)));
+    options.AddPolicy("RequireViewAllTransactions", policy => policy.RequireClaim("Permission", Permissions.ViewAllTransactions));
+    options.AddPolicy("RequireCategoryLookup", policy => policy.RequireAssertion(ctx =>
+        ctx.User.HasClaim("Permission", Permissions.ViewCategories) ||
+        ctx.User.HasClaim("Permission", Permissions.ViewProducts) ||
+        ctx.User.HasClaim("Permission", Permissions.ViewDashboard)));
+    options.AddPolicy("RequireSupplierLookup", policy => policy.RequireAssertion(ctx =>
+        ctx.User.HasClaim("Permission", Permissions.ViewSuppliers) ||
+        ctx.User.HasClaim("Permission", Permissions.ViewProducts) ||
+        ctx.User.HasClaim("Permission", Permissions.ViewDashboard)));
+    options.AddPolicy("RequireStoreLookup", policy => policy.RequireAssertion(ctx =>
+        ctx.User.HasClaim("Permission", Permissions.ViewStores) ||
+        ctx.User.HasClaim("Permission", Permissions.ViewDashboard)));
+    options.AddPolicy("RequireEmployeeLookup", policy => policy.RequireAssertion(ctx =>
+        ctx.User.HasClaim("Permission", Permissions.ViewUsers) ||
+        ctx.User.HasClaim("Permission", Permissions.ViewDashboard)));
+
+    foreach (var permission in Permissions.GetAllPermissions())
+        options.AddPolicy(permission, policy => policy.RequireClaim("Permission", permission));
 });
 
 
@@ -203,21 +397,57 @@ app.MapControllers().RequireRateLimiting("GlobalPolicy");
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var adminRole = dbContext.Roles.FirstOrDefault(r => r.Name == "Admin");
+    var canonicalPermissions = Permissions.GetAllPermissions();
+    var admins = dbContext.Roles.Where(r => r.IsSystemRole && r.Name == "Admin").ToList();
 
-    if (adminRole != null)
+    foreach (var admin in admins)
     {
-        var allPermissions = NexusERP.Domain.Constants.Permissions.GetAllPermissions();
+        if (!admin.Permissions.ToHashSet(StringComparer.Ordinal).SetEquals(canonicalPermissions))
+            admin.Permissions = canonicalPermissions.ToList();
+    }
 
-        bool isSynchronized = adminRole.Permissions.Count == allPermissions.Count &&
-                              !adminRole.Permissions.Except(allPermissions).Any();
-
-        if (!isSynchronized)
+    // Migrate old broad privileges to their equivalent granular privileges, without editing role names.
+    var legacyMap = new Dictionary<string, string[]>
+    {
+        [Permissions.UpsertProducts] = new[] { Permissions.CreateProducts, Permissions.EditProducts },
+        [Permissions.ManageCategories] = new[] { Permissions.ViewCategories, Permissions.CreateCategories, Permissions.EditCategories, Permissions.DeleteCategories },
+        [Permissions.ManageSuppliers] = new[] { Permissions.ViewSuppliers, Permissions.CreateSuppliers, Permissions.EditSuppliers, Permissions.DeleteSuppliers },
+        [Permissions.ManageUsers] = new[] { Permissions.ViewUsers, Permissions.CreateUsers, Permissions.EditUsers, Permissions.DeleteUsers, Permissions.ManageRoles, Permissions.AssignRoles, Permissions.ManageJoinRequests, Permissions.ManageJoinCodes, Permissions.ViewSalary, Permissions.ManageSalary },
+    };
+    foreach (var role in dbContext.Roles.Where(r => !r.IsSystemRole && r.IsActive).ToList())
+    {
+        var updated = role.Permissions.ToHashSet(StringComparer.Ordinal);
+        foreach (var entry in legacyMap)
         {
-            adminRole.Permissions = allPermissions;
-            dbContext.SaveChanges();
+            if (updated.Remove(entry.Key))
+                updated.UnionWith(entry.Value);
+        }
+        // Pre-existing roles remain useful with the newly separated read/view policies.
+        if (updated.Contains(Permissions.PerformSales)) updated.Add(Permissions.ViewPos);
+        if (updated.Contains(Permissions.ManageShifts) || updated.Contains(Permissions.OpenCloseShift))
+        {
+            updated.Add(Permissions.ViewShifts);
+            updated.Add(Permissions.ViewPos);
+        }
+        if (updated.Contains(Permissions.ViewAllTransactions)) updated.Add(Permissions.ViewReceipts);
+        if (updated.Overlaps(new[] { Permissions.CreateProducts, Permissions.EditProducts, Permissions.DeleteProducts }))
+            updated.Add(Permissions.ViewProducts);
+        if (!role.Permissions.ToHashSet(StringComparer.Ordinal).SetEquals(updated))
+            role.Permissions = updated.OrderBy(p => p).ToList();
+    }
+
+    // Seed missing editable starter roles once; do not overwrite customized roles.
+    foreach (int companyId in dbContext.Companies.Select(c => c.CompanyId).ToList())
+    {
+        var existingNames = dbContext.Roles.Where(r => r.CompanyId == companyId)
+            .Select(r => r.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var template in RoleTemplates.CreateDefaultRoles(companyId))
+        {
+            if (!existingNames.Contains(template.Name))
+                dbContext.Roles.Add(template);
         }
     }
+    dbContext.SaveChanges();
 }
 
 app.Run();

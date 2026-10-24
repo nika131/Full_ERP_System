@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useUrlNumber } from '../hooks/useUrlState';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/apiClient';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
@@ -18,7 +19,7 @@ interface ShiftAudit {
 }
 
 export default function ShiftAuditList() {
-    const [page, setPage] = useState(1);
+    const [page, setPage] = useUrlNumber('page');
 
     const { data, isLoading } = useQuery({
         queryKey: ['shift-audits', page],

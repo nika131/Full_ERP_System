@@ -32,9 +32,11 @@ export const useTransactionsQuery = (
     transactionId: number | null, 
     searchTerm: string | null,
     filters: DashboardFilters,
+    enabled: boolean = true,
 ) => {
     return useQuery({
         queryKey: ['transactions', { limit, createdAt, transactionId, searchTerm, filters }],
+        enabled,
         queryFn: ({ signal }) => dashboaredService.getTransactions(
             limit, 
             createdAt, 

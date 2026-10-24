@@ -2,7 +2,7 @@
   "expo": {
     "name": "TenexERP POS",
     "slug": "tenexerp-pos",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "orientation": "default",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",

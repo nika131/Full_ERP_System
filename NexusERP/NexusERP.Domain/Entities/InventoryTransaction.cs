@@ -25,6 +25,9 @@ namespace NexusERP.Domain.Entities
         public TransactionAction TransactionType { get; set; }
         public int Quantity { get; set; }
 
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

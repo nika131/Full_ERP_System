@@ -4,11 +4,6 @@ using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Infrastructure.Database;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -21,52 +16,65 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<UserAbsence> SubmitRequestAsync(UserAbsence absence)
+        public async Task<UserAbsence> SubmitRequestAsync(int companyId, UserAbsence absence)
         {
+            bool userExists = await _context.Users.AnyAsync(u => u.CompanyId == companyId && u.UserId == absence.UserId);
+
+            if (!userExists)
+                throw new AppException("Employee not found.");
+
+            absence.CompanyId = companyId;
+
             await _context.UserAbsences.AddAsync(absence);
             await _context.SaveChangesAsync();
+
             return absence;
         }
 
-        public async Task ReviewRequestAsync(UserAbsence absence)
+        public async Task ReviewRequestAsync(int companyId, UserAbsence absence)
         {
+            if (absence.CompanyId != companyId)
+                throw new AppException("Leave request not found.");
+
             await _context.SaveChangesAsync();
         }
 
-        public async Task<UserAbsence?> GetByIdAsync(int absenceId)
+        public async Task<UserAbsence?> GetByIdAsync(int companyId, int absenceId)
         {
-            return await _context.UserAbsences.FindAsync(absenceId);
+            return await _context.UserAbsences
+                .FirstOrDefaultAsync(a => a.CompanyId == companyId && a.AbsenceId == absenceId);
         }
 
-        public async Task<IEnumerable<UserAbsence>> GetMyAbsencesAsync(int userId)
+        public async Task<IEnumerable<UserAbsence>> GetMyAbsencesAsync(int companyId, int userId)
         {
             return await _context.UserAbsences
                 .Include(a => a.User)
                 .Include(a => a.ReviewedBy)
-                .Where(a => a.UserId == userId)
+                .Where(a => a.CompanyId == companyId && a.UserId == userId)
                 .AsNoTracking()
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<UserAbsence>> GetPendingRequestsAsync()
+        public async Task<IEnumerable<UserAbsence>> GetPendingRequestsAsync(int companyId)
         {
             return await _context.UserAbsences
                 .Include(a => a.User)
-                .Where(a => a.Status == AbsenceStatus.Pending)
+                .Where(a => a.CompanyId == companyId && a.Status == AbsenceStatus.Pending)
                 .AsNoTracking()
                 .OrderBy(a => a.CreatedAt)
                 .ToListAsync();
         }
 
-        public async Task<bool> HasOverlappingAbsenceAsync(int userId, DateTime start, DateTime end)
+        public async Task<bool> HasOverlappingAbsenceAsync(int companyId, int userId, DateTime start, DateTime end)
         {
-            return await _context.UserAbsences
-                .AnyAsync(a =>
-                    a.UserId == userId &&
-                    a.Status != AbsenceStatus.Rejected && 
-                    a.StartDate <= end &&
-                    a.EndDate >= start);
+            return await _context.UserAbsences.AnyAsync(a =>
+                a.CompanyId == companyId &&
+                a.UserId == userId &&
+                a.Status != AbsenceStatus.Rejected &&
+                a.StartDate <= end &&
+                a.EndDate >= start
+            );
         }
     }
 }

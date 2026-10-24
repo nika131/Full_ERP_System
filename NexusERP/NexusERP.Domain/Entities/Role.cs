@@ -14,6 +14,11 @@ namespace NexusERP.Domain.Entities
 
         public List<string> Permissions { get; set; } = new List<string>();
 
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
+        public bool IsSystemRole { get; set; }
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

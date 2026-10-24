@@ -1,139 +1,133 @@
 ﻿using Moq;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
+using NexusERP.Domain.Exceptions;
 using NexusERP.Infrastructure.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NexusERP.Tests
 {
     public class InventoryServiceTests
     {
+        private const int CompanyId = 1;
+        private const int UserId = 99;
 
         [Fact]
-        public async Task ProcessTransaction_sale_DeductsQuantityAndCalculatesProfit()
+        public async Task ProcessTransaction_Sale_ThrowsAppException()
         {
             var mockRepo = new Mock<IProductRepository>();
             var service = new InventoryService(mockRepo.Object);
 
-            var fakeProduct = new Product
+            var product = new Product
             {
                 ProductId = 1,
-                Name = "Test Server",
+                CompanyId = CompanyId,
+                Name = "Test Product",
                 IsActive = true,
-                Quantity = 10,
-                CostPrice = 500m,
-                Price = 800m
+                Quantity = 10
             };
 
-            var saleTransaction = new InventoryTransaction
+            mockRepo.Setup(r => r.GetByIdAsync(CompanyId, 1)).ReturnsAsync(product);
+
+            var transaction = new InventoryTransaction
             {
                 ProductId = 1,
                 Quantity = 2
             };
 
-            mockRepo.Setup(repo => repo.GetByIdAsync(1)).ReturnsAsync(fakeProduct);
+            var exception = await Assert.ThrowsAsync<AppException>(() =>
+                service.ProcessTransaction(transaction, UserId, CompanyId, "Sale"));
 
-            await service.ProcessTransaction(saleTransaction, userId: 99, "Sale");
-
-            Assert.Equal(8, fakeProduct.Quantity);
-
-            //mockRepo.Verify(repo => repo.SaveTransaction(saleTransaction, fakeProduct), Times.Once);
+            Assert.Contains("POS Checkout", exception.Message);
         }
 
         [Fact]
-        public async Task ProcessTransaction_Loss_DeductsQuantityAndCalculatesNegativeProfit()
+        public async Task ProcessTransaction_Loss_DeductsQuantity()
         {
             var mockRepo = new Mock<IProductRepository>();
             var service = new InventoryService(mockRepo.Object);
 
-            var fakeProduct = new Product
+            var product = new Product
             {
                 ProductId = 2,
+                CompanyId = CompanyId,
                 Name = "Damaged Monitor",
-                IsActive = true,
-                Quantity = 5,
-                CostPrice = 200m
-            };
-
-            var lossTransaction = new InventoryTransaction
-            {
-                ProductId = 2,
-                Quantity = 3,
-            };
-
-            mockRepo.Setup(repo => repo.GetByIdAsync(2)).ReturnsAsync(fakeProduct);
-
-            await service.ProcessTransaction(lossTransaction, userId: 99, "Loss");
-
-            Assert.Equal(2, fakeProduct.Quantity);
-
-            //mockRepo.Verify(repo => repo.SaveTransaction(lossTransaction, fakeProduct), Times.Once);
-        }
-
-        [Fact]
-        public async Task ProcessTransaction_Sale_InsufficientStock_ThrowsAppException()
-        {
-            var mockRepo = new Mock<IProductRepository>();
-            var service = new InventoryService(mockRepo.Object);
-
-            var fakeProduct = new Product
-            {
-                ProductId = 3,
                 IsActive = true,
                 Quantity = 5
             };
 
-            var overSaleTransaction = new InventoryTransaction
+            mockRepo.Setup(r => r.GetByIdAsync(CompanyId, 2)).ReturnsAsync(product);
+            mockRepo.Setup(r => r.IsNegativeInventoryAllowedAsync(CompanyId)).ReturnsAsync(false);
+
+            var transaction = new InventoryTransaction
             {
-                ProductId = 3,
-                Quantity = 10,
+                ProductId = 2,
+                Quantity = 3
             };
 
-            mockRepo.Setup(repo => repo.GetByIdAsync(3)).ReturnsAsync(fakeProduct);
+            await service.ProcessTransaction(transaction, UserId, CompanyId, "Loss");
 
-            var exception = await Assert.ThrowsAnyAsync<NexusERP.Domain.Exceptions.AppException>(() =>
-                service.ProcessTransaction(overSaleTransaction, userId: 99, "Sale"));
-
-            Assert.Contains("Insufficient stock", exception.Message);
-
-            //mockRepo.Verify(repo => repo.SaveTransaction(It.IsAny<InventoryTransaction>(), It.IsAny<Product>()), Times.Never);
+            Assert.Equal(2, product.Quantity);
+            Assert.Equal(CompanyId, transaction.CompanyId);
         }
 
         [Fact]
-        public async Task ProcessTransaction_Restock_CalculatesMovingAverageCost()
+        public async Task ProcessTransaction_Loss_InsufficientStock_ThrowsAppException()
         {
             var mockRepo = new Mock<IProductRepository>();
             var service = new InventoryService(mockRepo.Object);
 
-            var fakeProduct = new Product
+            var product = new Product
+            {
+                ProductId = 3,
+                CompanyId = CompanyId,
+                IsActive = true,
+                Quantity = 5
+            };
+
+            mockRepo.Setup(r => r.GetByIdAsync(CompanyId, 3)).ReturnsAsync(product);
+            mockRepo.Setup(r => r.IsNegativeInventoryAllowedAsync(CompanyId)).ReturnsAsync(false);
+
+            var transaction = new InventoryTransaction
+            {
+                ProductId = 3,
+                Quantity = 10
+            };
+
+            var exception = await Assert.ThrowsAsync<AppException>(() =>
+                service.ProcessTransaction(transaction, UserId, CompanyId, "Loss"));
+
+            Assert.Contains("Only 5 available", exception.Message);
+        }
+
+        [Fact]
+        public async Task ProcessTransaction_Restock_IncreasesQuantity()
+        {
+            var mockRepo = new Mock<IProductRepository>();
+            var service = new InventoryService(mockRepo.Object);
+
+            var product = new Product
             {
                 ProductId = 4,
+                CompanyId = CompanyId,
                 IsActive = true,
                 Quantity = 10,
                 CostPrice = 100m
             };
 
-            var restockTransaction = new InventoryTransaction
+            mockRepo.Setup(r => r.GetByIdAsync(CompanyId, 4)).ReturnsAsync(product);
+            mockRepo.Setup(r => r.IsNegativeInventoryAllowedAsync(CompanyId)).ReturnsAsync(false);
+
+            var transaction = new InventoryTransaction
             {
                 ProductId = 4,
-                Quantity = 10,
+                Quantity = 10
             };
 
-            mockRepo.Setup(repo => repo.GetByIdAsync(4)).ReturnsAsync(fakeProduct);
+            await service.ProcessTransaction(transaction, UserId, CompanyId, "Restock");
 
-            await service.ProcessTransaction(restockTransaction, userId: 99, "Restock");
-
-            Assert.Equal(20, fakeProduct.Quantity); 
-
-            Assert.Equal(125m, fakeProduct.CostPrice);
-
-            //mockRepo.Verify(repo => repo.SaveTransaction(restockTransaction, fakeProduct), Times.Once);
+            Assert.Equal(20, product.Quantity);
+            Assert.Equal(100m, product.CostPrice);
         }
-
 
         [Fact]
         public async Task ProcessTransaction_ProductInactive_ThrowsAppException()
@@ -141,22 +135,26 @@ namespace NexusERP.Tests
             var mockRepo = new Mock<IProductRepository>();
             var service = new InventoryService(mockRepo.Object);
 
-            var deletedProduct = new Product
+            var product = new Product
             {
                 ProductId = 5,
-                IsActive = false, 
+                CompanyId = CompanyId,
+                IsActive = false,
                 Quantity = 100
             };
 
-            var transaction = new InventoryTransaction { ProductId = 5, Quantity = 10 };
+            mockRepo.Setup(r => r.GetByIdAsync(CompanyId, 5)).ReturnsAsync(product);
 
-            mockRepo.Setup(repo => repo.GetByIdAsync(5)).ReturnsAsync(deletedProduct);
+            var transaction = new InventoryTransaction
+            {
+                ProductId = 5,
+                Quantity = 10
+            };
 
-            var exception = await Assert.ThrowsAsync<NexusERP.Domain.Exceptions.AppException>(() =>
-                service.ProcessTransaction(transaction, userId: 99, "Sale"));
+            var exception = await Assert.ThrowsAsync<AppException>(() =>
+                service.ProcessTransaction(transaction, UserId, CompanyId, "Loss"));
 
             Assert.Contains("deleted product", exception.Message);
-            //mockRepo.Verify(repo => repo.SaveTransaction(It.IsAny<InventoryTransaction>(), It.IsAny<Product>()), Times.Never);
         }
 
         [Fact]
@@ -164,10 +162,15 @@ namespace NexusERP.Tests
         {
             var mockRepo = new Mock<IProductRepository>();
             var service = new InventoryService(mockRepo.Object);
-            var transaction = new InventoryTransaction { ProductId = 1, Quantity = 5 };
 
-            var exception = await Assert.ThrowsAsync<NexusERP.Domain.Exceptions.AppException>(() =>
-                service.ProcessTransaction(transaction, userId: 99, "Steal"));
+            var transaction = new InventoryTransaction
+            {
+                ProductId = 1,
+                Quantity = 5
+            };
+
+            var exception = await Assert.ThrowsAsync<AppException>(() =>
+                service.ProcessTransaction(transaction, UserId, CompanyId, "Steal"));
 
             Assert.Contains("Invalid transaction type", exception.Message);
         }
@@ -178,19 +181,26 @@ namespace NexusERP.Tests
             var mockRepo = new Mock<IProductRepository>();
             var service = new InventoryService(mockRepo.Object);
 
-            var fakeProduct = new Product { ProductId = 6, IsActive = true, Quantity = 10, CostPrice = 10m };
+            var product = new Product
+            {
+                ProductId = 6,
+                CompanyId = CompanyId,
+                IsActive = true,
+                Quantity = 10
+            };
+
+            mockRepo.Setup(r => r.GetByIdAsync(CompanyId, 6)).ReturnsAsync(product);
+            mockRepo.Setup(r => r.IsNegativeInventoryAllowedAsync(CompanyId)).ReturnsAsync(false);
 
             var transaction = new InventoryTransaction
             {
                 ProductId = 6,
-                Quantity = -4, 
+                Quantity = -4
             };
 
-            mockRepo.Setup(repo => repo.GetByIdAsync(6)).ReturnsAsync(fakeProduct);
+            await service.ProcessTransaction(transaction, UserId, CompanyId, "Loss");
 
-            await service.ProcessTransaction(transaction, userId: 99, "Sale");
-
-            Assert.Equal(6, fakeProduct.Quantity);
+            Assert.Equal(6, product.Quantity);
             Assert.Equal(4, transaction.Quantity);
         }
     }

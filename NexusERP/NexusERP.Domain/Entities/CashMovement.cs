@@ -25,6 +25,9 @@ namespace NexusERP.Domain.Entities
         public decimal Amount { get; set; }
         public string? Reason { get; set; } = string.Empty;
 
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

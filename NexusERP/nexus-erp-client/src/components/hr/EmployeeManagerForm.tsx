@@ -1,3 +1,5 @@
+import { useAuth } from '../../context/AuthContext';
+import { Permissions } from '../../constants/permissions';
 import { useState } from 'react';
 import type { EmployeeResponse } from '../../types/employee';
 import { RoleForm } from '../forms/RoleProfileForm';
@@ -10,7 +12,10 @@ interface EmployeeManagerFormProps {
 }
 
 export const EmployeeManagerForm = ({ employee, onSuccess, onCancel }: EmployeeManagerFormProps) => {
-    const [activeTab, setActiveTab] = useState<'Role' | 'Salary'>('Role');
+    const { hasPermission } = useAuth();
+    const canEdit = hasPermission(Permissions.EditUsers);
+    const canSalary = hasPermission(Permissions.ViewSalary) || hasPermission(Permissions.ManageSalary);
+    const [activeTab, setActiveTab] = useState<'Role' | 'Salary'>(canEdit ? 'Role' : 'Salary');
 
     return (
         <div className="flex flex-col h-full bg-white relative">
@@ -23,18 +28,18 @@ export const EmployeeManagerForm = ({ employee, onSuccess, onCancel }: EmployeeM
 
             {/* Tabs */}
             <div className="flex border-b border-slate-200 px-6 mt-4">
-                <button 
+                {canEdit && <button 
                     onClick={() => setActiveTab('Role')}
                     className={`pb-3 px-4 font-medium text-sm ${activeTab === 'Role' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                     Profile & Role
-                </button>
-                <button 
+                </button>}
+                {canSalary && <button 
                     onClick={() => setActiveTab('Salary')}
                     className={`pb-3 px-4 font-medium text-sm ${activeTab === 'Salary' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                     Salary Ledger
-                </button>
+                </button>}
             </div>
 
             {/* View Port */}

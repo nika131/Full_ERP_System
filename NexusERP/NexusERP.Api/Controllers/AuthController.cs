@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using NexusERP.Application.DTOs;
@@ -31,12 +31,13 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpPost("register")]
-        [Authorize(Policy = "RequireManageUsers")]
+        [Authorize(Policy = Permissions.CreateUsers)]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto request)
         {
             int currentUserId = User.GetCurrentUserId();
+            int companyId = User.GetCurrentCompanyId();
 
-            await _authService.Register(request.FullName, request.Username, request.Password, request.RoleId, currentUserId, request.PosPin);
+            await _authService.Register(request.FullName, request.Username, request.Password, request.RoleId, currentUserId, companyId, request.PosPin);
 
             return Ok(new { message = "User registered successfully." });
         }
@@ -48,7 +49,7 @@ namespace NexusERP.Api.Controllers
             if (string.IsNullOrWhiteSpace(dto.Pin) || dto.Pin.Length != 4)
                 return BadRequest(new { message = "PIN must be exactly 4 digits." });
 
-            var token = await _authService.LoginWithPin(dto.UserId, dto.Pin);
+            var token = await _authService.LoginWithPin(User.GetCurrentCompanyId(), dto.UserId, dto.Pin);
             return Ok(new { token = token });
         }
     }

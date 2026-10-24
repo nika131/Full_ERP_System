@@ -1,19 +1,11 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
+using NexusERP.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
-using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Microsoft.Data.SqlClient.Internal.SqlClientEventSource;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -26,7 +18,7 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task CreateUser(User user, int actorUserId)
+        public async Task CreateUser(User user, int actorUserId, int companyId)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
 
@@ -36,13 +28,41 @@ namespace NexusERP.Infrastructure.Repositories
 
                 try
                 {
-                    user.IsActive = true;
-                    _context.Users.Add(user);
+                    var roleExists = await _context.Roles.AnyAsync(r =>
+                        r.RoleId == user.RoleId &&
+                        r.CompanyId == companyId &&
+                        r.IsActive
+                    );
 
+                    if (!roleExists)
+                        throw new AppException("The selected role does not belong to this company.");
+
+                    var selectedRole = await _context.Roles.AsNoTracking().FirstAsync(r => r.RoleId == user.RoleId && r.CompanyId == companyId);
+                    var actor = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == actorUserId && u.CompanyId == companyId && u.IsActive);
+                    if (actor == null || !actor.Role.IsActive || !actor.Role.Permissions.Contains(Permissions.CreateUsers))
+                        throw new UnauthorizedAccessException("You do not have permission to create employees.");
+                    if (!actor.Role.Permissions.Contains(Permissions.AssignRoles))
+                        throw new UnauthorizedAccessException("You do not have permission to assign employee roles.");
+                    if (selectedRole.IsSystemRole || selectedRole.Permissions.Except(actor.Role.Permissions).Any())
+                        throw new AppException("You cannot assign this role.");
+
+                    var usernameExists = await _context.Users.AnyAsync(u =>
+                        u.CompanyId == companyId &&
+                        u.Username == user.Username
+                    );
+
+                    if (usernameExists)
+                        throw new AppException("Username already exists in this company.");
+
+                    user.CompanyId = companyId;
+                    user.IsActive = true;
+
+                    _context.Users.Add(user);
                     await _context.SaveChangesAsync();
 
                     var audit = new SystemAuditLog
                     {
+                        CompanyId = companyId,
                         UserId = actorUserId,
                         EntityType = "User",
                         EntityId = user.UserId,
@@ -52,6 +72,7 @@ namespace NexusERP.Infrastructure.Repositories
 
                     _context.SystemAuditLogs.Add(audit);
                     await _context.SaveChangesAsync();
+
                     await transaction.CommitAsync();
                 }
                 catch
@@ -62,10 +83,45 @@ namespace NexusERP.Infrastructure.Repositories
             });
         }
 
-        public async Task UpdateUser(User user, int actorUserId)
+        public async Task UpdateUser(User user, int actorUserId, int companyId)
         {
-            var existingUser = await _context.Users.FindAsync(user.UserId);
-            if (existingUser == null) return;
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u =>
+                u.UserId == user.UserId &&
+                u.CompanyId == companyId
+            );
+
+            if (existingUser == null)
+                throw new AppException("Employee not found.");
+
+            var roleExists = await _context.Roles.AnyAsync(r =>
+                r.RoleId == user.RoleId &&
+                r.CompanyId == companyId &&
+                r.IsActive
+            );
+
+            if (!roleExists)
+                throw new AppException("The selected role does not belong to this company.");
+
+            var selectedRoleForUpdate = await _context.Roles.AsNoTracking().FirstAsync(r => r.RoleId == user.RoleId && r.CompanyId == companyId);
+            var updater = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == actorUserId && u.CompanyId == companyId && u.IsActive);
+            if (updater == null || !updater.Role.IsActive || !updater.Role.Permissions.Contains(Permissions.EditUsers))
+                throw new UnauthorizedAccessException("You do not have permission to edit employees.");
+            if (existingUser.RoleId != user.RoleId)
+            {
+                if (!updater.Role.Permissions.Contains(Permissions.AssignRoles))
+                    throw new UnauthorizedAccessException("You do not have permission to assign employee roles.");
+                if (selectedRoleForUpdate.IsSystemRole || selectedRoleForUpdate.Permissions.Except(updater.Role.Permissions).Any())
+                    throw new AppException("You cannot assign this role.");
+            }
+
+            var usernameExists = await _context.Users.AnyAsync(u =>
+                u.CompanyId == companyId &&
+                u.Username == user.Username &&
+                u.UserId != user.UserId
+            );
+
+            if (usernameExists)
+                throw new AppException("Username already exists in this company.");
 
             existingUser.FullName = user.FullName;
             existingUser.Username = user.Username;
@@ -74,6 +130,7 @@ namespace NexusERP.Infrastructure.Repositories
 
             var audit = new SystemAuditLog
             {
+                CompanyId = companyId,
                 UserId = actorUserId,
                 EntityType = "User",
                 EntityId = user.UserId,
@@ -85,16 +142,21 @@ namespace NexusERP.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteUser(int targetUserId, int actorUserId)
+        public async Task DeleteUser(int targetUserId, int actorUserId, int companyId)
         {
-            var user = await _context.Users.FindAsync(targetUserId);
-            if (user == null || !user.IsActive) return;
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.UserId == targetUserId &&
+                u.CompanyId == companyId
+            );
+
+            if (user == null)
+                throw new AppException("Employee not found.");
 
             user.IsActive = false;
 
-
             var audit = new SystemAuditLog
             {
+                CompanyId = companyId,
                 UserId = actorUserId,
                 EntityType = "User",
                 EntityId = user.UserId,
@@ -106,40 +168,66 @@ namespace NexusERP.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
+        // Temporary legacy username login.
         public async Task<User?> GetUserByUsername(string username)
+        {
+            var matches = await _context.Users
+                .Include(u => u.Role)
+                .AsNoTracking()
+                .Where(u => u.Username == username)
+                .Take(2)
+                .ToListAsync();
+
+            return matches.Count == 1 ? matches[0] : null;
+        }
+
+        public async Task<User?> GetUserByUsername(string username, int companyId)
         {
             return await _context.Users
                 .Include(u => u.Role)
                 .AsNoTracking()
-                .Where(u => u.IsActive)
-                .FirstOrDefaultAsync(u => u.Username == username);
+                .FirstOrDefaultAsync(u =>
+                    u.CompanyId == companyId &&
+                    u.Username == username
+                );
         }
 
-        public async Task<PagedResult<User>> GetPagedAsync(int pageNumber, int pageSize, string? searchTerm, string roleFilter)
+        public async Task<PagedResult<User>> GetPagedAsync(
+            int companyId,
+            int pageNumber,
+            int pageSize,
+            string? searchTerm,
+            string roleFilter)
         {
             var baseQuery = _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.IsActive)
+                .Where(u => u.CompanyId == companyId)
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                bool isNumberic = int.TryParse(searchTerm, out int searchId);
-                baseQuery = baseQuery.Where(u => u.Username.Contains(searchTerm) ||
+                bool isNumeric = int.TryParse(searchTerm, out int searchId);
+
+                baseQuery = baseQuery.Where(u =>
+                    u.Username.Contains(searchTerm) ||
                     u.FullName.Contains(searchTerm) ||
-                    (isNumberic && u.UserId == searchId)
+                    (isNumeric && u.UserId == searchId)
                 );
             }
 
-            if (!string.IsNullOrWhiteSpace(roleFilter) && !roleFilter.Equals("All", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(roleFilter) &&
+                !roleFilter.Equals("All", StringComparison.OrdinalIgnoreCase))
             {
-                baseQuery = baseQuery.Where(u => u.Role != null && u.Role.Name == roleFilter);
+                baseQuery = baseQuery.Where(u =>
+                    u.Role != null &&
+                    u.Role.Name == roleFilter
+                );
             }
 
             var totalCount = await baseQuery.CountAsync();
 
             var items = await baseQuery
-                .OrderBy(s => s.CreatedAt)
+                .OrderBy(u => u.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -153,29 +241,39 @@ namespace NexusERP.Infrastructure.Repositories
             };
         }
 
-        public async Task AddSalaryRecordAsync(int userId, SalaryRecord record)
+        public async Task AddSalaryRecordAsync(int companyId, int userId, SalaryRecord record)
         {
-            var userExists = await _context.Users.AnyAsync(u => u.UserId == userId && u.IsActive);
-            if(!userExists) throw new AppException("Active user not found for payroll assignment.");
+            var userExists = await _context.Users.AnyAsync(u =>
+                u.UserId == userId &&
+                u.CompanyId == companyId
+            );
 
+            if (!userExists)
+                throw new AppException("Active employee not found.");
+
+            record.CompanyId = companyId;
             record.UserId = userId;
+
             await _context.SalaryRecords.AddAsync(record);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<SalaryRecord>> GetSalaryHistoryAsync(int userId)
+        public async Task<IEnumerable<SalaryRecord>> GetSalaryHistoryAsync(int companyId, int userId)
         {
             return await _context.SalaryRecords
-                .Where(s => s.UserId == userId)
-                .OrderByDescending(s => s.EffectiveDate) 
+                .Where(s =>
+                    s.CompanyId == companyId &&
+                    s.UserId == userId
+                )
+                .OrderByDescending(s => s.EffectiveDate)
                 .AsNoTracking()
                 .ToListAsync();
         }
 
-        public async Task<List<UserLookupDto>> GetLookupUsersAsync()
+        public async Task<List<UserLookupDto>> GetLookupUsersAsync(int companyId)
         {
             return await _context.Users
-                .Where(u => u.IsActive)
+                .Where(u => u.CompanyId == companyId)
                 .AsNoTracking()
                 .Select(u => new UserLookupDto
                 {
@@ -186,23 +284,27 @@ namespace NexusERP.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<bool> VerifyPosPinAsync(int userId, string pin)
+        public async Task<bool> VerifyPosPinAsync(int companyId, int userId, string pin)
         {
             var user = await _context.Users
                 .AsNoTracking()
-                .Where(u => u.IsActive)
-                .FirstOrDefaultAsync(u => u.UserId == userId);
+                .FirstOrDefaultAsync(u =>
+                    u.UserId == userId &&
+                    u.CompanyId == companyId
+                );
 
             return user != null && user.PosPin == pin;
         }
 
-        public async Task<User?> GetUserById(int id)
+        public async Task<User?> GetUserById(int companyId, int id)
         {
             return await _context.Users
                 .Include(u => u.Role)
                 .AsNoTracking()
-                .Where(u => u.IsActive)
-                .FirstOrDefaultAsync(u => u.UserId == id);
+                .FirstOrDefaultAsync(u =>
+                    u.UserId == id &&
+                    u.CompanyId == companyId
+                );
         }
     }
 }

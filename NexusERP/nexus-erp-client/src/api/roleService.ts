@@ -11,6 +11,11 @@ export const roleService = {
         return response.data;
     },
 
+    getLookupRoles: async (): Promise<RoleResponse[]> => {
+        const response = await apiClient.get('/roles/lookup');
+        return response.data;
+    },
+
     getAvailablePermissions: async (signal?: AbortSignal): Promise<string[]> => {
         const response = await apiClient.get('/roles/permissions', { signal });
         

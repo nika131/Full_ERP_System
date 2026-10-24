@@ -20,7 +20,10 @@ namespace NexusERP.Domain.Entities
         public string Action { get; set; } = string.Empty;
         
         public string ChangesMade { get; set; } = string.Empty;
-        
+
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public DateTime CreatedAt { get; set; }
     }
 }

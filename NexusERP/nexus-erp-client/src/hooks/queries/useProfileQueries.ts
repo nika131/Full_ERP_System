@@ -2,9 +2,10 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { absenceService } from '../../api/absenceService';
 import { employeeService } from '../../api/employeeService';
 
-export const useMyLeaveHistoryQuery = () => {
+export const useMyLeaveHistoryQuery = (enabled: boolean = true) => {
     return useQuery({
         queryKey: ['profile', 'leaveHistory'],
+        enabled,
         queryFn: () => absenceService.getMyHistory(),
         staleTime: 5 * 60 * 1000, 
     });

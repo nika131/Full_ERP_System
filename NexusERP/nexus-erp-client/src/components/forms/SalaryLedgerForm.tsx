@@ -1,3 +1,5 @@
+import { useAuth } from '../../context/AuthContext';
+import { Permissions } from '../../constants/permissions';
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { EmployeeResponse } from "../../types/employee";
 import { useForm } from "react-hook-form";
@@ -6,6 +8,8 @@ import { salaryRecordSchema, type SalaryRecordFormData } from "../../schemas/hrS
 import { useSalaryHistoryQuery, useAddSalaryRecordMutation } from "../../hooks/queries/useHrQueries";
 
 export const SalaryForm = ({ employee, onSuccess }: { employee: EmployeeResponse, onSuccess: () => void }) => {
+    const { hasPermission } = useAuth();
+    const canManageSalary = hasPermission(Permissions.ManageSalary);
     const { data: salaryHistory = [], isLoading: isFetchingSalary } = useSalaryHistoryQuery(employee.userId);
     const addSalaryMutation = useAddSalaryRecordMutation();
 
@@ -35,7 +39,7 @@ export const SalaryForm = ({ employee, onSuccess }: { employee: EmployeeResponse
 
     return (
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-4">
+            {canManageSalary && <form onSubmit={handleSubmit(onSubmit)} className="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-4">
                 <h4 className="text-sm font-bold text-slate-800">Issue New Salary Contract</h4>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -73,7 +77,7 @@ export const SalaryForm = ({ employee, onSuccess }: { employee: EmployeeResponse
                 >
                     {addSalaryMutation.isPending ? 'Processing...' : 'Apply Contract'}
                 </button>
-            </form>
+            </form>}
 
             <div>
                 <h4 className="text-sm font-bold text-slate-800 mb-2">Contract History</h4>

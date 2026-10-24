@@ -1,3 +1,4 @@
+
 import { create } from "zustand";
 
 import { posService } from "@/api/posService";
@@ -5,9 +6,7 @@ import { getErrorMessage } from "@/api/client";
 import type { PosSlot, Product } from "@/types";
 
 const sortSlots = (slots: PosSlot[]) =>
-  [...slots].sort(
-    (a, b) => a.slotIndex - b.slotIndex
-  );
+  [...slots].sort((a, b) => a.slotIndex - b.slotIndex);
 
 interface PosLayoutState {
   slots: PosSlot[];
@@ -17,6 +16,7 @@ interface PosLayoutState {
   loadedStoreId: number | null;
   loadError: string | null;
 
+  reset: () => void;
   load: (storeId: number) => Promise<void>;
 
   assignProduct: (
@@ -24,23 +24,29 @@ interface PosLayoutState {
     productId: number | null
   ) => Promise<void>;
 
-  appendProduct: (
-    productId: number
-  ) => Promise<void>;
+  appendProduct: (productId: number) => Promise<void>;
 
-  getProductIdAt: (
-    slotIndex: number
-  ) => number | null;
+  getProductIdAt: (slotIndex: number) => number | null;
 }
 
-export const usePosLayoutStore =
-  create<PosLayoutState>((set, get) => ({
+export const usePosLayoutStore = create<PosLayoutState>(
+  (set, get) => ({
     slots: [],
     products: [],
 
     isLoaded: false,
     loadedStoreId: null,
     loadError: null,
+
+    reset: () => {
+      set({
+        slots: [],
+        products: [],
+        isLoaded: false,
+        loadedStoreId: null,
+        loadError: null,
+      });
+    },
 
     load: async (storeId) => {
       set({
@@ -52,14 +58,11 @@ export const usePosLayoutStore =
       });
 
       try {
-        const layout =
-          await posService.getPosLayout(storeId);
+        const layout = await posService.getPosLayout(storeId);
 
-        // Store may have changed while
-        // the request was running.
-        if (
-          get().loadedStoreId !== storeId
-        ) {
+        // Ignore a response if the store changed or
+        // the layout was reset while loading.
+        if (get().loadedStoreId !== storeId) {
           return;
         }
 
@@ -70,9 +73,7 @@ export const usePosLayoutStore =
           loadError: null,
         });
       } catch (err) {
-        if (
-          get().loadedStoreId !== storeId
-        ) {
+        if (get().loadedStoreId !== storeId) {
           return;
         }
 
@@ -85,10 +86,7 @@ export const usePosLayoutStore =
       }
     },
 
-    assignProduct: async (
-      slotIndex,
-      productId
-    ) => {
+    assignProduct: async (slotIndex, productId) => {
       const state = get();
       const storeId = state.loadedStoreId;
 
@@ -96,11 +94,9 @@ export const usePosLayoutStore =
         return;
       }
 
-      const withoutCurrentSlot =
-        state.slots.filter(
-          (slot) =>
-            slot.slotIndex !== slotIndex
-        );
+      const withoutCurrentSlot = state.slots.filter(
+        (slot) => slot.slotIndex !== slotIndex
+      );
 
       const next =
         productId === null
@@ -113,17 +109,13 @@ export const usePosLayoutStore =
               },
             ]);
 
-      const saved =
-        await posService.savePosLayout(
-          storeId,
-          next
-        );
+      const saved = await posService.savePosLayout(
+        storeId,
+        next
+      );
 
-      // User may have switched store
-      // while save was running.
-      if (
-        get().loadedStoreId !== storeId
-      ) {
+      // Ignore results from a previous store.
+      if (get().loadedStoreId !== storeId) {
         return;
       }
 
@@ -134,9 +126,7 @@ export const usePosLayoutStore =
       });
     },
 
-    appendProduct: async (
-      productId
-    ) => {
+    appendProduct: async (productId) => {
       const state = get();
       const storeId = state.loadedStoreId;
 
@@ -146,24 +136,19 @@ export const usePosLayoutStore =
 
       if (
         state.slots.some(
-          (slot) =>
-            slot.productId === productId
+          (slot) => slot.productId === productId
         )
       ) {
         return;
       }
 
       const occupiedIndexes = new Set(
-        state.slots.map(
-          (slot) => slot.slotIndex
-        )
+        state.slots.map((slot) => slot.slotIndex)
       );
 
       let slotIndex = 0;
 
-      while (
-        occupiedIndexes.has(slotIndex)
-      ) {
+      while (occupiedIndexes.has(slotIndex)) {
         slotIndex++;
       }
 
@@ -175,15 +160,12 @@ export const usePosLayoutStore =
         },
       ]);
 
-      const saved =
-        await posService.savePosLayout(
-          storeId,
-          next
-        );
+      const saved = await posService.savePosLayout(
+        storeId,
+        next
+      );
 
-      if (
-        get().loadedStoreId !== storeId
-      ) {
+      if (get().loadedStoreId !== storeId) {
         return;
       }
 
@@ -194,11 +176,9 @@ export const usePosLayoutStore =
       });
     },
 
-    getProductIdAt: (
-      slotIndex
-    ) =>
+    getProductIdAt: (slotIndex) =>
       get().slots.find(
-        (slot) =>
-          slot.slotIndex === slotIndex
+        (slot) => slot.slotIndex === slotIndex
       )?.productId ?? null,
-  }));
+  })
+);

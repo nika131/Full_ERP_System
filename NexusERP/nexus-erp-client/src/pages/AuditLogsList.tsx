@@ -1,26 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useUrlString, useUrlQuery } from '../hooks/useUrlState';
+import { useMemo } from "react";
 import type { AuditLog } from "../types/auditLog";
 import { CursorDataTable, type ColumnDef } from "../components/Ui/CursorDataTable";
 import { useAuditLogsQuery } from "../hooks/queries/useAuditQueries";
 
 import DatePicker from "react-datepicker";
+import { useUrlCursor } from '../hooks/useUrlCursor';
 import "react-datepicker/dist/react-datepicker.css";
 
-type CursorState = {
-    createdAt: string | null;
-    logId: number | null;
-};
-
 export default function AuditLogsList() {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm] = useUrlString('search');
 
-    const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
-    const [startDate, endDate] = dateRange;
+    const [from] = useUrlString('from');
+    const [to] = useUrlString('to');
+    const startDate = /^\d{4}-\d{2}-\d{2}$/.test(from) ? new Date(from+'T12:00:00') : null;
+    const endDate = /^\d{4}-\d{2}-\d{2}$/.test(to) ? new Date(to+'T12:00:00') : null;
 
-    const [cursorHistory, setCursorHistory] = useState<CursorState[]>([{ createdAt: null, logId: null }]);
-    const [currentIndex, setCurrentIndex] = useState(0);
-
-    const currentCursor = cursorHistory[currentIndex];
+    const { patch } = useUrlQuery();
+    const cursor = useUrlCursor();
+    const currentCursor = { createdAt: cursor.cursor.createdAt, logId: cursor.cursor.id };
 
     const formattedStart = startDate ? startDate.toISOString().split('T')[0] : '';
     const formattedEnd = endDate ? endDate.toISOString().split('T')[0] : '';
@@ -37,31 +35,9 @@ export default function AuditLogsList() {
     const logs = data?.items || [];
     const hasMorePages = data?.hasMorePages || false;
 
-    useEffect(() => {
-        if (data?.hasMorePages && cursorHistory.length === currentIndex + 1) {
-            setCursorHistory(prev => [
-                ...prev, 
-                { 
-                    createdAt: data.nextCreatedAt ?? null, 
-                    logId: data.nextLogId ?? null 
-                }
-            ]);
-        }
-    }, [data, currentIndex, cursorHistory.length]);
-
-    const handleSearchChange = (val: string) => {
-        setSearchTerm(val);
-        setCursorHistory([{ createdAt: null, logId: null }]);
-        setCurrentIndex(0); 
-    };
-
-    const handleNext = () => setCurrentIndex(prev => prev + 1);
-    const handlePrevious = () => setCurrentIndex(prev => prev - 1);
-
-    const resetFilters = () => {
-        setCursorHistory([{ createdAt: null, logId: null }]);
-        setCurrentIndex(0);
-    };
+    const handleSearchChange = (value: string) => patch({ search: value, cursorTrail: null, cursorPage: null });
+    const handleNext = () => cursor.next({ createdAt: data?.nextCreatedAt ?? null, id: data?.nextLogId ?? null });
+    const handlePrevious = () => cursor.previous();
 
     const columns = useMemo<ColumnDef<AuditLog>[]>(() => [
         { header: 'Date', accessor: 'createdAt', render: (l) => new Date(l.createdAt).toLocaleString() },
@@ -98,8 +74,7 @@ export default function AuditLogsList() {
                         startDate={startDate}
                         endDate={endDate}
                         onChange={(update: [Date | null, Date | null]) => {
-                            setDateRange(update);
-                            resetFilters();
+                            patch({ from: update[0] ? update[0].toISOString().slice(0,10) : null, to: update[1] ? update[1].toISOString().slice(0,10) : null, cursorTrail: null, cursorPage: null });
                         }}
                         maxDate={new Date()}
                         placeholderText="Select date range..."
@@ -114,7 +89,7 @@ export default function AuditLogsList() {
                 columns={columns}
                 isLoading={isLoading}
                 hasMorePages={hasMorePages}
-                isFirstPage={currentIndex === 0}
+                isFirstPage={cursor.isFirstPage}
                 onNext={handleNext}
                 onPrevious={handlePrevious}
             />

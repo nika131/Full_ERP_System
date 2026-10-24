@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { Permissions } from '../constants/permissions';
+import { useUrlBoolean } from '../hooks/useUrlState';
 import { useAuth } from '../context/AuthContext';
 import { LeaveRequestForm } from '../components/hr/LeaveRequestForm';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMyLeaveHistoryQuery, useMySalaryHistoryQuery } from '../hooks/queries/useProfileQueries';
 
 export default function Profile() {
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
+    const canViewAbsences = hasPermission(Permissions.ViewAbsences);
+    const canRequestAbsences = hasPermission(Permissions.RequestAbsences);
     const queryClient = useQueryClient();
     
-    const [isRequesting, setIsRequesting] = useState(false);
+    const [isRequesting, setIsRequesting] = useUrlBoolean('requestLeave');
 
-    const { data: history = [], isLoading: isLoadingHistory } = useMyLeaveHistoryQuery();
+    const { data: history = [], isLoading: isLoadingHistory } = useMyLeaveHistoryQuery(canViewAbsences);
     const { data: salaryHistory = [], isLoading: isLoadingSalary } = useMySalaryHistoryQuery();
 
     const pendingRequests = history.filter(h => h.status === 'Pending').length;
@@ -32,12 +35,12 @@ export default function Profile() {
                     <h2 className="text-2xl font-bold text-slate-800">My Profile</h2>
                     <p className="text-sm text-slate-500">Manage your account and time off.</p>
                 </div>
-                <button 
+                {canRequestAbsences && <button 
                     onClick={() => setIsRequesting(!isRequesting)}
                     className="sm:absolute sm:right-0 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors w-full sm:w-auto"
                 >
                     {isRequesting ? 'Cancel Request' : '+ Request Time Off'}
-                </button>
+                </button>}
             </div>
 
             {/* Statistics Row */}
@@ -57,7 +60,7 @@ export default function Profile() {
             </div>
 
             {/* Conditional Request Form */}
-            {isRequesting && (
+            {canRequestAbsences && isRequesting && (
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-blue-200">
                     <h3 className="text-lg font-bold text-slate-800 mb-4">Submit Leave Request</h3>
                     <LeaveRequestForm 

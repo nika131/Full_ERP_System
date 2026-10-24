@@ -49,8 +49,9 @@ export const useNearbyStoresQuery = (lat: number, lon: number, radius: number) =
     });
 };
 
-export const useLookupStoresQuery = () => {
+export const useLookupStoresQuery = (enabled: boolean = true) => {
     return useQuery({
+        enabled,
         queryKey: ['lookupStores'],
         queryFn: ()  => storeService.getLookupStores(),
         staleTime: 5 * 60 * 1000,

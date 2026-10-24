@@ -15,6 +15,10 @@ namespace NexusERP.Domain.Entities
         public string Phone { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
+
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

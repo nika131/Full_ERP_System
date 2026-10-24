@@ -42,6 +42,9 @@ namespace NexusERP.Domain.Entities
 
         public ProductDisplayMode DisplayMode { get; set; } = ProductDisplayMode.Image;
 
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
+
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

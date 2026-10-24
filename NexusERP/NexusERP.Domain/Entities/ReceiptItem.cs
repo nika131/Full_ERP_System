@@ -25,5 +25,8 @@ namespace NexusERP.Domain.Entities
         public decimal ManualItemDiscountPercentage { get; set; }
 
         public decimal LineTotal { get; set; }
+
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
     }
 }

@@ -1,26 +1,19 @@
-﻿using BCrypt.Net;
+﻿
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Entities;
-using NexusERP.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
+using NexusERP.Domain.Exceptions;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using NexusERP.Domain.Exceptions;
 
 namespace NexusERP.Infrastructure.Services
 {
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
-
         private readonly string _jwtSecret;
 
         public AuthService(IUserRepository userRepository, IConfiguration config)
@@ -29,76 +22,93 @@ namespace NexusERP.Infrastructure.Services
             _jwtSecret = config["Jwt:Key"] ?? throw new AppException("JWT Secret missing!");
         }
 
-        public async Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId, string PosPin)
+        public async Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId, int companyId, string posPin)
         {
-            var existingUser = await _userRepository.GetUserByUsername(username);
-            if (existingUser != null)
-                throw new AppException("Username already exists.");
+            var existingUser = await _userRepository.GetUserByUsername(username, companyId);
 
-            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(plaintextPassword);
+            if (existingUser != null)
+                throw new AppException("Username already exists in this company.");
 
             var newUser = new User
             {
+                CompanyId = companyId,
                 FullName = fullname,
                 Username = username,
-                PasswordHash = hashedPassword,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(plaintextPassword),
                 RoleId = roleId,
-                PosPin = PosPin
+                PosPin = posPin
             };
 
-            await _userRepository.CreateUser(newUser, actorUserId);
+            await _userRepository.CreateUser(newUser, actorUserId, companyId);
         }
 
-        public async Task<string> Login(string username, string plaintextpassword)
+        public async Task<string> Login(string username, string plaintextPassword)
         {
             var user = await _userRepository.GetUserByUsername(username);
-            if (user == null)
-                throw new AppException("Invalid username or Password");
 
-            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(plaintextpassword, user.PasswordHash);
-            if (!isPasswordValid)
-                throw new AppException("Invalid username or password");
+            if (user == null || !BCrypt.Net.BCrypt.Verify(plaintextPassword, user.PasswordHash))
+                throw new AppException("Invalid username or password.");
 
             return GenerateJwtToken(user);
         }
 
         public string GenerateJwtToken(User user)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_jwtSecret);
+            return CreateUserJwt(user, null, null, DateTime.UtcNow.AddHours(10));
+        }
 
+        public string GenerateCompanyJwtToken(User user, int accountId, Guid sessionId, DateTime expiresAt)
+        {
+            if (user.AccountId != accountId || user.Role == null ||
+                !user.Role.IsActive || user.Role.CompanyId != user.CompanyId)
+                throw new AppException("Invalid company membership.");
+
+            return CreateUserJwt(user, accountId, sessionId, expiresAt);
+        }
+
+        private string CreateUserJwt(User user, int? accountId, Guid? sessionId, DateTime expiresAt)
+        {
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim("CompanyId", user.CompanyId.ToString()),
                 new Claim(ClaimTypes.GivenName, user.FullName),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Role, user.Role?.Name ?? "Unassigned")
             };
 
-            if (user.Role != null && user.Role.Permissions.Any())
+            if (accountId.HasValue && sessionId.HasValue)
             {
-                foreach (var permission in user.Role.Permissions)
-                {
-                    claims.Add(new Claim("Permission", permission));
-                }
+                claims.Add(new Claim("token_type", "company"));
+                claims.Add(new Claim("account_id", accountId.Value.ToString()));
+                claims.Add(new Claim("session_id", sessionId.Value.ToString("D")));
+                claims.Add(new Claim("role_id", user.RoleId.ToString()));
             }
 
-            var tokenDescription = new SecurityTokenDescriptor
+            if (user.Role != null)
+            {
+                foreach (var permission in user.Role.Permissions)
+                    claims.Add(new Claim("Permission", permission));
+            }
+
+            var descriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(10),
+                Expires = expiresAt,
                 SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature)
+                    new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret)),
+                    SecurityAlgorithms.HmacSha256
+                )
             };
 
-            var token = tokenHandler.CreateToken(tokenDescription);
-            return tokenHandler.WriteToken(token);
+            var handler = new JwtSecurityTokenHandler();
+            return handler.WriteToken(handler.CreateToken(descriptor));
         }
 
-        public async Task<string> LoginWithPin(int targetUserId, string pin)
+        public async Task<string> LoginWithPin(int companyId, int targetUserId, string pin)
         {
-            var user = await _userRepository.GetUserById(targetUserId);
+            var user = await _userRepository.GetUserById(companyId, targetUserId);
+
             if (user == null)
                 throw new AppException("User not found.");
 

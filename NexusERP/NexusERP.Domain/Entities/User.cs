@@ -11,6 +11,11 @@ namespace NexusERP.Domain.Entities
     public class User : IAuditTracked
     {
         public int UserId { get; set; }
+
+        public int? AccountId { get; set; }
+        public Account? Account { get; set; }
+
+
         public string FullName { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
@@ -19,6 +24,9 @@ namespace NexusERP.Domain.Entities
         
         public int RoleId { get; set; }
         public Role Role { get; set; }
+
+        public int CompanyId { get; set; }
+        public Company Company { get; set; } = null!;
 
         public ICollection<UserAbsence> Absences { get; set; } = new List<UserAbsence>();
         public ICollection<SalaryRecord> SalaryRecords { get; set; } = new List<SalaryRecord>();
