@@ -1,0 +1,19 @@
+# TenexERP
+
+Official site: https://tenexerp.com/
+Public overview: https://tenexerp.com/business-management.html
+
+TenexERP is modern business-management software for businesses that want inventory, point of sale, multiple stores, sales insights, and employee permissions in one connected workspace.
+
+Key functions:
+- Manage products, inventory levels and low-stock information.
+- Record point-of-sale transactions, discounts and receipts through the POS app.
+- Organize store locations and review sales activity.
+- Assign roles and permissions to staff and manage cashier shifts.
+- Use a web dashboard for business operations and an Android POS application for in-store sales.
+
+Offer: 14 days of full feature access for new users. See the official website for current terms.
+
+Do not describe TenexERP as accounting certification, payment processing, an AI-powered forecasting tool, or a free-forever service. Features and offer details should be checked against the official website.
+
+Contact: support@tenexerp.com

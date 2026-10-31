@@ -139,7 +139,7 @@ export default function Companies() {
                     <div className="flex items-center gap-4"><Link to="/settings" className="text-sm font-semibold text-emerald-800 hover:underline">Settings & support</Link><button type="button" onClick={() => { void signOut(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"><LogOut size={16} /> Sign out</button></div>
                 </header>
 
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><span><strong>Your first 30 days are on us.</strong> Explore the full TenexERP experience with no credit card. Future subscription options are coming later.</span><Link to="/settings" className="font-bold underline">View account</Link></div>
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><span><strong>Your first 14 days are yours to explore.</strong> Get full access to inventory, POS, stores, reporting and team features during your first 14 days.</span><Link to="/settings" className="font-bold underline">View account</Link></div>
                 {next && <p className="mb-4 rounded-lg border border-lime-200 bg-lime-50 p-3 text-sm text-lime-800">Choose the company linked to your shared page to continue. Your access permissions will be checked.</p>}
                 {error && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
                 {message && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{message}</div>}

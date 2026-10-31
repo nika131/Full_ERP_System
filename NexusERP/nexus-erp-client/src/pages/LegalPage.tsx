@@ -12,7 +12,7 @@ export default function LegalPage({ title, children }: LegalPageProps) {
             <header className="border-b border-gray-200 bg-white">
                 <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link
-                        to="/login"
+                        to="/"
                         className="text-xl font-bold tracking-wide text-emerald-600"
                     >
                         NEXUS ERP
