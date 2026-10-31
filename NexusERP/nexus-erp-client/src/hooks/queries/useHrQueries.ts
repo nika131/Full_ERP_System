@@ -2,8 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { employeeService } from "../../api/employeeService";
 import { roleService } from "../../api/roleService";
 import { absenceService } from "../../api/absenceService";
-import type { EmployeeProfileFormData } from "../../schemas/hrSchema";
-import { authService } from "../../api/authService";
+import type { CreatePosOnlyEmployeePayload } from "../../api/employeeService";
 
 export const useEmployeesQuery = (page: number, limit: number, search: string, roleFilter: string, enabled: boolean = true) => {
     return useQuery({
@@ -65,8 +64,12 @@ export const usePermissionsQuery = () => {
 };
 
 export const useRegisterEmployeeMutation = () => {
+    const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: EmployeeProfileFormData) => authService.register(data),
+        mutationFn: (data: CreatePosOnlyEmployeePayload) => employeeService.createPosOnly(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+        },
     });
 };
 

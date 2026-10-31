@@ -7,7 +7,18 @@ import type {
     SalaryRecordCreatePayload 
 } from '../types/employee';
 
+export interface CreatePosOnlyEmployeePayload {
+    fullName: string;
+    username: string;
+    posPin: string;
+    roleId: number;
+}
+
 export const employeeService = {
+    createPosOnly: async (payload: CreatePosOnlyEmployeePayload): Promise<{ message: string; userId: number }> => {
+        const response = await apiClient.post('/employees/pos-only', payload);
+        return response.data;
+    },
     getEmployees: async (
         page: number = 1, 
         pageSize: number = 10, 
