@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DataTable, type ColumnDef } from "../components/Ui/DataTable";
 import { SlideOver } from "../components/Ui/SlideOver";
 import { ConfirmDialog } from "../components/Ui/ConfirmDialog";
@@ -12,17 +12,60 @@ import { useUrlNumber, useUrlString, useUrlQuery } from '../hooks/useUrlState';
 import { InviteEmployeeModal } from "../components/hr/InviteEmployeeModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEmployeesQuery, useRoleLookupQuery, usePendingLeavQuery, useDeleteEmployeeMutation } from "../hooks/queries/useHrQueries";
+import { apiErrorMessage } from '../api/authService';
+import { companyAdminService } from '../api/companyAdminService';
+import { CopyCodeButton } from '../components/Ui/CopyCodeButton';
+import { Link } from "react-router-dom";
+import { RefreshCw, X } from 'lucide-react';
 
 export default function EmployeeList() {
     const { hasPermission } = useAuth();
     const canRoles = hasPermission(Permissions.ManageRoles);
     const canCreate = hasPermission(Permissions.CreateUsers);
+    const canManageJoinCodes = hasPermission(Permissions.ManageJoinCodes);
+    const canReviewJoinRequests = hasPermission(Permissions.ManageJoinRequests);
     const canEdit = hasPermission(Permissions.EditUsers);
     const canDelete = hasPermission(Permissions.DeleteUsers);
     const canManageAbsences = hasPermission(Permissions.ManageAbsences);
     const canViewSalary = hasPermission(Permissions.ViewSalary);
     const canManageSalary = hasPermission(Permissions.ManageSalary);
     const queryClient = useQueryClient();
+
+    
+    const [showEmployeeGuide, setShowEmployeeGuide] = useState(true);
+    const [generatedCode, setGeneratedCode] = useState<{
+        code: string;
+        expiresAt: string;
+    } | null>(null);
+    const [generatingCode, setGeneratingCode] = useState(false);
+    const [joinCodeError, setJoinCodeError] = useState('');
+
+    const generateJoinCode = async () => {
+        if (generatingCode || !canManageJoinCodes) return;
+
+        if (!window.confirm(
+            'Generate a new company join code? The previous code will immediately stop working.'
+        )) return;
+
+        setGeneratingCode(true);
+        setJoinCodeError('');
+
+        try {
+            const result = await companyAdminService.rotateJoinCode();
+
+            setGeneratedCode({
+                code: result.joinCode,
+                expiresAt: result.expiresAt,
+            });
+        } catch (err: unknown) {
+            setJoinCodeError(
+                apiErrorMessage(err, 'Could not generate a company join code.')
+            );
+        } finally {
+            setGeneratingCode(false);
+        }
+    };
+
 
     const { patch } = useUrlQuery();
     const [page, setPage] = useUrlNumber('page', 1);
@@ -127,6 +170,101 @@ export default function EmployeeList() {
 
             {activeView === 'Directory' && hasPermission(Permissions.ViewUsers) ? (
                 <>
+                    
+                {/* Employee onboarding and company access */}
+                {(showEmployeeGuide || canManageJoinCodes || canReviewJoinRequests) && (
+                    <section className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm sm:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="text-sm font-bold text-slate-900">
+                                    Employee access
+                                </div>
+
+                                {showEmployeeGuide && (
+                                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                                        <strong>POS employees</strong> use a PIN on an activated
+                                        terminal. <strong>Website employees</strong> register
+                                        with their own email, request to join with a company
+                                        code, and are approved by an administrator.
+                                    </p>
+                                )}
+                            </div>
+
+                            {showEmployeeGuide && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEmployeeGuide(false)}
+                                    aria-label="Dismiss employee setup explanation"
+                                    className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                                >
+                                    <X size={17} aria-hidden="true" />
+                                </button>
+                            )}
+                        </div>
+
+                        {(canManageJoinCodes || canReviewJoinRequests) && (
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                {canManageJoinCodes && (
+                                    <button
+                                        type="button"
+                                        disabled={generatingCode}
+                                        onClick={() => void generateJoinCode()}
+                                        className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                    >
+                                        <RefreshCw size={15} aria-hidden="true" />
+                                        {generatingCode
+                                            ? 'Generating...'
+                                            : 'Generate company join code'}
+                                    </button>
+                                )}
+
+                                <Link
+                                    to="/company-admin"
+                                    className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+                                >
+                                    {canReviewJoinRequests
+                                        ? 'Review join requests'
+                                        : 'Company access'}
+                                </Link>
+                            </div>
+                        )}
+
+                        {joinCodeError && (
+                            <p
+                                role="alert"
+                                className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                            >
+                                {joinCodeError}
+                            </p>
+                        )}
+
+                        {generatedCode && (
+                            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                                <div className="text-sm font-bold text-amber-950">
+                                    Save this code now — it is shown only once
+                                </div>
+
+                                <p className="mt-1 text-xs leading-5 text-amber-900">
+                                    Share it with employees who need website access.
+                                    Generating another code will invalidate this one.
+                                </p>
+
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <span className="max-w-full select-all break-all rounded-lg bg-white px-3 py-2 font-mono text-xs font-semibold text-slate-900 sm:text-sm">
+                                        {generatedCode.code}
+                                    </span>
+
+                                    <CopyCodeButton code={generatedCode.code} />
+                                </div>
+
+                                <p className="mt-2 text-xs text-amber-800">
+                                    Expires: {new Date(generatedCode.expiresAt).toLocaleString()}
+                                </p>
+                            </div>
+                        )}
+                    </section>
+                )}
+
                     {/* HR Statistics Row */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
@@ -189,7 +327,7 @@ export default function EmployeeList() {
                                 onClick={() => setIsInviteModalOpen(true)}
                                 className="flex-1 md:flex-none whitespace-nowrap bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700"
                             >
-                                + Invite Employee
+                                + Create Employee
                             </button>}
                         </div>
 
