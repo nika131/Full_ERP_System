@@ -59,6 +59,16 @@ export default function InventoryList() {
     const totalCount = productsData?.totalCount || 0;
     const totalValue = productsData?.totalValue || 0;
 
+    const showFirstProductGuide =
+        canCreate &&
+        !isLoading &&
+        !isError &&
+        totalCount === 0 &&
+        !searchTerm.trim() &&
+        !categoryFilter &&
+        !supplierFilter &&
+        !lowStockOnly;
+
     const selectedProduct = dialog.startsWith('edit:') || dialog.startsWith('delete:')
         ? products.find(product => product.productId === itemId) ?? null : null;
     const selectedStockProduct = dialog.startsWith('stock:')
@@ -194,6 +204,55 @@ export default function InventoryList() {
                     </span>
                 </div>
             </div>
+
+            
+            {showFirstProductGuide && (
+                <section
+                    aria-label="Getting started with inventory"
+                    className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-left sm:p-5"
+                >
+                    <div className="text-base font-bold text-emerald-950">
+                        Let's add your first product
+                    </div>
+
+                    <div className="mt-2 text-sm leading-6 text-emerald-900">
+                        Start by creating a product with its name, selling
+                        price, and other details. Once it's created, use
+                        Manage Stock to add your starting inventory quantity.
+                    </div>
+
+                    {canManageSettings && (
+                        <div className="mt-2 text-sm leading-6 text-emerald-800">
+                            You can also configure low-stock alerts,
+                            negative inventory, and manual discount rules
+                            using the settings gear.
+                        </div>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={handleAddClick}
+                            className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
+                        >
+                            <Plus size={16} />
+                            Add first product
+                        </button>
+
+                        {canManageSettings && (
+                            <button
+                                type="button"
+                                onClick={() => setDialog('settings')}
+                                className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
+                            >
+                                <Settings size={16} />
+                                Configure settings
+                            </button>
+                        )}
+                    </div>
+                </section>
+            )}
+
             
             {/* TWO-TIER ACTION BAR */}
             <div className="bg-white p-3 rounded-lg border border-slate-200 flex flex-col gap-3">
@@ -232,7 +291,9 @@ export default function InventoryList() {
 
                         {canManageSettings && <button
                             onClick={() => setDialog('settings')}
-                            className="w-12 sm:w-auto p-2 flex-none rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 flex items-center justify-center"
+                            className={`w-12 sm:w-auto p-2 flex-none rounded border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 flex items-center justify-center ${
+                                showFirstProductGuide ? 'ring-2 ring-emerald-400 ring-offset-2' : ''
+                            }`}
                             title="System Settings"
                         >
                             <Settings size={18} />

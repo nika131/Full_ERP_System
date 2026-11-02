@@ -129,7 +129,7 @@ export default function Companies() {
     const buttonClass = 'rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50';
 
     return (
-        <div className="h-dvh w-full overflow-x-hidden overflow-y-auto bg-slate-50 px-4 py-6 text-left sm:px-8 sm:py-8">
+        <div className="tenex-scroll h-dvh w-full overflow-x-hidden overflow-y-auto bg-slate-50 px-4 py-6 text-left sm:px-8 sm:py-8">
             <div className="mx-auto max-w-5xl">
                 <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">

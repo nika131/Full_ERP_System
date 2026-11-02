@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import apiClient from "../../api/apiClient";
+import { InfoTooltip } from "./InfoTooltip";
 
 export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
     const [threshold, setThreshold] = useState("5");
@@ -36,38 +37,41 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="System Settings"
+                className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+            >
                 <div className="p-4 border-b border-slate-200 flex justify-between items-center">
                     <h3 className="font-bold text-lg text-slate-800">System Settings</h3>
                 </div>
                 
-                <div className="p-4 space-y-2">
+                <div className="tenex-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4 text-left">
                     {/* Threshold Setting */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1">
-                            Global Low Stock Threshold
-                        </label>
+                        <div className="mb-1 flex items-center gap-1.5">
+                            <label className="text-sm font-semibold text-slate-700">
+                                Global Low Stock Threshold
+                            </label>
+                            <InfoTooltip text="The default low-stock alert level for products without a custom threshold. For example, a value of 5 marks products as low-stock when their quantity reaches 5 or fewer." />
+                        </div>
                         <input 
                             type="number" 
                             value={threshold}
                             onChange={(e) => setThreshold(e.target.value)}
                             className="w-full border border-slate-300 rounded p-2 outline-none focus:border-emerald-500"
                         />
-                        <p className="text-xs text-slate-500 mt-1">
-                            Used for any product that does not have a custom threshold assigned.
-                        </p>
                     </div>
 
                     {/* Negative Inventory Setting */}
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                        <div className="pr-4">
-                            <label className="block text-sm font-semibold text-slate-700">
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-sm font-semibold text-slate-700">
                                 Allow Negative Inventory
                             </label>
-                            <p className="text-xs text-slate-500 mt-1">
-                                Allow stock deductions (loss/damage/sales) to push quantities below zero.
-                            </p>
+                            <InfoTooltip text="When enabled, stock deductions and sales can reduce product quantities below zero. When disabled, operations that would create negative inventory are blocked." />
                         </div>
                         <input 
                             type="checkbox"
@@ -78,14 +82,12 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
                     </div>
 
                     {/* Discount Policy Setting */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                        <div className="pr-4">
-                            <label className="block text-sm font-semibold text-slate-700">
+                    <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-sm font-semibold text-slate-700">
                                 Manual Discount Policy
                             </label>
-                            <p className="text-xs text-slate-500 mt-1">
-                                Control who can apply manual cart and item discounts during checkout.
-                            </p>
+                            <InfoTooltip text="Enabled allows manual checkout discounts within configured limits. Admin Only restricts them to administrators. Disabled prevents manual discounts. Automatic market discounts are unaffected." />
                         </div>
                         <select 
                             value={discountPolicy}
@@ -99,7 +101,7 @@ export function GlobalSettingsModal({ onClose }: { onClose: () => void }) {
                     </div>
                 </div>
 
-                <div className="p-4 bg-slate-50 flex justify-end gap-2 border-t border-slate-200">
+                <div className="flex shrink-0 justify-end gap-2 border-t border-slate-200 bg-slate-50 p-4">
                     <button 
                         onClick={onClose}
                         className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded hover:bg-slate-100"

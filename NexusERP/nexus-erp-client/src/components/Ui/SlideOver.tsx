@@ -24,7 +24,7 @@ export function SlideOver({ isOpen, onClose, title, children }: SlideOverProps) 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-hidden">
+        <div className="tenex-scroll fixed inset-0 z-50 overflow-hidden">
             {/* Darkened overlay background */}
             <div 
                 className="absolute inset-0 bg-slate-900/50 transition-opacity"

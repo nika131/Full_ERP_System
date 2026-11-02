@@ -7,6 +7,8 @@ import { useSupplierLookupQuery } from "../../hooks/queries/useSupplierQueries";
 import { useLookupCategoriesQuery } from "../../hooks/queries/useCategoryQueries";
 import { Upload, X, Loader2, Image as ImageIcon, Shapes } from "lucide-react";
 import { productService } from "../../api/productService";
+import { InfoTooltip } from '../Ui/InfoTooltip';
+
 interface ProductFormProps {
     initialData?: Product | null;
     onSubmit: (data: ProductFormData) => Promise<void>;
@@ -114,7 +116,7 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
 
 
     return (
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 flex flex-col h-full overflow-y-auto pr-2">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="tenex-scroll space-y-4 flex flex-col h-full overflow-y-auto pr-2">
 
             <div className="flex-1 space-y-6">
                 
@@ -289,7 +291,12 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                 {/* Stock & Pricing Grid */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
+                        <div className="mb-1 flex items-center gap-1.5">
+                        <label className="text-sm font-medium text-slate-700">
+                                Quantity
+                            </label>
+                            <InfoTooltip text="Quantity cannot be edited here. Use Inventory → Manage Stock to record restocks, losses, or damage." />
+                        </div>
                         <input
                             type="number"
                             value={initialData?.quantity ?? 0}
@@ -299,7 +306,12 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Alert At</label>
+                        <div className="mb-1 flex items-center gap-1.5">
+                            <label className="text-sm font-medium text-slate-700">
+                                Low Stock Alert At
+                            </label>
+                            <InfoTooltip text="Optional. Leave blank to use the global low-stock threshold from System Settings." />
+                        </div>
                         <input
                             type="number"
                             placeholder="Use Global (5)"

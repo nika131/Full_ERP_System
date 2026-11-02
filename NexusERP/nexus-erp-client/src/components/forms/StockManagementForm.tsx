@@ -35,6 +35,11 @@ export function StockManagementForm({ product, onSubmit, onCancel }: Props) {
             <option value="Loss">Loss (Unaccounted Missing)</option>
             <option value="Damage">Damage (Destroyed/Unsellable)</option>
           </select>
+          <div className="mt-2 text-xs leading-5 text-slate-500">
+            Restock adds units to inventory. Loss and Damage
+            subtract units. Enter the number of affected units
+            as a positive quantity.
+          </div>
           {errors.transactionType && <p className="text-red-500 text-xs mt-1">{errors.transactionType.message}</p>}
         </div>
 
