@@ -9,6 +9,8 @@ import {
   Sun, Users, Zap, X
 } from 'lucide-react';
 
+
+
 const features = [
   { icon: Boxes, title: 'Know what’s in stock', text: 'Track products, inventory movements, and low-stock alerts without getting lost in spreadsheets.' },
   { icon: CreditCard, title: 'Keep checkout moving', text: 'Give your team a focused point-of-sale experience for everyday transactions.' },
@@ -17,6 +19,8 @@ const features = [
   { icon: Store, title: 'Manage multiple locations', text: 'Keep stores and their operations organized in a single workspace.' },
   { icon: ClipboardList, title: 'Less manual admin', text: 'Stay on top of shifts, records, and daily tasks from one convenient place.' },
 ];
+
+
 
 const featureDetails = [
   ['Find products and current quantities in one place.', 'Review low-stock alerts and record stock changes.', 'Keep product information organized for your team.'],
@@ -27,12 +31,16 @@ const featureDetails = [
   ['Keep an eye on shifts and activity records.', 'Manage employee-related tasks from your workspace.', 'Spend less time gathering updates from different places.'],
 ] as const;
 
+
+
 const questions = [
   ['Is TenexERP only for large companies?', 'No. TenexERP is designed for small businesses and growing teams, with inventory, sales and team management in one workspace.'],
   ['Do I need technical experience?', 'No. Set up your company, organize stores and products, and bring your team on board with straightforward workflows.'],
   ['What do I get during my first 14 days?', 'Full access to TenexERP features, including inventory management, point of sale, stores, sales insights and employee permissions.'],
   ['Can my team use it too?', 'Yes. Add teammates, set permissions for their roles, and give in-store cashiers access to the POS experience.'],
 ];
+
+
 
 export default function Landing() {
   const [mobile, setMobile] = useState(false);
@@ -120,7 +128,9 @@ export default function Landing() {
 
               <h1 className="mx-auto max-w-2xl text-[clamp(3rem,6.6vw,6.5rem)] font-black leading-[.99] tracking-[-.075em] lg:mx-0">
                 Run your business.
-                <span className="block text-[#3a9c70]">Not your spreadsheets.</span>
+                <span className="block text-[#3a9c70]">
+                  Not your spreadsheets.
+                </span>
               </h1>
 
               <p className="mx-auto mt-8 max-w-xl text-lg leading-8 text-[#53665e] lg:mx-0">
@@ -237,6 +247,10 @@ export default function Landing() {
             <span className="inline-flex items-center gap-2"><ShieldCheck size={19} /> Role-based access</span>
             <span className="inline-flex items-center gap-2"><Cloud size={19} /> Connected workspace</span>
             <span className="inline-flex items-center gap-2"><Clock3 size={19} /> Time back in your day</span>
+            <span className="inline-flex items-center gap-2">
+              <Store size={19} />
+              Manage your business from anywhere
+            </span>
           </div>
         </section>
 
@@ -318,6 +332,14 @@ export default function Landing() {
                 <p className="mt-5 max-w-lg leading-8 text-emerald-100/75">
                   You didn’t start a business to spend your day switching tabs and chasing numbers.
                   Bring your daily operations together and make your next decision with more confidence.
+                </p>
+
+                <p className="mt-5 max-w-lg leading-8 text-emerald-100/75">
+                  Running a business shouldn't mean spending every hour
+                  at your store. Your employees can handle day-to-day sales
+                  through the POS app while you review inventory, sales
+                  performance, and operations from your web dashboard,
+                  wherever you have an internet connection.
                 </p>
                 <Link to="/register" className="mt-8 inline-flex items-center gap-3 rounded-xl bg-[#c9efb7] px-6 py-4 font-extrabold text-[#143c31] hover:bg-white">
                   Create your account <ArrowRight size={18} />

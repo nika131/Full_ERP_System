@@ -11,6 +11,7 @@ Key functions:
 - Organize store locations and review sales activity.
 - Assign roles and permissions to staff and manage cashier shifts.
 - Use a web dashboard for business operations and an Android POS application for in-store sales.
+- Monitor sales, inventory and business operations remotely through the web dashboard, without needing to be physically present at the store throughout the day.
 
 Offer: 14 days of full feature access for new users. See the official website for current terms.
 
