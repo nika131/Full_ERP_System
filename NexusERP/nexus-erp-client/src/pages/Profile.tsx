@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { LeaveRequestForm } from '../components/hr/LeaveRequestForm';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMyLeaveHistoryQuery, useMySalaryHistoryQuery } from '../hooks/queries/useProfileQueries';
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 export default function Profile() {
     const { user, hasPermission } = useAuth();
@@ -12,6 +15,22 @@ export default function Profile() {
     const queryClient = useQueryClient();
     
     const [isRequesting, setIsRequesting] = useUrlBoolean('requestLeave');
+
+    useEffect(() => {
+        if (!isRequesting) return;
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsRequesting(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleEscape);
+
+        return () => {
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [isRequesting, setIsRequesting]);
 
     const { data: history = [], isLoading: isLoadingHistory } = useMyLeaveHistoryQuery(canViewAbsences);
     const { data: salaryHistory = [], isLoading: isLoadingSalary } = useMySalaryHistoryQuery();
@@ -59,19 +78,60 @@ export default function Profile() {
                 </div>
             </div>
 
-            {/* Conditional Request Form */}
-            {canRequestAbsences && isRequesting && (
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-blue-200">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4">Submit Leave Request</h3>
-                    <LeaveRequestForm 
-                        onSuccess={() => { 
-                            setIsRequesting(false); 
-                            queryClient.invalidateQueries({ queryKey: ['profile', 'leaveHistory'] });
-                        }} 
-                        onCancel={() => setIsRequesting(false)} 
-                    />
-                </div>
+           
+            {/* Leave Request Modal */}
+            {canRequestAbsences && isRequesting && createPortal(
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 sm:p-4">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="leave-request-title"
+                        className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white text-left shadow-2xl"
+                    >
+                        {/* Modal Header */}
+                        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
+                            <div className="min-w-0">
+                                <h3
+                                    id="leave-request-title"
+                                    className="!m-0 text-lg font-bold leading-6 text-slate-900"
+                                >
+                                    Request Time Off
+                                </h3>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Select your leave type and dates.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setIsRequesting(false)}
+                                aria-label="Close leave request"
+                                className="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                            >
+                                <X size={19} />
+                            </button>
+                        </div>
+
+                        {/* Scrollable Form */}
+                        <div className="tenex-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+                            <LeaveRequestForm
+                                onSuccess={() => {
+                                    setIsRequesting(false);
+                                    queryClient.invalidateQueries({
+                                        queryKey: ['profile', 'leaveHistory']
+                                    });
+                                    queryClient.invalidateQueries({
+                                        queryKey: ['pendingLeaves']
+                                    });
+                                }}
+                                onCancel={() => setIsRequesting(false)}
+                            />
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
+
 
             {/* History Table */}
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">

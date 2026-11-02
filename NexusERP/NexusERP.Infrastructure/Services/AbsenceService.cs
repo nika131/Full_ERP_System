@@ -39,6 +39,9 @@ namespace NexusERP.Infrastructure.Services
             if (absence == null)
                 throw new AppException("Leave request not found.");
 
+            if (absence.UserId == reviewerId)
+                throw new AppException("You cannot review your own leave request.");
+
             if (absence.Status != AbsenceStatus.Pending)
                 throw new AppException("This request has already been processed.");
 

@@ -4,6 +4,7 @@ import { authService } from '../api/authService';
 import { tokenStorage } from '../api/tokenStorage';
 
 interface User {
+    userId: number | null;
     username: string;
     role: string;
     permissions: string[];
@@ -36,8 +37,27 @@ function decodeCompanyUser(token: string): User | null {
         const permissions = Array.isArray(raw) ? raw.map(String) : typeof raw === 'string' ? [raw] : [];
         const companyId = Number(payload.CompanyId);
 
+        const rawUserId =
+            payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+            ?? payload.nameid
+            ?? payload.sub;
+
+        const parsedUserId = Number(rawUserId);
+
+        const userId =
+            Number.isSafeInteger(parsedUserId) && parsedUserId > 0
+                ? parsedUserId
+                : null;
+
         if (!Number.isInteger(companyId) || !username) return null;
-        return { username: String(username), role: String(role ?? ''), permissions, companyId };
+        
+        return {
+            userId,
+            username: String(username),
+            role: String(role ?? ''),
+            permissions,
+            companyId
+        };
     } catch {
         return null;
     }

@@ -15,6 +15,8 @@ export const LeaveRequestForm = ({ onSuccess, onCancel }: LeaveRequestFormProps)
     const {
         register,
         handleSubmit,
+        watch,
+        setValue,
         formState: { errors }
     } = useForm<LeaveRequestFormData>({
         resolver: zodResolver(leaveRequestSchema),
@@ -25,6 +27,9 @@ export const LeaveRequestForm = ({ onSuccess, onCancel }: LeaveRequestFormProps)
             notes: ''
         }
     });
+
+    const selectedStartDate = watch('startDate');
+    const selectedEndDate = watch('endDate');   
 
     const onSubmit = async (data: LeaveRequestFormData) => {
         try {
@@ -58,31 +63,78 @@ export const LeaveRequestForm = ({ onSuccess, onCancel }: LeaveRequestFormProps)
                 {errors.type && <p className="text-red-500 text-xs mt-1">{errors.type.message}</p>}
             </div>
 
+            
             {/* Date Inputs Grid */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-700">Start Date</label>
-                    <input 
-                        type="date" 
-                        {...register('startDate')}
-                        className={`w-full px-3 py-2 border rounded outline-none transition-colors ${
-                            errors.startDate ? 'border-red-500' : 'border-slate-300 focus:border-blue-500'
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="min-w-0">
+                    <label
+                        htmlFor="leave-start-date"
+                        className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                        Start Date
+                    </label>
+
+                    <input
+                        id="leave-start-date"
+                        type="date"
+                        {...register('startDate', {
+                            onChange: (event) => {
+                                const newStartDate = event.target.value;
+
+                                if (
+                                    selectedEndDate &&
+                                    newStartDate &&
+                                    selectedEndDate < newStartDate
+                                ) {
+                                    setValue('endDate', '', {
+                                        shouldValidate: true,
+                                        shouldDirty: true
+                                    });
+                                }
+                            }
+                        })}
+                        className={`w-full min-w-0 rounded-lg border bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 ${
+                            errors.startDate
+                                ? 'border-red-500'
+                                : 'border-slate-300'
                         }`}
                     />
-                    {errors.startDate && <p className="text-red-500 text-xs mt-1">{errors.startDate.message}</p>}
+
+                    {errors.startDate && (
+                        <p className="mt-1 text-xs text-red-600">
+                            {errors.startDate.message}
+                        </p>
+                    )}
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-700">End Date</label>
-                    <input 
-                        type="date" 
+
+                <div className="min-w-0">
+                    <label
+                        htmlFor="leave-end-date"
+                        className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                        End Date
+                    </label>
+
+                    <input
+                        id="leave-end-date"
+                        type="date"
+                        min={selectedStartDate || undefined}
                         {...register('endDate')}
-                        className={`w-full px-3 py-2 border rounded outline-none transition-colors ${
-                            errors.endDate ? 'border-red-500' : 'border-slate-300 focus:border-blue-500'
+                        className={`w-full min-w-0 rounded-lg border bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 ${
+                            errors.endDate
+                                ? 'border-red-500'
+                                : 'border-slate-300'
                         }`}
                     />
-                    {errors.endDate && <p className="text-red-500 text-xs mt-1">{errors.endDate.message}</p>}
+
+                    {errors.endDate && (
+                        <p className="mt-1 text-xs text-red-600">
+                            {errors.endDate.message}
+                        </p>
+                    )}
                 </div>
             </div>
+
 
             {/* Notes Textarea */}
             <div>
