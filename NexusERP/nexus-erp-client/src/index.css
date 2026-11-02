@@ -109,3 +109,53 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+
+/* =========================================
+   AUTHENTICATION PAGES ONLY
+   ========================================= */
+
+.auth-page h1 {
+  font-size: clamp(1.75rem, 5vw, 2rem);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  margin-top: 1.75rem;
+  margin-bottom: 0;
+}
+
+.auth-page p.mt-1 {
+  margin-top: 0.25rem;
+}
+
+.auth-page p.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.auth-page p.mt-6 {
+  margin-top: 1.5rem;
+}
+
+.auth-page p.mt-1\.5 {
+  margin-top: 0.375rem;
+}
+
+/* Authentication inputs */
+
+.auth-page .auth-input {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Chrome / Edge autofill */
+
+.auth-page .auth-input:-webkit-autofill,
+.auth-page .auth-input:-webkit-autofill:hover,
+.auth-page .auth-input:-webkit-autofill:focus,
+.auth-page .auth-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a;
+}
