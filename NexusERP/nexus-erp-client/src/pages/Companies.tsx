@@ -2,7 +2,7 @@ import { CopyCodeButton } from '../components/Ui/CopyCodeButton';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUrlString } from '../hooks/useUrlState';
-import { Building2, Plus, UserRoundPlus, ArrowRight, LogOut } from 'lucide-react';
+import { Building2, Plus, UserRoundPlus, ArrowRight, LogOut, Boxes } from 'lucide-react';
 import { apiErrorMessage, authService, type CompanySummary, type CreatedCompany, type JoinRequestSummary } from '../api/authService';
 import { useAuth } from '../context/AuthContext';
 
@@ -85,7 +85,7 @@ export default function Companies() {
         try {
             const result = await authService.createCompany({ companyName, fullName, username, posPin: posPin || undefined });
             setCreated(result);
-            setMessage(result.message);
+            setMessage('');
             setView('list');
             await load();
         } catch (err: unknown) {
@@ -129,25 +129,95 @@ export default function Companies() {
     const buttonClass = 'rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50';
 
     return (
-        <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-8">
+        <div className="h-dvh w-full overflow-x-hidden overflow-y-auto bg-slate-50 px-4 py-6 text-left sm:px-8 sm:py-8">
             <div className="mx-auto max-w-5xl">
                 <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h1 className="text-2xl font-bold text-emerald-700">TenexERP</h1>
-                        <p className="mt-1 text-sm text-gray-500">Choose a company or join a team</p>
-                    </div>
+                    <div className="min-w-0">
+                        <Link
+                            to="/"
+                            aria-label="TenexERP home"
+                            className="inline-flex items-center gap-2.5 text-xl font-extrabold tracking-tight text-[#163f35] transition hover:opacity-80 sm:text-2xl"
+                        >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#163f35] text-white">
+                            <Boxes size={20} aria-hidden="true" />
+                            </span>
+                            <span>
+                            Tenex<span className="text-emerald-600">ERP</span>
+                            </span>
+                        </Link>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            Choose a company or join a team
+                        </p>
+                        </div>
                     <div className="flex items-center gap-4"><Link to="/settings" className="text-sm font-semibold text-emerald-800 hover:underline">Settings & support</Link><button type="button" onClick={() => { void signOut(); }} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"><LogOut size={16} /> Sign out</button></div>
                 </header>
 
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><span><strong>Your first 14 days are yours to explore.</strong> Get full access to inventory, POS, stores, reporting and team features during your first 14 days.</span><Link to="/settings" className="font-bold underline">View account</Link></div>
-                {next && <p className="mb-4 rounded-lg border border-lime-200 bg-lime-50 p-3 text-sm text-lime-800">Choose the company linked to your shared page to continue. Your access permissions will be checked.</p>}
-                {error && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-                {message && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{message}</div>}
-                {created && <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                    <strong>Save this join code now — it is shown only once.</strong>
-                    <div className="mt-2 flex flex-wrap items-center gap-3"><code className="break-all select-all font-mono text-sm">{created.joinCode}</code><CopyCodeButton code={created.joinCode} /></div>
-                    <p className="mt-2 text-xs">The code expires after 7 days, or immediately when an administrator rotates it.</p>
-                </div>}
+                {/* Shared-page notice — only when relevant */}
+                {safeNext && !created && view === 'list' && (
+                    <div className="mb-4 flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-600">
+                        <span className="shrink-0 text-emerald-600">ⓘ</span>
+                        <span>
+                        You opened a shared page. Select its company to continue.
+                        </span>
+                    </div>
+                    )}
+
+                    {/* Errors */}
+                    {error && (
+                    <div
+                        role="alert"
+                        className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-left text-sm text-red-700"
+                    >
+                        {error}
+                    </div>
+                    )}
+
+                    {/* General success messages — e.g. join requests */}
+                    {message && !created && (
+                    <div
+                        role="status"
+                        className="mb-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm text-emerald-800"
+                    >
+                        <span className="shrink-0">✓</span>
+                        <span>{message}</span>
+                    </div>
+                    )}
+
+                    {/* One-time company join code */}
+                    {created && (
+                    <section className="mb-6 rounded-2xl border border-amber-200 bg-[#fffbeb] p-4 text-left sm:p-5">
+                        <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-xl text-amber-800">
+                            ✓
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                            <div className="text-base font-bold leading-6 text-slate-900">
+                            Company created successfully
+                            </div>
+
+                            <div className="mt-1 text-sm leading-6 text-slate-600">
+                            Save your company join code. It is shown only once
+                            and can be shared with employees who want to join.
+                            </div>
+
+                            <div className="mt-4 flex flex-wrap items-center gap-3">
+                            <span className="inline-block max-w-full select-all break-all rounded-lg border border-amber-200 bg-white px-3 py-2 font-mono text-xs font-semibold tracking-wide text-slate-900 sm:text-sm">
+                                {created.joinCode}
+                            </span>
+
+                            <CopyCodeButton code={created.joinCode} />
+                            </div>
+
+                            <div className="mt-3 text-xs leading-5 text-amber-800">
+                            Expires after 7 days, or sooner if an administrator
+                            rotates the code.
+                            </div>
+                        </div>
+                        </div>
+                    </section>
+                )}
 
                 <div className="mb-5 flex flex-wrap items-center gap-2">
                     <button onClick={() => { setView('list'); setError(''); }} className={`rounded-lg px-4 py-2 text-sm font-medium ${view === 'list' ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-700'}`}>My companies</button>

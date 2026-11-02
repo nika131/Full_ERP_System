@@ -56,7 +56,7 @@ export default function MainLayout() {
                 ? 'translate-x-0 w-64 opacity-100'
                 : '-translate-x-full w-64 md:translate-x-0 md:w-0 overflow-hidden opacity-0'
         }`}>
-            <Link to="/profile" onClick={() => setIsSidebarOpen(false)} aria-label="TenexERP workspace" className="flex h-16 shrink-0 items-center gap-3 border-b border-gray-800 bg-gray-950 px-4 transition hover:bg-gray-900">
+            <Link to="/" onClick={() => setIsSidebarOpen(false)} aria-label="TenexERP home" className="flex h-16 shrink-0 items-center gap-3 border-b border-gray-800 bg-gray-950 px-4 transition hover:bg-gray-900">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/20">
                     <Boxes size={22} strokeWidth={2.2} aria-hidden="true" />
                 </span>

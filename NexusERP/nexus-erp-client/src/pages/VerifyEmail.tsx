@@ -73,15 +73,17 @@ export default function VerifyEmail() {
     };
 
     return (
-        <main className="flex min-h-dvh items-center justify-center bg-[#f7faf7] px-4 py-8 text-left sm:px-6 sm:py-12">
-            <div className="w-full max-w-[460px]">
+       <main className="auth-page flex min-h-dvh justify-center bg-[#f7faf7] px-4 py-8 text-left sm:px-6 sm:py-12">
+            <div className="my-auto w-full max-w-[460px]">
                 <div className="mb-8 text-center">
                     <Link to="/" aria-label="TenexERP home" className="inline-flex items-center gap-2.5 text-[#163f35] transition hover:opacity-80">
                         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#163f35] text-white"><Boxes size={21} aria-hidden="true" /></span>
                         <span className="text-2xl font-extrabold tracking-tight">Tenex<span className="text-emerald-600">ERP</span></span>
                     </Link>
                     <div className="mx-auto mt-7 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><MailCheck size={25} aria-hidden="true" /></div>
-                    <h1 className="!mb-0 !mt-4 text-center text-[1.8rem] font-extrabold tracking-tight text-slate-900 sm:text-[2rem]">Verify your email</h1>
+                    <h1 className="mt-4 mb-0 text-center text-[1.8rem] leading-[1.2] font-extrabold tracking-tight text-slate-900 sm:text-[2rem]">
+                        Verify your email
+                    </h1>
                     <p role="status" className="mt-2 text-sm leading-6 text-slate-500">{message}</p>
                 </div>
 
