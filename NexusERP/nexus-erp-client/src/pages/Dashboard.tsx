@@ -1,9 +1,7 @@
 import { useEffect, useMemo } from "react";
-import type { Transaction } from "../types/transaction";
-import { CursorDataTable, type ColumnDef } from "../components/Ui/CursorDataTable";
 import { AlertCircle, DollarSign, FilterX, Package, TrendingUp } from "lucide-react";
 import { AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart } from "recharts";
-import { useDashboardStatsQuery, useChartDataQuery, useTopProductsQuery, useTransactionsQuery } from "../hooks/queries/useDashboardQueries";
+import { useDashboardStatsQuery, useChartDataQuery, useTopProductsQuery } from "../hooks/queries/useDashboardQueries";
 import { StoreMapCanvas } from "../components/maps/StoreMapCanvas";
 import { useLookupStoresQuery } from "../hooks/queries/useStoreQueries";
 import { useLookupCategoriesQuery } from "../hooks/queries/useCategoryQueries";
@@ -15,7 +13,7 @@ import { MultiSelectDropdown } from "../components/Ui/MultiSelectDropdown";
 import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
 import { useUrlQuery } from '../hooks/useUrlState';
-import { useUrlCursor } from '../hooks/useUrlCursor';
+import { SalesLedger } from "../components/reports/SalesLedger";
 
 export type DashboardFilters = {
   startDate: string | null;
@@ -89,9 +87,7 @@ export default function Dashboard() {
       const next = typeof change === 'function' ? change(globalFilters) : change;
       patch({ filters: JSON.stringify(next), cursorPage: null, cursorTrail: null });
   };
-  const searchTerm = params.get('search') ?? '';
-  const setSearchTerm = (val: string) => patch({ search: val, cursorPage: null, cursorTrail: null });
-  const ledger = useUrlCursor();
+  
 
   const { data: stats, isLoading: isStatsLoading } = useDashboardStatsQuery(globalFilters);
   const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery(globalFilters);
@@ -106,28 +102,10 @@ export default function Dashboard() {
 
   const isLoadingStats = isStatsLoading || isChartLoading || isTopProductsLoading;
 
-  const currentCursor = { createdAt: ledger.cursor.createdAt, transactionId: ledger.cursor.id }
-
-  const { data: transactionsData, isLoading: isLoadingLedger } = useTransactionsQuery(
-    10,
-    currentCursor.createdAt,
-    currentCursor.transactionId,
-    searchTerm,
-    globalFilters,
-    canViewTransactions
-  );
-
-  const handleSearchChange = (val: string) => setSearchTerm(val);
-  const handleNext = () => ledger.next({ createdAt: transactionsData?.nextCreatedAt ?? null, id: transactionsData?.nextTransactionId ?? null });
-  const handlePrevious = () => ledger.previous();
-
   const clearFilters = () => {
     const today = formatLocalDate(new Date());
     patch({ filters: JSON.stringify({ ...initialFilters, startDate: today, endDate: today }), search: null, cursorTrail: null, cursorPage: null });
   };
-
-  const transactions = transactionsData?.items || [];
-  const hasMorePages = transactionsData?.hasMorePages || false;
 
   const toggleStoreFilter = (storeId: number) => setGlobalFilters(prev => ({
     ...prev,
@@ -135,41 +113,6 @@ export default function Dashboard() {
   }));
 
   const isSingleDay = globalFilters.startDate !== '' && globalFilters.startDate === globalFilters.endDate;
-
-  const columns = useMemo<ColumnDef<Transaction>[]>(() => [
-    { 
-      header: 'Date', 
-      accessor: 'createdAt',
-      render: (t) => new Date(t.createdAt).toLocaleDateString()
-    },
-    { 
-      header: 'Type', 
-      accessor: 'transactionType',
-      render: (t) => (
-        <span className={`px-2 py-1 rounded text-xs font-semibold ${t.transactionType === 'Sale' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
-          {t.transactionType}
-        </span>
-      )
-    },
-    { header: 'Product', accessor: 'productName', className: 'text-slate-500' },
-    { 
-      header: 'Qty', 
-      accessor: 'quantity',
-      className: 'text-right font-medium'
-    },
-    { 
-      header: 'Total', 
-      accessor: 'totalAmount',
-      className: 'text-right',
-      render: (t) => `$${t.totalAmount.toFixed(2)}`
-    },
-    { 
-      header: 'Profit', 
-      accessor: 'profit',
-      className: 'text-right text-emerald-600 font-medium',
-      render: (t) => t.profit > 0 ? `+$${t.profit.toFixed(2)}` : '-'
-    }
-  ], []);
 
   return (
     <div className="space-y-8">
@@ -487,33 +430,9 @@ export default function Dashboard() {
           </div>
       </div>}
 
-      {/* BOTTOM ZONE: TRANSACTION LEDGER */}
-      {canViewTransactions && (<div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-          <h3 className="text-lg font-bold text-slate-800">Transaction Ledger</h3>
-
-          <div className="flex bg-white p-1 rounded-md shadow-sm border border-slate-200 w-full sm:w-72">
-            <input 
-              type="text" 
-              placeholder="Search ID or Product Name..." 
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full px-3 py-2 outline-none text-sm bg-transparent"
-            />
-          </div>
-        </div>
-
-        <CursorDataTable 
-          data={transactions}
-          columns={columns}
-          isLoading={isLoadingLedger}
-          hasMorePages={hasMorePages}
-          isFirstPage={ledger.isFirstPage}
-          onNext={handleNext}
-          onPrevious={handlePrevious}
-        />
-      </div>
-      )}
+      {/* BOTTOM ZONE: Receipt-based sales ledger; inventory transactions remain in their original endpoints. */}
+        {canViewTransactions && <SalesLedger filters={globalFilters} />}
+        
     </div>
   );
 }
