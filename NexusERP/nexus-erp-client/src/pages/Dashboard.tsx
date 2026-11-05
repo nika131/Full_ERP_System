@@ -35,13 +35,22 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   return `${hour}:${minute}`;
 });
 
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
 const defaultEnd = new Date();
 const defaultStart = new Date();
 defaultStart.setDate(defaultEnd.getDate() - 7);
 
 const initialFilters: DashboardFilters = {
-    startDate: defaultStart.toISOString().slice(0, 10), endDate: defaultEnd.toISOString().slice(0, 10),
-    startHour: '', endHour: '', storeIds: [], categoryIds: [], supplierIds: [], employeeIds: []
+  startDate: formatLocalDate(defaultStart),
+  endDate: formatLocalDate(defaultEnd),
+  startHour: '', endHour: '', storeIds: [], categoryIds: [], supplierIds: [], employeeIds: []
 };
 
 function readFilters(raw: string | null): DashboardFilters {
@@ -58,6 +67,8 @@ function readFilters(raw: string | null): DashboardFilters {
         };
     } catch { return initialFilters; }
 }
+
+const MAP_CENTER: [number, number] = [41.7151, 44.8271];
 
 export default function Dashboard() {
   const { hasPermission } = useAuth();
@@ -81,7 +92,6 @@ export default function Dashboard() {
   const searchTerm = params.get('search') ?? '';
   const setSearchTerm = (val: string) => patch({ search: val, cursorPage: null, cursorTrail: null });
   const ledger = useUrlCursor();
-  const mapCenter: [number, number] = [41.7151, 44.8271];
 
   const { data: stats, isLoading: isStatsLoading } = useDashboardStatsQuery(globalFilters);
   const { data: chartData = [], isLoading: isChartLoading } = useChartDataQuery(globalFilters);
@@ -112,7 +122,7 @@ export default function Dashboard() {
   const handlePrevious = () => ledger.previous();
 
   const clearFilters = () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatLocalDate(new Date());
     patch({ filters: JSON.stringify({ ...initialFilters, startDate: today, endDate: today }), search: null, cursorTrail: null, cursorPage: null });
   };
 
@@ -173,23 +183,24 @@ export default function Dashboard() {
       <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200 flex flex-wrap items-center gap-3 mb-6">
   
         {/* Date Filters */}
-        <div className="flex-1 min-w-50 border border-slate-300 rounded bg-white h-10 overflow-hidden">
+        <div className="relative z-30 h-10 min-w-[200px] flex-1 rounded border border-slate-300 bg-white">
           <DatePicker
-              selectsRange={true}
-              startDate={startDate}
-              endDate={endDate}
-              onChange={(update: [Date | null, Date | null]) => {
-                  const [newStart, newEnd] = update;
-                  setGlobalFilters(prev => ({
-                    ...prev,
-                    startDate: newStart ? newStart.toISOString().split('T')[0] : '',
-                    endDate: newEnd ? newEnd.toISOString().split('T')[0] : ''
-                  }))
-              }}
-              maxDate={new Date()} 
-              placeholderText="Select date range..."
-              wrapperClassName="w-full"
-              className="w-full p-2 text-sm text-left outline-none bg-transparent"
+            selectsRange={true}
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(update: [Date | null, Date | null]) => {
+                const [newStart, newEnd] = update;
+                setGlobalFilters(prev => ({
+                  ...prev,
+                  startDate: newStart ? formatLocalDate(newStart) : '',
+                  endDate: newEnd ? formatLocalDate(newEnd) : ''
+                }))
+            }}
+            maxDate={new Date()} 
+            placeholderText="Select date range..."
+            wrapperClassName="w-full"
+            className="w-full p-2 text-sm text-left outline-none bg-transparent"
+            popperClassName="!z-30"
           />
         </div>
 
@@ -198,8 +209,18 @@ export default function Dashboard() {
           <select 
             value={globalFilters.startHour || ''}
             onChange={(e) => {
-              setGlobalFilters(prev => ({ ...prev, startHour: e.target.value }));
+              const startHour = e.target.value;
+
+              setGlobalFilters(prev => ({
+                ...prev,
+                startHour,
+                endHour:
+                  startHour && prev.endHour && startHour > prev.endHour
+                    ? ''
+                    : prev.endHour
+              }));
             }}
+            aria-label="Start time"
             className="w-full text-sm outline-none bg-transparent text-slate-700 cursor-pointer text-center appearance-none px-2"
           >
             <option value="">Start Time</option>
@@ -207,8 +228,6 @@ export default function Dashboard() {
               <option 
                 key={`start-${time}`} 
                 value={time} 
-                // RESTRICTION: Disable any start time that is later than the selected end time
-                disabled={globalFilters.endHour ? time > globalFilters.endHour : false}
               >
                 {time}
               </option>
@@ -220,8 +239,18 @@ export default function Dashboard() {
           <select 
             value={globalFilters.endHour || ''}
             onChange={(e) => {
-              setGlobalFilters(prev => ({ ...prev, endHour: e.target.value }));
+              const endHour = e.target.value;
+
+              setGlobalFilters(prev => ({
+                ...prev,
+                endHour,
+                startHour:
+                  endHour && prev.startHour && endHour < prev.startHour
+                    ? ''
+                    : prev.startHour
+              }));
             }}
+            aria-label="End time"
             className="w-full text-sm outline-none bg-transparent text-slate-700 cursor-pointer text-center appearance-none px-2"
           >
             <option value="">End Time</option>
@@ -229,8 +258,6 @@ export default function Dashboard() {
               <option 
                 key={`end-${time}`} 
                 value={time}
-                // RESTRICTION: Disable any end time that is earlier than the selected start time
-                disabled={globalFilters.startHour ? time < globalFilters.startHour : false}
               >
                 {time}
               </option>
@@ -453,7 +480,7 @@ export default function Dashboard() {
           </div>
           <div className="h-125 w-full relative rounded-lg overflow-hidden">
               <StoreMapCanvas 
-                center={mapCenter} 
+                center={MAP_CENTER} 
                 stores={storesLookup} 
                 selectedStoreIds={globalFilters.storeIds}
                 onStoreClick={toggleStoreFilter}/>

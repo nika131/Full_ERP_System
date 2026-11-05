@@ -47,7 +47,7 @@ const MapUpdater = ({ center }: { center: [number, number] }) => {
 
 export const StoreMapCanvas = ({ center, stores, selectedStoreIds, onStoreClick }: MapCanvasProps) => {
     return (
-        <div className="h-125 w-full rounded-lg overflow-hidden border border-slate-300 shadow-sm z-0">
+        <div className="relative isolate z-0 h-125 w-full overflow-hidden rounded-lg border border-slate-300 shadow-sm">
             <MapContainer center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full">
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
