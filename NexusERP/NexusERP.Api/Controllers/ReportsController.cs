@@ -28,7 +28,25 @@ namespace NexusERP.Api.Controllers
 
         [HttpGet]
         [Authorize(Policy = "RequireReadTransactions")]
-        public async Task<IActionResult> GetTransactions([FromQuery] int pageSize = 50, [FromQuery] DateTime? lastCreatedAt = null, [FromQuery] int? lastTransactionId = null, [FromQuery] int? productId = null, [FromQuery] int? supplierId = null, [FromQuery] int? storeId = null, [FromQuery] int? categoryId = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string? searchTerm = null, [FromQuery] string typeFilter = "All")
+        public async Task<IActionResult> GetTransactions(
+            [FromQuery] int pageSize = 50, 
+            [FromQuery] DateTime? lastCreatedAt = null, 
+            [FromQuery] int? lastTransactionId = null, 
+            [FromQuery] int? productId = null, 
+            [FromQuery] int? supplierId = null, 
+            [FromQuery] int? storeId = null, 
+            [FromQuery] int? categoryId = null, 
+            [FromQuery] DateTime? startDate = null, 
+            [FromQuery] DateTime? endDate = null, 
+            [FromQuery] string? searchTerm = null, 
+            [FromQuery] string typeFilter = "All",
+            [FromQuery] TimeSpan? startHour = null,
+            [FromQuery] TimeSpan? endHour = null,
+            [FromQuery] int[]? storeIds = null,
+            [FromQuery] int[]? categoryIds = null,
+            [FromQuery] int[]? supplierIds = null,
+            [FromQuery] int[]? employeeIds = null
+        )
         {
             if (pageSize > 100) pageSize = 100;
 
@@ -48,7 +66,13 @@ namespace NexusERP.Api.Controllers
                 storeId,
                 categoryId,
                 startDate,
-                endDate
+                endDate,
+                startHour,
+                endHour,
+                storeIds,
+                categoryIds,
+                supplierIds,
+                employeeIds
             );
 
             var responseItems = secureData.Items.Select(t => new TransactionResponseDto

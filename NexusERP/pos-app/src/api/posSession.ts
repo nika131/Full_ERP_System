@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import axios from "axios";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.100.3:5116/api";
+const BASE_URL = "https://localhost:7001/api";
 const accountHttp = axios.create({ baseURL: BASE_URL, timeout: 15000 });
 const KEYS = {
   access: "pos_account_access_v2",

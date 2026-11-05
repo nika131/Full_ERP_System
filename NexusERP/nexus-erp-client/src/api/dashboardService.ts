@@ -36,10 +36,21 @@ export const dashboaredService = {
         if (filters.startHour) params.append('startHour', filters.startHour);
         if (filters.endHour) params.append('endHour', filters.endHour);
 
-        if (filters.storeIds?.length > 0) filters.storeIds.forEach(id => params.append('storeId', id.toString()));
-        if (filters.categoryIds?.length > 0) filters.categoryIds.forEach(id => params.append('categoryId', id.toString()));
-        if (filters.supplierIds?.length > 0) filters.supplierIds.forEach(id => params.append('supplierId', id.toString()));
-        if (filters.employeeIds?.length > 0) filters.employeeIds.forEach(id => params.append('employeeId', id.toString()))
+        if (filters.storeIds?.length) {
+            filters.storeIds.forEach(id => params.append('storeIds', String(id)));
+        }
+
+        if (filters.categoryIds?.length) {
+            filters.categoryIds.forEach(id => params.append('categoryIds', String(id)));
+        }
+
+        if (filters.supplierIds?.length) {
+            filters.supplierIds.forEach(id => params.append('supplierIds', String(id)));
+        }
+
+        if (filters.employeeIds?.length) {
+            filters.employeeIds.forEach(id => params.append('employeeIds', String(id)));
+        }
 
         const response = await apiClient.get(`/reports`, { params, signal });
         return response.data;

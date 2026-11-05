@@ -6,7 +6,28 @@ namespace NexusERP.Application.Interfaces.Repositories
 {
     public interface IReportRepository
     {
-        Task<CursorPagedResult<InventoryTransaction>> GetPagedTransactionsOptimized(int companyId, int pageSize, int currentUserId, bool canViewAll, string typeFilter, string? searchTerm, DateTime? lastCreatedAt, int? lastTransactionId, int? productId, int? supplierId, int? storeId = null, int? categoryId = null, DateTime? startDate = null, DateTime? endDate = null);
+        Task<CursorPagedResult<InventoryTransaction>> GetPagedTransactionsOptimized(
+            int companyId, 
+            int pageSize, 
+            int currentUserId, 
+            bool canViewAll, 
+            string typeFilter, 
+            string? searchTerm, 
+            DateTime? lastCreatedAt, 
+            int? lastTransactionId, 
+            int? productId, 
+            int? supplierId, 
+            int? storeId = null, 
+            int? categoryId = null, 
+            DateTime? startDate = null, 
+            DateTime? endDate = null,
+            TimeSpan? startHour = null,
+            TimeSpan? endHour = null,
+            int[]? storeIds = null,
+            int[]? categoryIds = null,
+            int[]? supplierIds = null,
+            int[]? employeeIds = null
+        );
         Task<InventoryTransaction?> GetById(int companyId, int transactionId);
         Task<List<RevenueChartData>> GetWeeklyRevenueChart(int companyId, DashboardFilterRequest request);
         Task<List<TopProductChartData>> GetTopPerformingProducts(int companyId, DashboardFilterRequest request);

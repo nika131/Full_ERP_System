@@ -17,7 +17,28 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<CursorPagedResult<InventoryTransaction>> GetPagedTransactionsOptimized(int companyId, int pageSize, int currentUserId, bool canViewAll, string typeFilter, string? searchTerm, DateTime? lastCreatedAt, int? lastTransactionId, int? productId, int? supplierId, int? storeId = null, int? categoryId = null, DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<CursorPagedResult<InventoryTransaction>> GetPagedTransactionsOptimized(
+            int companyId, 
+            int pageSize, 
+            int currentUserId, 
+            bool canViewAll, 
+            string typeFilter, 
+            string? searchTerm, 
+            DateTime? lastCreatedAt, 
+            int? lastTransactionId, 
+            int? productId, 
+            int? supplierId, 
+            int? storeId = null, 
+            int? categoryId = null, 
+            DateTime? startDate = null, 
+            DateTime? endDate = null,
+            TimeSpan? startHour = null,
+            TimeSpan? endHour = null,
+            int[]? storeIds = null,
+            int[]? categoryIds = null,
+            int[]? supplierIds = null,
+            int[]? employeeIds = null
+        )
         {
             var baseQuery = _context.InventoryTransactions
                 .Include(t => t.Product)
@@ -60,6 +81,48 @@ namespace NexusERP.Infrastructure.Repositories
                 var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
                 baseQuery = baseQuery.Where(t => t.CreatedAt <= endOfDay);
             }
+
+            if (startHour.HasValue)
+            {
+                baseQuery = baseQuery.Where(t =>
+                    t.CreatedAt.TimeOfDay >= startHour.Value);
+            }
+
+            if (endHour.HasValue)
+            {
+                baseQuery = baseQuery.Where(t =>
+                    t.CreatedAt.TimeOfDay <= endHour.Value);
+            }
+
+            if (storeIds is { Length: > 0 })
+            {
+                baseQuery = baseQuery.Where(t =>
+                    t.StoreId.HasValue &&
+                    storeIds.Contains(t.StoreId.Value));
+            }
+
+            if (categoryIds is { Length: > 0 })
+            {
+                baseQuery = baseQuery.Where(t =>
+                    t.Product != null &&
+                    t.Product.CategoryId.HasValue &&
+                    categoryIds.Contains(t.Product.CategoryId.Value));
+            }
+
+            if (supplierIds is { Length: > 0 })
+            {
+                baseQuery = baseQuery.Where(t =>
+                    t.Product != null &&
+                    t.Product.SupplierId.HasValue &&
+                    supplierIds.Contains(t.Product.SupplierId.Value));
+            }
+
+            if (employeeIds is { Length: > 0 })
+            {
+                baseQuery = baseQuery.Where(t =>
+                    employeeIds.Contains(t.UserId));
+            }
+
 
             if (lastCreatedAt.HasValue && lastTransactionId.HasValue)
             {
