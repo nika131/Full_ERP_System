@@ -196,8 +196,9 @@ namespace NexusERP.Infrastructure.Services
                 if (membershipExists)
                     throw new AppException("An employee record already exists for this account in this company.");
 
-                bool usernameExists = await _context.Users.IgnoreQueryFilters().AnyAsync(u =>
+                bool usernameExists = await _context.Users.AnyAsync(u =>
                     u.CompanyId == companyId &&
+                    u.IsActive &&   
                     u.Username == request.Username
                 );
 

@@ -81,6 +81,23 @@ namespace NexusERP.Infrastructure.Repositories
         {
             await ValidateProductRelationsAsync(product, companyId);
 
+
+            product.Name = product.Name?.Trim() ?? string.Empty;
+
+            if (product.Name.Length is < 1 or > 200)
+                throw new AppException("Product name must contain 1–200 characters.");
+
+            bool nameExists = await _context.Products.AnyAsync(p =>
+                p.CompanyId == companyId &&
+                p.IsActive &&
+                p.Name == product.Name &&
+                p.ProductId != product.ProductId
+            );
+
+            if (nameExists)
+                throw new AppException("An active product with this name already exists.");
+
+
             var strategy = _context.Database.CreateExecutionStrategy();
 
             await strategy.ExecuteAsync(async () =>

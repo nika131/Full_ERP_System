@@ -157,7 +157,8 @@ namespace NexusERP.Infrastructure.Database
                     e.CompanyId,
                     e.Username
                 })
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
             });
 
             // ============================================================
@@ -178,7 +179,8 @@ namespace NexusERP.Infrastructure.Database
                     e.CompanyId,
                     e.Name
                 })
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
 
                 entity.Property(e => e.Permissions)
                     .HasConversion(
@@ -207,6 +209,14 @@ namespace NexusERP.Infrastructure.Database
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(e => e.CompanyId);
+
+                entity.Property(p => p.Name)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.HasIndex(p => new { p.CompanyId, p.Name })
+                    .IsUnique()
+                    .HasFilter("[IsActive] = 1");
 
                 entity.Property(e => e.Price)
                     .HasColumnType("decimal(18,2)");
@@ -249,6 +259,14 @@ namespace NexusERP.Infrastructure.Database
                     .HasForeignKey(e => e.CompanyId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                entity.Property(c => c.CategoryName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.HasIndex(c => new { c.CompanyId, c.CategoryName })
+                    .IsUnique()
+                    .HasFilter("[IsActive] = 1");
+
                 entity.HasIndex(e => e.CompanyId);
             });
 
@@ -264,6 +282,14 @@ namespace NexusERP.Infrastructure.Database
                     .WithMany()
                     .HasForeignKey(e => e.CompanyId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.Property(s => s.CompanyName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.HasIndex(s => new { s.CompanyId, s.CompanyName })
+                    .IsUnique()
+                    .HasFilter("[IsActive] = 1");
 
                 entity.HasIndex(e => e.CompanyId);
             });
@@ -291,6 +317,14 @@ namespace NexusERP.Infrastructure.Database
 
                 entity.Property(e => e.PosLayoutJson)
                     .HasColumnType("nvarchar(max)");
+
+                entity.Property(s => s.Name)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.HasIndex(s => new { s.CompanyId, s.Name })
+                    .IsUnique()
+                    .HasFilter("[IsActive] = 1");
             });
 
             // ============================================================

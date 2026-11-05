@@ -59,6 +59,23 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task Upsert(Category category, int userId, int companyId)
         {
+
+            category.CategoryName = category.CategoryName?.Trim() ?? string.Empty;
+
+            if (category.CategoryName.Length is < 2 or > 200)
+                throw new AppException("Category name must contain 2–200 characters.");
+
+            bool nameExists = await _context.Categories.AnyAsync(c =>
+                c.CompanyId == companyId &&
+                c.IsActive &&
+                c.CategoryName == category.CategoryName &&
+                c.CategoryId != category.CategoryId
+            );
+
+            if (nameExists)
+                throw new AppException("An active category with this name already exists.");
+
+
             var strategy = _context.Database.CreateExecutionStrategy();
 
             await strategy.ExecuteAsync(async () =>

@@ -65,6 +65,21 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task Upsert(Supplier supplier, int userId, int companyId)
         {
+            supplier.CompanyName = supplier.CompanyName?.Trim() ?? string.Empty;
+
+            if (supplier.CompanyName.Length is < 2 or > 200)
+                throw new AppException("Supplier name must contain 2–200 characters.");
+
+            bool nameExists = await _context.Suppliers.AnyAsync(s =>
+                s.CompanyId == companyId &&
+                s.IsActive &&
+                s.CompanyName == supplier.CompanyName &&
+                s.SupplierId != supplier.SupplierId
+            );
+
+            if (nameExists)
+                throw new AppException("An active supplier with this name already exists.");
+
             var strategy = _context.Database.CreateExecutionStrategy();
 
             await strategy.ExecuteAsync(async () =>

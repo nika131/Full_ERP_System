@@ -198,7 +198,8 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.Property<string>("CategoryName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("CompanyId")
                         .HasColumnType("int");
@@ -215,6 +216,10 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasKey("CategoryId");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("CompanyId", "CategoryName")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Categories");
                 });
@@ -409,7 +414,8 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -443,6 +449,10 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasIndex("CompanyId");
 
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Products");
                 });
@@ -594,7 +604,8 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasKey("RoleId");
 
                     b.HasIndex("CompanyId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Roles");
                 });
@@ -731,7 +742,8 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PosLayoutJson")
                         .HasColumnType("nvarchar(max)");
@@ -742,6 +754,10 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasKey("StoreId");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Stores");
                 });
@@ -759,7 +775,8 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.Property<string>("CompanyName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("ContactName")
                         .IsRequired()
@@ -785,6 +802,10 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasKey("SupplierId");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("CompanyId", "CompanyName")
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Suppliers");
                 });
@@ -913,7 +934,8 @@ namespace NexusERP.Infrastructure.Migrations
                         .HasFilter("[AccountId] IS NOT NULL");
 
                     b.HasIndex("CompanyId", "Username")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Users");
                 });

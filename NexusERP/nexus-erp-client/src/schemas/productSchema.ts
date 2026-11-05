@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 export const productSchema = z.object({
-    name: z.string().min(1, "Product name is required"),
+    name: z.string().trim()
+    .min(1, "Product name is required")
+    .max(200, "Product name cannot exceed 200 characters"),
     categoryId: z.number().optional().nullable(),
     supplierId: z.number().optional().nullable(),
     price: z.number().min(0.01, "Price must be greater than 0"),

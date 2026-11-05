@@ -72,6 +72,21 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task AddStoreAsync(Store store, int companyId)
         {
+
+            store.Name = store.Name?.Trim() ?? string.Empty;
+
+            if (store.Name.Length is < 2 or > 100)
+                throw new AppException("Store name must contain 2–100 characters.");
+
+            bool nameExists = await _context.Stores.AnyAsync(s =>
+                s.CompanyId == companyId &&
+                s.IsActive &&
+                s.Name == store.Name
+            );
+
+            if (nameExists)
+                throw new AppException("An active store with this name already exists.");
+
             store.CompanyId = companyId;
 
             await _context.Stores.AddAsync(store);
@@ -80,6 +95,24 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task UpdateStoreAsync(Store store, int companyId)
         {
+            store.Name = store.Name?.Trim() ?? string.Empty;
+
+            if (store.Name.Length is < 2 or > 100)
+                throw new AppException("Store name must contain 2–100 characters.");
+
+            if (store.IsActive)
+            {
+                bool nameExists = await _context.Stores.AnyAsync(s =>
+                    s.CompanyId == companyId &&
+                    s.IsActive &&
+                    s.Name == store.Name &&
+                    s.StoreId != store.StoreId
+                );
+
+                if (nameExists)
+                    throw new AppException("An active store with this name already exists.");
+            }
+
             var existing = await _context.Stores.FirstOrDefaultAsync(s =>
                 s.StoreId == store.StoreId &&
                 s.CompanyId == companyId

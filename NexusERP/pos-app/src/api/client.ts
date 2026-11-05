@@ -2,7 +2,7 @@ import axios from "axios";
 import { DeviceEventEmitter } from "react-native";
 import { posSession, tokenExpiresSoon, tokenType } from "./posSession";
 
-export const API_BASE_URL = "https://localhost:7001/api";
+export const API_BASE_URL = "http://192.168.100.3:5116/api"; //process.env.EXPO_PUBLIC_API_BASE_URL ||
 export const TOKEN_KEY = "pos_active_cashier_v2";
 
 interface ApiErrorPayload {

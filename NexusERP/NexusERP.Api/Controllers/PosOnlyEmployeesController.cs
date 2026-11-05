@@ -65,7 +65,7 @@ namespace NexusERP.Api.Controllers
             if (!role.Permissions.Contains(Permissions.ViewPos))
                 return BadRequest(new { message = "A POS-only employee must have the POS.View permission." });
 
-            if (await _db.Users.IgnoreQueryFilters().AnyAsync(u => u.CompanyId == companyId && u.Username == username))
+            if (await _db.Users.AnyAsync(u => u.CompanyId == companyId && u.IsActive && u.Username == username))
                 return Conflict(new { message = "Username already exists in this company." });
 
             var user = new User
