@@ -460,6 +460,10 @@ namespace NexusERP.Infrastructure.Database
 
                 entity.HasIndex(e => e.CompanyId);
 
+                entity.HasIndex(s => new { s.CompanyId, s.StoreId })
+                    .IsUnique()
+                    .HasFilter("[Status] = 0");
+
                 entity.Property(e => e.StartingCash)
                     .HasColumnType("decimal(18,2)");
 

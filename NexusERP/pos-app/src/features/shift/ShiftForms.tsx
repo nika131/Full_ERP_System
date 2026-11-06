@@ -151,9 +151,11 @@ export function CashMovementForm({
 
 export function CloseShiftForm({
   shiftId,
+  storeId,
   onDone,
 }: {
   shiftId: number;
+  storeId: number;  
   onDone: () => void;
 }) {
   const [actualCash, setActualCash] = useState("");
@@ -172,6 +174,7 @@ export function CloseShiftForm({
       const result = await mutation.mutateAsync({
         shiftId,
         payload: {
+          storeId,
           actualEndingCash: parsed,
           note,
         },

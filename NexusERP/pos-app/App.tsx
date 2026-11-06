@@ -12,12 +12,15 @@ import { LoginScreen } from "./src/screens/LoginScreen";
 import { CompanySelectionScreen } from "./src/screens/CompanySelectionScreen";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { colors } from "./src/theme/colors";
+import { StorePickerView } from "./src/features/shift/ShiftViews";
+import { AppScreen } from "./src/components/layout/AppScreen";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
 function AppContent() {
   const { user, companyId, accountAuthenticated, isLoading } = useAuth();
-  const { isLoaded, loadedCompanyId, load } = useTerminalStore();
+  const { storeId, isLoaded, loadedCompanyId, load, setStore } =
+  useTerminalStore();
 
   useEffect(() => {
     if (user && companyId && (!isLoaded || loadedCompanyId !== companyId)) void load(companyId);
@@ -28,6 +31,22 @@ function AppContent() {
 
   if (!accountAuthenticated) return <LoginScreen />;
   if (!companyId || !user) return <CompanySelectionScreen />;
+
+  if (!storeId) {
+    return (
+      <AppScreen>
+        <StorePickerView
+          onPicked={(store) => {
+            void setStore(
+              store.storeId,
+              store.name,
+              store.maxCartDiscountPercentage
+            );
+          }}
+        />
+      </AppScreen>
+    );
+  }
 
   return <NavigationContainer key={`${companyId}-${user.userId}`}><RootNavigator /></NavigationContainer>;
 }

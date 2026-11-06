@@ -103,6 +103,7 @@ export function ShiftScreen() {
         {shift ? (
           <CloseShiftForm
             shiftId={shift.shiftId}
+            storeId={storeId}
             onDone={() => setCloseModalOpen(false)}
           />
         ) : null}

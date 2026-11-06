@@ -84,12 +84,12 @@ namespace NexusERP.Infrastructure.Services
 
                     var existingShift = await _context.Shifts.FirstOrDefaultAsync(s =>
                         s.CompanyId == companyId &&
-                        s.UserId == userId &&
+                        s.StoreId == dto.StoreId &&
                         s.Status == ShiftStatus.Open
                     );
 
                     if (existingShift != null)
-                        throw new AppException("You already have open shift. Close it before opening a new one.");
+                        throw new AppException("This store already has an open shift. Use the existing shift.");
 
                     var store = await _context.Stores.FirstOrDefaultAsync(s =>
                         s.CompanyId == companyId &&
@@ -145,7 +145,7 @@ namespace NexusERP.Infrastructure.Services
                     var shift = await _context.Shifts.FirstOrDefaultAsync(s =>
                         s.CompanyId == companyId &&
                         s.ShiftId == shiftId &&
-                        s.UserId == userId
+                        s.StoreId == dto.StoreId
                     );
 
                     if (shift == null)
@@ -285,7 +285,6 @@ namespace NexusERP.Infrastructure.Services
                         .Include(s => s.Store)
                         .FirstOrDefaultAsync(s =>
                             s.CompanyId == companyId &&
-                            s.UserId == userId &&
                             s.StoreId == storeId &&
                             s.Status == ShiftStatus.Open
                         );
@@ -330,7 +329,6 @@ namespace NexusERP.Infrastructure.Services
             return await _context.Shifts
                 .Where(s =>
                     s.CompanyId == companyId &&
-                    s.UserId == userId &&
                     s.StoreId == storeId &&
                     s.Status == ShiftStatus.Closed
                 )
@@ -373,12 +371,11 @@ namespace NexusERP.Infrastructure.Services
                     var shift = await _context.Shifts.FirstOrDefaultAsync(s =>
                         s.CompanyId == companyId &&
                         s.ShiftId == shiftId &&
-                        s.Status == ShiftStatus.Open &&
-                        s.UserId == userId
+                        s.Status == ShiftStatus.Open
                     );
 
                     if (shift == null)
-                        throw new AppException("Active shift not found for this user.");
+                        throw new AppException("This shift belongs to another store.");
 
                     bool hasWarning = false;
                     string? warning = null;
@@ -433,11 +430,11 @@ namespace NexusERP.Infrastructure.Services
                 .FirstOrDefaultAsync(s =>
                     s.CompanyId == companyId &&
                     s.ShiftId == shiftId &&
-                    s.UserId == userId
+                    s.Status == ShiftStatus.Closed
                 );
 
             if (shift == null)
-                throw new AppException("Shift not found or does not belong to you.");
+                throw new AppException("Open shift not found.");
 
             return await _context.Receipts
                 .Where(r =>
@@ -463,14 +460,17 @@ namespace NexusERP.Infrastructure.Services
         {
             var receipt = await _context.Receipts
                 .Include(r => r.Lines)
-                    .ThenInclude(l => l.Product)
+                .ThenInclude(l => l.Product)
                 .Include(r => r.User)
                 .Include(r => r.Store)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r =>
                     r.CompanyId == companyId &&
                     r.ReceiptId == receiptId &&
-                    r.UserId == userId
+                    r.IsActive &&
+                    r.Shift != null &&
+                    r.Shift.CompanyId == companyId &&
+                    r.Shift.Status == ShiftStatus.Open
                 );
 
             if (receipt == null)
@@ -508,13 +508,12 @@ namespace NexusERP.Infrastructure.Services
 
             var activeShift = await _context.Shifts.FirstOrDefaultAsync(s =>
                 s.CompanyId == companyId &&
-                s.UserId == userId &&
                 s.StoreId == cart.StoreId &&
                 s.Status == ShiftStatus.Open
             );
 
             if (activeShift == null)
-                throw new AppException("You must open shift before processing sales.");
+                throw new AppException("No shift is open for this store.");
 
             var qtyByProduct = cart.Items
                 .GroupBy(i => i.ProductId)

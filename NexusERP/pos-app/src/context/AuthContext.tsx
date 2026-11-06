@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       void (async () => {
         await posSession.clearAll();
         resetCashierData();
+        await useTerminalStore.getState().clearStore(id);
         useTerminalStore.getState().reset();
         setAccountAuthenticated(false);
         setCompanyId(null);
@@ -115,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try { await posSession.logout(); }
     finally {
       resetCashierData();
+      await useTerminalStore.getState().clearStore();
       useTerminalStore.getState().reset();
       setUser(null);
       setCompanyId(null);

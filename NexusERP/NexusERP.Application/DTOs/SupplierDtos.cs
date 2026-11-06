@@ -9,9 +9,9 @@ namespace NexusERP.Application.DTOs
         [Required(ErrorMessage = "Company Name is required.")]
         public string CompanyName { get; set; } = string.Empty;
 
-        public string? ContactName {  get; set; }
-        public string? Phone { get; set; }
-        public string? Email { get; set; }
+        public string? ContactName { get; set; } = string.Empty;
+        public string? Phone { get; set; } = string.Empty;
+        public string? Email { get; set; } = string.Empty;
     }
 
     public class SupplierResponseDto

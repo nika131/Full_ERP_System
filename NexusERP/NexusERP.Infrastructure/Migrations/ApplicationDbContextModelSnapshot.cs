@@ -709,6 +709,10 @@ namespace NexusERP.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("CompanyId", "StoreId")
+                        .IsUnique()
+                        .HasFilter("[Status] = 0");
+
                     b.ToTable("Shifts");
                 });
 

@@ -17,6 +17,7 @@ namespace NexusERP.Application.DTOs
 
     public class CloseShiftDto
     {
+        public int StoreId { get; set; }
         public decimal ActualEndingCash { get; set; }
         public string? Note { get; set; } = string.Empty;
     }

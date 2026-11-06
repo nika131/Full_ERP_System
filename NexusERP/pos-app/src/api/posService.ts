@@ -16,6 +16,7 @@ export interface OpenShiftPayload {
 }
 
 export interface CloseShiftPayload {
+  storeId: number;
   actualEndingCash: number;
   note?: string;
 }
@@ -104,12 +105,8 @@ export const posService = {
   },
 
   getStores: async (): Promise<StoreLookup[]> => {
-    const res = await apiClient.get<StoreLookup[]>("/stores");
-    return res.data.map((store) => ({
-      storeId: store.storeId,
-      name: store.name,
-      maxCartDiscountPercentage: store.maxCartDiscountPercentage,
-    }));
+    const res = await apiClient.get<StoreLookup[]>("/pos/stores");
+    return res.data;
   },
 
   getCheckoutQuote: async (
