@@ -173,17 +173,6 @@ export const authService = {
             tokenStorage.clearAll();
         }
     },
-
-    // Compatibility: existing employee-management form still uses this endpoint.
-    register: async (data: { fullName: string; username: string; password: string; roleId: number; posPin?: string }) => {
-        let erpToken = tokenStorage.getCompanyAccess();
-        if (erpToken && expiresSoon(erpToken)) erpToken = await authService.refreshCompanyAccess();
-        if (!erpToken) throw new Error('Select a company first.');
-        const response = await accountApi.post('/auth/register', data, {
-            headers: { Authorization: `Bearer ${erpToken}` },
-        });
-        return response.data;
-    },
 };
 
 export function apiErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.') {

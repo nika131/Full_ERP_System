@@ -31,9 +31,6 @@ export const authService = {
     await posSession.setActive(data.token);
     return data.token;
   },
-  verifyPin: async (pin: string): Promise<void> => {
-    await apiClient.post("/pos/verify-pin", { pin });
-  },
   getSwitchableUsers: async (): Promise<UserLookup[]> => {
     const { data } = await apiClient.get<UserLookup[]>("/pos/auth/cashiers");
     return data;

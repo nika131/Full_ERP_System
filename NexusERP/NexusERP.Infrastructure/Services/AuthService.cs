@@ -13,48 +13,12 @@ namespace NexusERP.Infrastructure.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly IUserRepository _userRepository;
         private readonly string _jwtSecret;
 
         public AuthService(IUserRepository userRepository, IConfiguration config)
         {
-            _userRepository = userRepository;
-            _jwtSecret = config["Jwt:Key"] ?? throw new AppException("JWT Secret missing!");
-        }
-
-        public async Task Register(string fullname, string username, string plaintextPassword, int roleId, int actorUserId, int companyId, string posPin)
-        {
-            var existingUser = await _userRepository.GetUserByUsername(username, companyId);
-
-            if (existingUser != null)
-                throw new AppException("Username already exists in this company.");
-
-            var newUser = new User
-            {
-                CompanyId = companyId,
-                FullName = fullname,
-                Username = username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(plaintextPassword),
-                RoleId = roleId,
-                PosPin = posPin
-            };
-
-            await _userRepository.CreateUser(newUser, actorUserId, companyId);
-        }
-
-        public async Task<string> Login(string username, string plaintextPassword)
-        {
-            var user = await _userRepository.GetUserByUsername(username);
-
-            if (user == null || !BCrypt.Net.BCrypt.Verify(plaintextPassword, user.PasswordHash))
-                throw new AppException("Invalid username or password.");
-
-            return GenerateJwtToken(user);
-        }
-
-        public string GenerateJwtToken(User user)
-        {
-            return CreateUserJwt(user, null, null, DateTime.UtcNow.AddHours(10));
+            _jwtSecret = config["Jwt:Key"] 
+                ?? throw new AppException("JWT Secret missing!");
         }
 
         public string GenerateCompanyJwtToken(User user, int accountId, Guid sessionId, DateTime expiresAt)
@@ -105,17 +69,5 @@ namespace NexusERP.Infrastructure.Services
             return handler.WriteToken(handler.CreateToken(descriptor));
         }
 
-        public async Task<string> LoginWithPin(int companyId, int targetUserId, string pin)
-        {
-            var user = await _userRepository.GetUserById(companyId, targetUserId);
-
-            if (user == null)
-                throw new AppException("User not found.");
-
-            if (string.IsNullOrWhiteSpace(user.PosPin) || user.PosPin != pin)
-                throw new AppException("Invalid PIN.");
-
-            return GenerateJwtToken(user);
-        }
     }
 }

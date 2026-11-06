@@ -78,6 +78,8 @@ builder.Services.AddScoped<IAccountSessionService, AccountSessionService>();
 builder.Services.AddScoped<ICompanyJoinRequestService, CompanyJoinRequestService>();
 builder.Services.AddScoped<ICompanyJoinCodeService, CompanyJoinCodeService>();
 
+builder.Services.AddScoped<PosSessionValidator>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -173,9 +175,22 @@ builder.Services.AddAuthentication()
             {
                 string? tokenType = context.Principal?.FindFirst("token_type")?.Value;
 
-                // Keep existing employee and POS tokens working temporarily.
-                if (tokenType == null)
+                if (tokenType == "pos_cashier")
+                {
+                    var validator = context.HttpContext.RequestServices
+                        .GetRequiredService<PosSessionValidator>();
+
+                    bool valid = await validator.ValidateAsync(
+                        context.Principal!,
+                        context.HttpContext.Request.Path.Value ?? "",
+                        context.HttpContext.Request.Method
+                    );
+
+                    if (!valid)
+                        context.Fail("Invalid or expired POS cashier session.");
+
                     return;
+                }
 
                 if (tokenType != "company" ||
                     !int.TryParse(context.Principal?.FindFirst("account_id")?.Value, out int accountId) ||

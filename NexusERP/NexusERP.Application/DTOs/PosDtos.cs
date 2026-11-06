@@ -73,11 +73,6 @@ namespace NexusERP.Application.DTOs
         public string PaymentMethod { get; set; } = string.Empty;
     }
 
-    public class VerifyPinDto
-    {
-        public string Pin { get; set; } = string.Empty;
-    }
-
     public class CurrentShiftDto
     {
         public int ShiftId { get; set; }
@@ -143,12 +138,6 @@ namespace NexusERP.Application.DTOs
         public decimal MarketDiscountPercentage { get; set; }
         public decimal ManualItemDiscountPercentage { get; set; }
         public decimal LineTotal { get; set; }
-    }
-
-    public class PinLoginDto
-    {
-        public int UserId { get; set; }
-        public string Pin { get; set; } = string.Empty;
     }
 
     public class CheckoutQuoteDto

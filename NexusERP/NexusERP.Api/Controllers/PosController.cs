@@ -71,24 +71,6 @@ namespace NexusERP.Api.Controllers
             });
         }
 
-        [HttpPost("verify-pin")]
-        [Authorize(Policy = Permissions.ViewPos)]
-        public async Task<IActionResult> VerifyPosPin([FromBody] VerifyPinDto dto)
-        {
-            if (string.IsNullOrWhiteSpace(dto.Pin) || dto.Pin.Length != 4)
-                return BadRequest(new { message = "PIN must be exactly 4 digits." });
-
-            int companyId = User.GetCurrentCompanyId();
-            int currentUserId = User.GetCurrentUserId();
-
-            bool isValid = await _userRepository.VerifyPosPinAsync(companyId, currentUserId, dto.Pin);
-
-            if (!isValid)
-                return Unauthorized(new { message = "Invalid POS PIN." });
-
-            return Ok(new { message = "PIN verified. POS unlocked." });
-        }
-
         [HttpGet("shift/current")]
         [Authorize(Policy = Permissions.ViewPos)]
         public async Task<IActionResult> GetCurrentShift([FromQuery] int storeId)

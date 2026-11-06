@@ -14,7 +14,7 @@ export const productService = {
     pageSize = 30,
     excludeIds: number[] = []
   ): Promise<Product[]> => {
-    const res = await apiClient.get("/products", {
+    const res = await apiClient.get("/pos/products", {
       params: {
         page: 1,
         pageSize,
