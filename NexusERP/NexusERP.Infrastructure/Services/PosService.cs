@@ -330,7 +330,7 @@ namespace NexusERP.Infrastructure.Services
                 .Where(s =>
                     s.CompanyId == companyId &&
                     s.StoreId == storeId &&
-                    s.Status == ShiftStatus.Closed
+                    s.Status == ShiftStatus.Open
                 )
                 .OrderByDescending(s => s.StartDate)
                 .Take(30)
@@ -371,11 +371,12 @@ namespace NexusERP.Infrastructure.Services
                     var shift = await _context.Shifts.FirstOrDefaultAsync(s =>
                         s.CompanyId == companyId &&
                         s.ShiftId == shiftId &&
-                        s.Status == ShiftStatus.Open
+                        s.StoreId == dto.StoreId &&
+                        s.Status == ShiftStatus.Open 
                     );
 
                     if (shift == null)
-                        throw new AppException("This shift belongs to another store.");
+                        throw new AppException("Open shift not found for the selected store.");
 
                     bool hasWarning = false;
                     string? warning = null;
