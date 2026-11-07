@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
@@ -558,6 +558,12 @@ namespace NexusERP.Infrastructure.Database
                     .HasColumnType("decimal(18,2)");
 
                 entity.Property(e => e.LineTotal)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.FinalAmount)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.AllocatedVatAmount)
                     .HasColumnType("decimal(18,2)");
             });
 

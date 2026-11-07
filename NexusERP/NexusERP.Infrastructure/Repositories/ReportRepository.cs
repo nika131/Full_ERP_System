@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
@@ -44,7 +44,7 @@ namespace NexusERP.Infrastructure.Repositories
                 .Include(t => t.Product)
                     .ThenInclude(p => p!.Supplier)
                 .Include(t => t.User)
-                .Where(t => t.CompanyId == companyId)
+                .Where(t => t.CompanyId == companyId && t.TransactionType != TransactionAction.Sale)
                 .AsNoTracking();
 
             if (!canViewAll)
@@ -181,6 +181,7 @@ namespace NexusERP.Infrastructure.Repositories
             var endOfDay = actualEnd.Date.AddDays(1).AddTicks(-1);
 
             var query = _context.ReceiptItems
+                .IgnoreQueryFilters()
                 .Include(ri => ri.Receipt)
                 .Include(ri => ri.Product)
                 .Where(ri =>
@@ -220,8 +221,8 @@ namespace NexusERP.Infrastructure.Repositories
                     .Select(g => new
                     {
                         Hour = g.Key,
-                        Revenue = g.Sum(ri => ri.LineTotal),
-                        Profit = g.Sum(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity))
+                        Revenue = g.Sum(ri => ri.FinalAmount),
+                        Profit = g.Sum(ri => ri.FinalAmount - (ri.CostPrice * ri.Quantity) - ri.AllocatedVatAmount)
                     })
                     .ToListAsync();
 
@@ -244,8 +245,8 @@ namespace NexusERP.Infrastructure.Repositories
                     .Select(g => new
                     {
                         Date = g.Key,
-                        Revenue = g.Sum(ri => ri.LineTotal),
-                        Profit = g.Sum(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity))
+                        Revenue = g.Sum(ri => ri.FinalAmount),
+                        Profit = g.Sum(ri => ri.FinalAmount - (ri.CostPrice * ri.Quantity) - ri.AllocatedVatAmount)
                     })
                     .ToListAsync();
 
@@ -271,6 +272,7 @@ namespace NexusERP.Infrastructure.Repositories
         public async Task<List<TopProductChartData>> GetTopPerformingProducts(int companyId, DashboardFilterRequest dto)
         {
             var query = _context.ReceiptItems
+                .IgnoreQueryFilters()
                 .Include(ri => ri.Receipt)
                 .Include(ri => ri.Product)
                 .Where(ri =>
@@ -313,7 +315,7 @@ namespace NexusERP.Infrastructure.Repositories
                 .Select(g => new TopProductChartData
                 {
                     ProductName = g.Key.Name ?? "Unknown",
-                    Revenue = g.Sum(ri => ri.LineTotal)
+                    Revenue = g.Sum(ri => ri.FinalAmount)
                 })
                 .OrderByDescending(x => x.Revenue)
                 .Take(5)

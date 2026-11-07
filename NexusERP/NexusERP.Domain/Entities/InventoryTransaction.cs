@@ -13,7 +13,7 @@ namespace NexusERP.Domain.Entities
     {
         public int TransactionId { get; set; }
 
-        public int ProductId { get; set; }
+        public int? ProductId { get; set; }
         public Product? Product { get; set; }
 
         public int UserId { get; set; }

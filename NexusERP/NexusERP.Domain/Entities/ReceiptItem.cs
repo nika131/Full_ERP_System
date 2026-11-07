@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,6 +25,9 @@ namespace NexusERP.Domain.Entities
         public decimal ManualItemDiscountPercentage { get; set; }
 
         public decimal LineTotal { get; set; }
+        // Immutable allocated cart-discount-adjusted financial amounts.
+        public decimal FinalAmount { get; set; }
+        public decimal AllocatedVatAmount { get; set; }
 
         public int CompanyId { get; set; }
         public Company Company { get; set; } = null!;
