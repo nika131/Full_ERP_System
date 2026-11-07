@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using NexusERP.Api.Middleware;
+using NexusERP.Api.Services;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Constants;
@@ -68,6 +69,7 @@ builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<IPdfExportService, PdfExportService>();
 builder.Services.AddScoped<IStoreService, StoreService>();
 builder.Services.AddScoped<IPosService, PosService>();
+builder.Services.AddHostedService<DeletedProductCleanupService>();
 
 builder.Services.AddScoped<ICompanyRegistrationService, CompanyRegistrationService>();
 builder.Services.AddScoped<IAccountRegistrationService, AccountRegistrationService>();

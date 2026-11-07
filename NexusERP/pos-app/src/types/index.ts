@@ -101,6 +101,7 @@ export interface ShiftReceiptSummary {
 
 export interface ReceiptLine {
   productName: string;
+  productDeletedRecently: boolean;
   quantity: number;
   unitPrice: number;
   marketDiscountPercentage: number;

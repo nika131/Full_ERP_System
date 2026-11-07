@@ -459,7 +459,9 @@ namespace NexusERP.Infrastructure.Services
 
         public async Task<ReceiptDetailDto> GetReceiptDetailAsync(int companyId, int receiptId, int userId)
         {
+            var cutoff = DateTime.UtcNow.AddDays(-30);
             var receipt = await _context.Receipts
+                .IgnoreQueryFilters()
                 .Include(r => r.Lines)
                 .ThenInclude(l => l.Product)
                 .Include(r => r.User)
@@ -492,7 +494,11 @@ namespace NexusERP.Infrastructure.Services
 
                 Lines = receipt.Lines.Select(l => new ReceiptLineDto
                 {
-                    ProductName = l.Product?.Name ?? "Unknown Product",
+                    ProductName = l.Product != null &&
+                        (l.Product.IsActive || (l.Product.DeletedAt.HasValue && l.Product.DeletedAt > cutoff))
+                        ? l.Product.Name : "Deleted product",
+                    ProductDeletedRecently = l.Product != null && !l.Product.IsActive &&
+                        l.Product.DeletedAt.HasValue && l.Product.DeletedAt > cutoff,
                     Quantity = l.Quantity,
                     UnitPrice = l.UnitPrice,
                     MarketDiscountPercentage = l.MarketDiscountPercentage,
@@ -680,32 +686,36 @@ namespace NexusERP.Infrastructure.Services
         }
 
 
+        // Persist exact line allocations rather than consulting current Product prices in reports.
+        // Both allocated totals reconcile to the receipt totals down to the last cent.
         private static void AllocateReceiptLines(Receipt receipt)
         {
-            // FinalAmount must reconcile exactly to the rounded receipt total.
             var lines = receipt.Lines.ToArray();
             if (lines.Length == 0) return;
+
             decimal itemSubtotal = lines.Sum(l => l.LineTotal);
             decimal remaining = receipt.FinalTotal;
             for (int i = 0; i < lines.Length; i++)
             {
-                var amount = i == lines.Length - 1 ? remaining
-                    : itemSubtotal > 0m ? RoundToTwoDecimalPlaces(
-                        receipt.FinalTotal * lines[i].LineTotal / itemSubtotal) : 0m;
+                decimal amount = i == lines.Length - 1 ? remaining
+                    : itemSubtotal > 0m
+                        ? RoundToTwoDecimalPlaces(receipt.FinalTotal * lines[i].LineTotal / itemSubtotal)
+                        : 0m;
                 lines[i].FinalAmount = amount;
                 remaining -= amount;
             }
+
             var weights = lines.Select(l => l.VatRate > 0m
                 ? l.FinalAmount * l.VatRate / (100m + l.VatRate) : 0m).ToArray();
-            var weightSum = weights.Sum();
+            decimal weightSum = weights.Sum();
             int lastTaxable = Array.FindLastIndex(weights, w => w > 0m);
             if (lastTaxable < 0) lastTaxable = lines.Length - 1;
             decimal remainingVat = receipt.TotalVatAmount;
             for (int i = 0; i < lines.Length; i++)
             {
-                var vat = i == lastTaxable ? remainingVat
+                decimal vat = i == lastTaxable ? remainingVat
                     : i > lastTaxable || weightSum <= 0m ? 0m
-                    : RoundToTwoDecimalPlaces(receipt.TotalVatAmount * weights[i] / weightSum);
+                        : RoundToTwoDecimalPlaces(receipt.TotalVatAmount * weights[i] / weightSum);
                 lines[i].AllocatedVatAmount = vat;
                 remainingVat -= vat;
             }

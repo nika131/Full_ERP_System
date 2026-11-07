@@ -150,20 +150,26 @@ namespace NexusERP.Infrastructure.Repositories
             if (supplier == null)
                 throw new AppException("Supplier not found.");
 
-            supplier.IsActive = false;
-
-            var audit = new SystemAuditLog
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                CompanyId = companyId,
-                UserId = userId,
-                EntityType = "Supplier",
-                EntityId = supplier.SupplierId,
-                Action = "Delete",
-                ChangesMade = $"Deleted Supplier '{supplier.CompanyName}'"
-            };
+                await using var tx = await _context.Database.BeginTransactionAsync(
+                    System.Data.IsolationLevel.Serializable);
+                // Includes inactive products so no category/supplier references remain.
+                await _context.Products.IgnoreQueryFilters()
+                    .Where(p => p.CompanyId == companyId && p.SupplierId == id)
+                    .ExecuteUpdateAsync(x => x.SetProperty(p => p.SupplierId, (int?)null));
 
-            _context.SystemAuditLogs.Add(audit);
-            await _context.SaveChangesAsync();
+                supplier.IsActive = false;
+                _context.SystemAuditLogs.Add(new SystemAuditLog
+                {
+                    CompanyId = companyId, UserId = userId, EntityType = "Supplier",
+                    EntityId = supplier.SupplierId, Action = "Delete",
+                    ChangesMade = $"Deleted supplier '{supplier.CompanyName}' and detached product associations"
+                });
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+            });
         }
     }
 }

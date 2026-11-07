@@ -21,8 +21,9 @@ type ProductRow = {
   receiptId: number;
   receiptNumber: string;
   createdAt: string;
-  productId: number;
+  productId: number | null;
   productName: string;
+  productDeletedRecently: boolean;
   quantity: number;
   unitPrice: number;
   total: number;
@@ -49,8 +50,9 @@ type ReceiptDetail = {
   profit: number;
   lines: {
     itemId: number;
-    productId: number;
+    productId: number | null;
     productName: string;
+    productDeletedRecently: boolean;
     quantity: number;
     unitPrice: number;
     marketDiscountPercentage: number;
@@ -308,7 +310,7 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
                         <span className="text-xs text-slate-400">ID {r.receiptId}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-700">{r.productName}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700">{r.productName}{r.productDeletedRecently && <span className="ml-1 cursor-help text-slate-400" title="This product was deleted and will be removed from the catalog after 30 days.">ⓘ</span>}</td>
                     <td className="px-4 py-3 text-right">{r.quantity}</td>
                     <td className="px-4 py-3 text-right">{money(r.unitPrice)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{money(r.total)}</td>
@@ -361,7 +363,7 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
                     {detail.lines.map(l => (
                       <div key={l.itemId} className="flex justify-between gap-4">
                         <div>
-                          <p className="font-semibold text-slate-800">{l.productName}</p>
+                          <p className="font-semibold text-slate-800">{l.productName}{l.productDeletedRecently && <span className="ml-1 cursor-help text-slate-400" title="This product was deleted and will be removed from the catalog after 30 days.">ⓘ</span>}</p>
                           <p className="text-xs text-slate-500">{l.quantity} × {money(l.unitPrice)}</p>
                           {l.marketDiscountPercentage > 0 && <p className="text-xs text-amber-700">Market discount {l.marketDiscountPercentage}%</p>}
                           {l.manualItemDiscountPercentage > 0 && <p className="text-xs text-amber-700">Manual discount {l.manualItemDiscountPercentage}%</p>}

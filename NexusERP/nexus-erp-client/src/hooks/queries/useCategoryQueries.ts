@@ -25,7 +25,7 @@ export const useDeleteCategoryMutation = () => {
     return useMutation({
         mutationFn: (categoryId: number) => categoryService.deleteCategory(categoryId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            queryClient.invalidateQueries(); // product classification and reports also change
         }
     });
 };
@@ -38,3 +38,11 @@ export const useLookupCategoriesQuery = (enabled: boolean = true) => {
         staleTime: 5 * 60 * 1000,
     })
 }
+
+export const useCategoryDeletionImpact = (id: number, enabled: boolean) =>
+    useQuery({
+        queryKey: ['categories', 'deletionImpact', id],
+        queryFn: () => categoryService.getDeletionImpact(id),
+        enabled: enabled && id > 0,
+        staleTime: 0
+    });

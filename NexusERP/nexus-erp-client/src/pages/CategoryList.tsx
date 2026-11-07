@@ -8,7 +8,7 @@ import { DataTable, type ColumnDef } from "../components/Ui/DataTable";
 import { SlideOver } from "../components/Ui/SlideOver";
 import { ConfirmDialog } from "../components/Ui/ConfirmDialog";
 import { CategoryForm } from "../components/forms/CategoryForm";
-import { useCategoriesQuery, useSaveCategoryMutation, useDeleteCategoryMutation } from "../hooks/queries/useCategoryQueries";
+import { useCategoriesQuery, useSaveCategoryMutation, useDeleteCategoryMutation, useCategoryDeletionImpact } from "../hooks/queries/useCategoryQueries";
 
 export default function CategoryList() {
     const { hasPermission } = useAuth();
@@ -32,6 +32,7 @@ export default function CategoryList() {
     const selectedCategory = (data?.items ?? []).find(item => item.categoryId === itemId) ?? null;
     const isSlideOverOpen = (dialog === 'create' && canCreate) || (dialog.startsWith('edit:') && canEdit && !!selectedCategory);
     const isDeleteDialogOpen = dialog.startsWith('delete:') && canDelete && !!selectedCategory;
+    const deletionImpact = useCategoryDeletionImpact(itemId, isDeleteDialogOpen);
     const totalPages = data?.totalPages || 1;
     const totalCount = data?.totalCount || 0;
 
@@ -48,7 +49,7 @@ export default function CategoryList() {
     };
 
     const handleConfirmDelete = async () => {
-        if (!selectedCategory) return;
+        if (!selectedCategory || !deletionImpact.isSuccess) return;
         try {
             await deleteMutation.mutateAsync(selectedCategory.categoryId);
             setIsDeleteDialogOpen(false);
@@ -94,7 +95,7 @@ export default function CategoryList() {
                 <CategoryForm initialData={selectedCategory} onSubmit={handleFormSubmit} onCancel={() => setIsSlideOverOpen(false)} />
             </SlideOver>
 
-            <ConfirmDialog isOpen={isDeleteDialogOpen} title="Delete Category" message={`Delete "${selectedCategory?.name}"?`} onConfirm={handleConfirmDelete} onCancel={() => { setIsDeleteDialogOpen(false); }} isProcessing={deleteMutation.isPending} />
+            <ConfirmDialog isOpen={isDeleteDialogOpen} title="Delete Category" message={deletionImpact.isPending ? "Checking affected products…" : deletionImpact.isError ? "Cannot verify affected products. Try again." : `Delete "${selectedCategory?.name}"? ${deletionImpact.data?.activeProducts ?? 0} active product(s) will become uncategorized.`} onConfirm={handleConfirmDelete} onCancel={() => { setIsDeleteDialogOpen(false); }} isProcessing={deleteMutation.isPending} confirmDisabled={!deletionImpact.isSuccess} />
         </div>
     );
 }
