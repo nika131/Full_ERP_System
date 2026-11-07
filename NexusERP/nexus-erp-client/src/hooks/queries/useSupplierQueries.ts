@@ -25,7 +25,7 @@ export const useDeleteSupplierMutation = () => {
     return useMutation({
         mutationFn: (supplierId: number) => supplierService.deleteSupplier(supplierId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            queryClient.invalidateQueries(); // product classification and reports also change
         }
     });
 };
@@ -38,3 +38,11 @@ export const useSupplierLookupQuery = (enabled: boolean = true) => {
         staleTime: 5 * 60 * 1000, 
     });
 };
+
+export const useSupplierDeletionImpact = (id: number, enabled: boolean) =>
+    useQuery({
+        queryKey: ['suppliers', 'deletionImpact', id],
+        queryFn: () => supplierService.getDeletionImpact(id),
+        enabled: enabled && id > 0,
+        staleTime: 0
+    });

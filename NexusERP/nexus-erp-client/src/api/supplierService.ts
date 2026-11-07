@@ -24,7 +24,12 @@ export const supplierService = {
     },
 
     deleteSupplier: async (supplierId: number): Promise<void> => {
-        await apiClient.delete(`/suppliers/${supplierId}`);
+        await apiClient.delete(`/suppliers/${supplierId}?confirm=true`);
+    },
+
+    getDeletionImpact: async (id: number): Promise<{ activeProducts: number }> => {
+        const response = await apiClient.get(`/suppliers/${id}/deletion-impact`);
+        return response.data;
     },
 
     getLookupSuppliers: async (): Promise<SupplierLookup[]> => {
