@@ -134,6 +134,7 @@ namespace NexusERP.Application.DTOs
     public class ReceiptLineDto
     {
         public string ProductName { get; set; } = string.Empty;
+        public bool ProductDeletedRecently { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal MarketDiscountPercentage { get; set; }

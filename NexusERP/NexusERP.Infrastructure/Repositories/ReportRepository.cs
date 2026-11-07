@@ -310,11 +310,18 @@ namespace NexusERP.Infrastructure.Repositories
             if (dto.EmployeeIds != null && dto.EmployeeIds.Any())
                 query = query.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
+            var cutoff = DateTime.UtcNow.AddDays(-30);
             return await query
-                .GroupBy(ri => new { ri.ProductId, ri.Product!.Name })
+                .GroupBy(ri => new
+                {
+                    ri.ProductId,
+                    Name = ri.Product != null &&
+                        (ri.Product.IsActive || (ri.Product.DeletedAt.HasValue && ri.Product.DeletedAt > cutoff))
+                        ? ri.Product.Name : "Deleted product"
+                })
                 .Select(g => new TopProductChartData
                 {
-                    ProductName = g.Key.Name ?? "Unknown",
+                    ProductName = g.Key.Name ?? "Deleted product",
                     Revenue = g.Sum(ri => ri.FinalAmount)
                 })
                 .OrderByDescending(x => x.Revenue)

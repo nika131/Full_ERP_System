@@ -335,7 +335,7 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<int>("ProductId")
+                    b.Property<int?>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
@@ -391,6 +391,9 @@ namespace NexusERP.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("DisplayMode")
@@ -550,7 +553,7 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Property<decimal>("MarketDiscountPercentage")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("ProductId")
+                    b.Property<int?>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
@@ -1104,8 +1107,7 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasOne("NexusERP.Domain.Entities.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("NexusERP.Domain.Entities.Store", "Store")
                         .WithMany("Transactions")
@@ -1198,8 +1200,7 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasOne("NexusERP.Domain.Entities.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("NexusERP.Domain.Entities.Receipt", "Receipt")
                         .WithMany("Lines")

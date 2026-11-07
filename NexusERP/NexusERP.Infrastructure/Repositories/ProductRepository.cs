@@ -224,6 +224,7 @@ namespace NexusERP.Infrastructure.Repositories
                 throw new AppException("Product not found.");
 
             product.IsActive = false;
+            product.DeletedAt = DateTime.UtcNow;
 
             var audit = new SystemAuditLog
             {

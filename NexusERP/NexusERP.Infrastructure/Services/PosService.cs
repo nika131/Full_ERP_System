@@ -459,7 +459,9 @@ namespace NexusERP.Infrastructure.Services
 
         public async Task<ReceiptDetailDto> GetReceiptDetailAsync(int companyId, int receiptId, int userId)
         {
+            var cutoff = DateTime.UtcNow.AddDays(-30);
             var receipt = await _context.Receipts
+                .IgnoreQueryFilters()
                 .Include(r => r.Lines)
                 .ThenInclude(l => l.Product)
                 .Include(r => r.User)
@@ -492,7 +494,11 @@ namespace NexusERP.Infrastructure.Services
 
                 Lines = receipt.Lines.Select(l => new ReceiptLineDto
                 {
-                    ProductName = l.Product?.Name ?? "Unknown Product",
+                    ProductName = l.Product != null &&
+                        (l.Product.IsActive || (l.Product.DeletedAt.HasValue && l.Product.DeletedAt > cutoff))
+                        ? l.Product.Name : "Deleted product",
+                    ProductDeletedRecently = l.Product != null && !l.Product.IsActive &&
+                        l.Product.DeletedAt.HasValue && l.Product.DeletedAt > cutoff,
                     Quantity = l.Quantity,
                     UnitPrice = l.UnitPrice,
                     MarketDiscountPercentage = l.MarketDiscountPercentage,

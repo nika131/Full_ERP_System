@@ -71,6 +71,9 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
                   <Text className="text-sm font-semibold text-slate-800">
                     {line.productName}
                   </Text>
+                  {line.productDeletedRecently ? (
+                    <Text className="text-xs text-slate-400">ⓘ Deleted product — name retained for up to 30 days</Text>
+                  ) : null}
                   <View className="mt-1">
                     <Text className="text-xs text-slate-500">
                       {line.quantity} × {formatCurrency(line.unitPrice)}

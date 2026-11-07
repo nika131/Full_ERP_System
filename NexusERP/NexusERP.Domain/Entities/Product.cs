@@ -46,6 +46,7 @@ namespace NexusERP.Domain.Entities
         public Company Company { get; set; } = null!;
 
         public bool IsActive { get; set; } = true;
+        public DateTime? DeletedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 

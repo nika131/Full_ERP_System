@@ -20,7 +20,9 @@ namespace NexusERP.Infrastructure.Services
             if (!Enum.TryParse<TransactionAction>(transactionType, true, out var actionEnum))
                 throw new AppException("Invalid transaction type.");
 
-            var product = await _productRepository.GetByIdAsync(companyId, transaction.ProductId);
+            if (!transaction.ProductId.HasValue)
+                throw new AppException("A product is required for an inventory adjustment.");
+            var product = await _productRepository.GetByIdAsync(companyId, transaction.ProductId.Value);
 
             if (!product.IsActive)
                 throw new AppException("Cannot process transactions for a deleted product.");
