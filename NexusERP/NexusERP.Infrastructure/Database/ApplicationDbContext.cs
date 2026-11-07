@@ -559,6 +559,12 @@ namespace NexusERP.Infrastructure.Database
 
                 entity.Property(e => e.LineTotal)
                     .HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.FinalAmount)
+                    .HasColumnType("decimal(18,2)");
+
+                entity.Property(e => e.AllocatedVatAmount)
+                    .HasColumnType("decimal(18,2)");
             });
 
             // ============================================================

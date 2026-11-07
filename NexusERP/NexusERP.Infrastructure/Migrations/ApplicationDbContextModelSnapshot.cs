@@ -532,7 +532,13 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Property<int>("CompanyId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("AllocatedVatAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("CostPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("FinalAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("LineTotal")

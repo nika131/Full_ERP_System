@@ -269,6 +269,7 @@ namespace NexusERP.Infrastructure.Repositories
                 .FirstOrDefaultAsync();
 
             var salesQuery = _context.ReceiptItems
+                .IgnoreQueryFilters()
                 .Include(ri => ri.Receipt)
                 .Include(ri => ri.Product)
                 .Where(ri =>
@@ -306,8 +307,8 @@ namespace NexusERP.Infrastructure.Repositories
             if (dto.EmployeeIds != null && dto.EmployeeIds.Any())
                 salesQuery = salesQuery.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
-            var totalSalesAmount = await salesQuery.SumAsync(ri => ri.LineTotal);
-            var realizedProfit = await salesQuery.SumAsync(ri => ri.LineTotal - (ri.Product!.CostPrice * ri.Quantity));
+            var totalSalesAmount = await salesQuery.SumAsync(ri => ri.FinalAmount);
+            var realizedProfit = await salesQuery.SumAsync(ri => ri.FinalAmount - ri.CostPrice * ri.Quantity - ri.AllocatedVatAmount);
 
             var stats = new DashboardResponse
             {

@@ -679,6 +679,42 @@ namespace NexusERP.Infrastructure.Services
             return result;
         }
 
+
+        // Persist exact line allocations rather than consulting current Product prices in reports.
+        // Both allocated totals reconcile to the receipt totals down to the last cent.
+        private static void AllocateReceiptLines(Receipt receipt)
+        {
+            var lines = receipt.Lines.ToArray();
+            if (lines.Length == 0) return;
+
+            decimal itemSubtotal = lines.Sum(l => l.LineTotal);
+            decimal remaining = receipt.FinalTotal;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                decimal amount = i == lines.Length - 1 ? remaining
+                    : itemSubtotal > 0m
+                        ? RoundToTwoDecimalPlaces(receipt.FinalTotal * lines[i].LineTotal / itemSubtotal)
+                        : 0m;
+                lines[i].FinalAmount = amount;
+                remaining -= amount;
+            }
+
+            var weights = lines.Select(l => l.VatRate > 0m
+                ? l.FinalAmount * l.VatRate / (100m + l.VatRate) : 0m).ToArray();
+            decimal weightSum = weights.Sum();
+            int lastTaxable = Array.FindLastIndex(weights, w => w > 0m);
+            if (lastTaxable < 0) lastTaxable = lines.Length - 1;
+            decimal remainingVat = receipt.TotalVatAmount;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                decimal vat = i == lastTaxable ? remainingVat
+                    : i > lastTaxable || weightSum <= 0m ? 0m
+                        : RoundToTwoDecimalPlaces(receipt.TotalVatAmount * weights[i] / weightSum);
+                lines[i].AllocatedVatAmount = vat;
+                remainingVat -= vat;
+            }
+        }
+
         public async Task<Receipt> ProcessCheckoutAsync(int companyId, int userId, CheckoutRequestDto cart)
         {
             var strategy = _context.Database.CreateExecutionStrategy();
@@ -724,17 +760,6 @@ namespace NexusERP.Infrastructure.Services
 
                         product.Quantity -= line.Quantity;
 
-                        _context.InventoryTransactions.Add(new InventoryTransaction
-                        {
-                            CompanyId = companyId,
-                            ProductId = product.ProductId,
-                            UserId = userId,
-                            StoreId = cart.StoreId,
-                            TransactionType = TransactionAction.Sale,
-                            Quantity = line.Quantity,
-                            CreatedAt = DateTime.UtcNow
-                        });
-
                         totalCostForProfit += product.CostPrice * line.Quantity;
 
                         receipt.Lines.Add(new ReceiptItem
@@ -752,6 +777,7 @@ namespace NexusERP.Infrastructure.Services
                     }
 
                     receipt.TotalCostAmount = totalCostForProfit;
+                    AllocateReceiptLines(receipt);
 
                     _context.Receipts.Add(receipt);
 

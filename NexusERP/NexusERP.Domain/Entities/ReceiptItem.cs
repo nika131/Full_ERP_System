@@ -26,6 +26,10 @@ namespace NexusERP.Domain.Entities
 
         public decimal LineTotal { get; set; }
 
+        // Immutable receipt-level discounts and VAT allocated to this line.
+        public decimal FinalAmount { get; set; }
+        public decimal AllocatedVatAmount { get; set; }
+
         public int CompanyId { get; set; }
         public Company Company { get; set; } = null!;
     }
