@@ -666,6 +666,11 @@ namespace NexusERP.Infrastructure.Database
                     createdEntity.CreatedAt = DateTime.UtcNow;
                 }
 
+                if (entry.Entity is Account account)
+                {
+                    account.SubscriptionStartedAt = account.CreatedAt;
+                }
+
                 if (entry.Entity is IAuditTracked auditableEntity)
                 {
                     if (entry.State == EntityState.Added)

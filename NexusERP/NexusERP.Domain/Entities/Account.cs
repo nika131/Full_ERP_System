@@ -24,10 +24,11 @@ namespace NexusERP.Domain.Entities
 
         public bool IsActive { get; set; } = true;
 
-        public DateTime CreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-
         public ICollection<User> Users { get; set; } = new List<User>();
         public ICollection<AuthSession> Sessions { get; set; } = new List<AuthSession>();
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime SubscriptionStartedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }
