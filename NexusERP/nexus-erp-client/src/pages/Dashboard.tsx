@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { AlertCircle, DollarSign, FilterX, Package, TrendingUp } from "lucide-react";
-import { AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart } from "recharts";
+import { AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, Legend } from "recharts";
 import { useDashboardStatsQuery, useChartDataQuery, useTopProductsQuery } from "../hooks/queries/useDashboardQueries";
 import { StoreMapCanvas } from "../components/maps/StoreMapCanvas";
 import { useLookupStoresQuery } from "../hooks/queries/useStoreQueries";
@@ -363,12 +363,17 @@ export default function Dashboard() {
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(value) => `$${value}`} />
                     <Tooltip 
                         contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        // Dynamic logic applied to the tooltip title
                         labelFormatter={(label) => `${isSingleDay ? 'Time' : 'Date'}: ${label}`}
                         formatter={(value: any) => {
                           if(value == undefined || value == null) return ['N/A', "Value"];
                           return [`$${Number(value).toFixed(2)}`]
                       }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      align="right"
+                      iconType="plainline"
+                      wrapperStyle={{ fontSize: 12, paddingBottom: 12 }}
                     />
                     <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                     <Area type="monotone" dataKey="profit" name="Profit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
@@ -432,7 +437,7 @@ export default function Dashboard() {
 
       {/* BOTTOM ZONE: Receipt-based sales ledger; inventory transactions remain in their original endpoints. */}
         {canViewTransactions && <SalesLedger filters={globalFilters} />}
-        
+
     </div>
   );
 }

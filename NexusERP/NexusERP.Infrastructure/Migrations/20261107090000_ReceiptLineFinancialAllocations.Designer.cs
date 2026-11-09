@@ -12,6 +12,8 @@ using NexusERP.Infrastructure.Database;
 
 namespace NexusERP.Infrastructure.Migrations
 {
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261107090000_ReceiptLineFinancialAllocations")]
     partial class ReceiptLineFinancialAllocations : Migration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
