@@ -5,9 +5,7 @@ using NexusERP.Infrastructure.Database;
 #nullable disable
 
 namespace NexusERP.Infrastructure.Migrations
-{
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261107100000_ProductDeletedAtAndNullableHistoryLinks")]
+{ 
     public partial class ProductDeletedAtAndNullableHistoryLinks : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
