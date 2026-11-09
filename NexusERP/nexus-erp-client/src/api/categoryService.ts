@@ -14,7 +14,12 @@ export const categoryService = {
         Promise<void> => apiClient.post('/categories/upsert', data),
 
     deleteCategory: async (id: number): 
-        Promise<void> => apiClient.delete(`/categories/${id}`),
+        Promise<void> => apiClient.delete(`/categories/${id}?confirm=true`),
+
+    getDeletionImpact: async (id: number): Promise<{ activeProducts: number }> => {
+        const response = await apiClient.get(`/categories/${id}/deletion-impact`);
+        return response.data;
+    },
 
     getLookupCategories: async (): Promise<CategoryLookup[]> => {
         const response = await apiClient.get('/categories/lookup');

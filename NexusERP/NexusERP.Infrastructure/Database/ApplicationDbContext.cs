@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.Interfaces;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;

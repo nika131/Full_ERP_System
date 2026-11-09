@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
@@ -224,6 +224,7 @@ namespace NexusERP.Infrastructure.Repositories
                 throw new AppException("Product not found.");
 
             product.IsActive = false;
+            product.DeletedAt = DateTime.UtcNow;
 
             var audit = new SystemAuditLog
             {
@@ -308,7 +309,7 @@ namespace NexusERP.Infrastructure.Repositories
                 salesQuery = salesQuery.Where(ri => dto.EmployeeIds.Contains(ri.Receipt!.UserId));
 
             var totalSalesAmount = await salesQuery.SumAsync(ri => ri.FinalAmount);
-            var realizedProfit = await salesQuery.SumAsync(ri => ri.FinalAmount - (ri.CostPrice * ri.Quantity) - ri.AllocatedVatAmount);
+            var realizedProfit = await salesQuery.SumAsync(ri => ri.FinalAmount - ri.CostPrice * ri.Quantity - ri.AllocatedVatAmount);
 
             var stats = new DashboardResponse
             {

@@ -143,29 +143,26 @@ namespace NexusERP.Infrastructure.Repositories
             if (category == null)
                 throw new AppException("Category not found.");
 
-            bool hasActiveProducts = await _context.Products.AnyAsync(p =>
-                p.CompanyId == companyId &&
-                p.CategoryId == id &&
-                p.IsActive
-            );
-
-            if (hasActiveProducts)
-                throw new AppException("Cannot delete this category because it contains active products. Reassign the products first.");
-
-            category.IsActive = false;
-
-            var audit = new SystemAuditLog
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                CompanyId = companyId,
-                UserId = userId,
-                EntityType = "Category",
-                EntityId = category.CategoryId,
-                Action = "Delete",
-                ChangesMade = $"Deleted Category '{category.CategoryName}'"
-            };
+                await using var tx = await _context.Database.BeginTransactionAsync(
+                    System.Data.IsolationLevel.Serializable);
+                // Includes inactive products so no category/supplier references remain.
+                await _context.Products.IgnoreQueryFilters()
+                    .Where(p => p.CompanyId == companyId && p.CategoryId == id)
+                    .ExecuteUpdateAsync(x => x.SetProperty(p => p.CategoryId, (int?)null));
 
-            await _context.SystemAuditLogs.AddAsync(audit);
-            await _context.SaveChangesAsync();
+                category.IsActive = false;
+                _context.SystemAuditLogs.Add(new SystemAuditLog
+                {
+                    CompanyId = companyId, UserId = userId, EntityType = "Category",
+                    EntityId = category.CategoryId, Action = "Delete",
+                    ChangesMade = $"Deleted category '{category.CategoryName}' and detached product associations"
+                });
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+            });
         }
     }
 }

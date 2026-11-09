@@ -8,7 +8,7 @@ import { SlideOver } from '../components/Ui/SlideOver';
 import { SupplierForm } from '../components/forms/SupplierForm';
 import { ConfirmDialog } from '../components/Ui/ConfirmDialog';
 import type { SupplierFormData } from '../schemas/supplierSchema';
-import { useSuppliersQuery, useSaveSupplierMutation, useDeleteSupplierMutation } from '../hooks/queries/useSupplierQueries';
+import { useSuppliersQuery, useSaveSupplierMutation, useDeleteSupplierMutation, useSupplierDeletionImpact } from '../hooks/queries/useSupplierQueries';
 
 export default function SupplierList() {
     const { hasPermission } = useAuth();
@@ -32,6 +32,7 @@ export default function SupplierList() {
     const selectedSupplier = (data?.items ?? []).find(item => item.supplierId === itemId) ?? null;
     const isSlideOverOpen = (dialog === 'create' && canCreate) || (dialog.startsWith('edit:') && canEdit && !!selectedSupplier);
     const isDeleteDialogOpen = dialog.startsWith('delete:') && canDelete && !!selectedSupplier;
+    const deletionImpact = useSupplierDeletionImpact(itemId, isDeleteDialogOpen);
     const totalPages = data?.totalPages || 1;
     const totalCount = data?.totalCount || 0;
 
@@ -48,7 +49,7 @@ export default function SupplierList() {
     };
 
     const handleConfirmDelete = async () => {
-        if (!selectedSupplier) return;
+        if (!selectedSupplier || !deletionImpact.isSuccess) return;
         try {
             await deleteMutation.mutateAsync(selectedSupplier.supplierId);
             setIsDeleteDialogOpen(false);
@@ -142,10 +143,10 @@ export default function SupplierList() {
             <ConfirmDialog
                 isOpen={isDeleteDialogOpen}
                 title="Delete Supplier"
-                message={`Are you sure you want to delete "${selectedSupplier?.companyName}"?`}
+                message={deletionImpact.isPending ? "Checking affected products…" : deletionImpact.isError ? "Cannot verify affected products. Try again." : `Delete "${selectedSupplier?.companyName}"? ${deletionImpact.data?.activeProducts ?? 0} active product(s) will have no supplier.`}
                 onConfirm={handleConfirmDelete}
                 onCancel={() => { setIsDeleteDialogOpen(false); }}
-                isProcessing={deleteMutation.isPending}
+                isProcessing={deleteMutation.isPending} confirmDisabled={!deletionImpact.isSuccess}
             />
         </div>
     );

@@ -134,7 +134,7 @@ public sealed class SalesLedgerController : ControllerBase
                 (line, receipt) => new { line, receipt });
 
         if (filter.ProductIds is { Length: > 0 })
-            lines = lines.Where(x => filter.ProductIds.Contains(x.line.ProductId));
+            lines = lines.Where(x => x.line.ProductId.HasValue && filter.ProductIds.Contains(x.line.ProductId.Value));
         if (filter.CategoryIds is { Length: > 0 })
             lines = lines.Where(x => x.line.Product != null &&
                 x.line.Product.CategoryId.HasValue &&
@@ -153,6 +153,7 @@ public sealed class SalesLedgerController : ControllerBase
                 (receiptId > 0 && x.receipt.ReceiptId == receiptId));
         }
 
+        var deletionCutoff = DateTime.UtcNow.AddDays(-30);
         var rawLines = await lines
             .OrderByDescending(x => x.receipt.CreatedAt)
             .ThenByDescending(x => x.receipt.ReceiptId)
@@ -163,7 +164,11 @@ public sealed class SalesLedgerController : ControllerBase
             {
                 x.line.ItemId, x.line.ReceiptId, x.receipt.ReceiptNumber,
                 x.receipt.CreatedAt, x.line.ProductId,
-                ProductName = x.line.Product != null ? x.line.Product.Name : "Deleted product",
+                ProductName = x.line.Product != null &&
+                    (x.line.Product.IsActive || (x.line.Product.DeletedAt.HasValue && x.line.Product.DeletedAt > deletionCutoff))
+                    ? x.line.Product.Name : "Deleted product",
+                ProductDeletedRecently = x.line.Product != null && !x.line.Product.IsActive &&
+                    x.line.Product.DeletedAt.HasValue && x.line.Product.DeletedAt > deletionCutoff,
                 x.line.Quantity, x.line.UnitPrice
             })
             .ToListAsync();
@@ -185,7 +190,7 @@ public sealed class SalesLedgerController : ControllerBase
             {
                 x.ItemId, x.ReceiptId, x.ReceiptNumber,
                 CreatedAt = AsUtc(x.CreatedAt),
-                x.ProductId, x.ProductName, x.Quantity, x.UnitPrice,
+                x.ProductId, x.ProductName, x.ProductDeletedRecently, x.Quantity, x.UnitPrice,
                 Total = amount.Total, Profit = amount.Profit
             };
         }).ToList();
@@ -199,10 +204,12 @@ public sealed class SalesLedgerController : ControllerBase
         if (search?.Length > 100) return BadRequest(new { message = "Search is too long." });
         int companyId = User.GetCurrentCompanyId();
         var receipts = VisibleReceipts();
+        var cutoff = DateTime.UtcNow.AddDays(-30);
         var rows = _db.ReceiptItems.IgnoreQueryFilters().AsNoTracking()
-            .Where(l => l.CompanyId == companyId && l.Product != null)
+            .Where(l => l.CompanyId == companyId && l.ProductId.HasValue && l.Product != null &&
+                (l.Product.IsActive || (l.Product.DeletedAt.HasValue && l.Product.DeletedAt > cutoff)))
             .Join(receipts, l => l.ReceiptId, r => r.ReceiptId,
-                (l, r) => new { l.ProductId, Name = l.Product!.Name });
+                (l, r) => new { ProductId = l.ProductId!.Value, Name = l.Product!.Name });
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim();
@@ -214,6 +221,7 @@ public sealed class SalesLedgerController : ControllerBase
     [HttpGet("receipts/{id:int}")]
     public async Task<IActionResult> GetReceipt(int id)
     {
+        var cutoff = DateTime.UtcNow.AddDays(-30);
         var r = await VisibleReceipts()
             .Where(r => r.ReceiptId == id)
             .Include(r => r.Lines).ThenInclude(l => l.Product)
@@ -233,7 +241,12 @@ public sealed class SalesLedgerController : ControllerBase
             Profit = r.FinalTotal - r.TotalCostAmount - r.TotalVatAmount,
             Lines = r.Lines.OrderBy(l => l.ItemId).Select(l => new
             {
-                l.ItemId, l.ProductId, ProductName = l.Product?.Name ?? "Deleted product",
+                l.ItemId, l.ProductId,
+                ProductName = l.Product != null &&
+                    (l.Product.IsActive || (l.Product.DeletedAt.HasValue && l.Product.DeletedAt > cutoff))
+                    ? l.Product.Name : "Deleted product",
+                ProductDeletedRecently = l.Product != null && !l.Product.IsActive &&
+                    l.Product.DeletedAt.HasValue && l.Product.DeletedAt > cutoff,
                 l.Quantity, l.UnitPrice, l.MarketDiscountPercentage,
                 l.ManualItemDiscountPercentage, l.LineTotal
             })

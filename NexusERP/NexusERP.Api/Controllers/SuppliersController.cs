@@ -1,6 +1,8 @@
 using NexusERP.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using NexusERP.Infrastructure.Database;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
@@ -14,10 +16,12 @@ namespace NexusERP.Api.Controllers
     public class SuppliersController : Controller
     {
         private readonly ISupplierRepository _repository;
+        private readonly ApplicationDbContext _db;
 
-        public SuppliersController(ISupplierRepository repository)
+        public SuppliersController(ISupplierRepository repository, ApplicationDbContext db)
         {
             _repository = repository;
+            _db = db;
         }
 
         [HttpGet]
@@ -82,10 +86,22 @@ namespace NexusERP.Api.Controllers
             return Ok(new { message = "Supplier saved successfully." });
         }
 
-        [HttpDelete("{id}")]
+        [HttpGet("{id:int}/deletion-impact")]
         [Authorize(Policy = Permissions.DeleteSuppliers)]
-        public async Task<IActionResult> DeleteSupplier(int id)
+        public async Task<IActionResult> GetDeletionImpact(int id)
         {
+            var companyId = User.GetCurrentCompanyId();
+            if (!await _db.Suppliers.AnyAsync(s => s.CompanyId == companyId && s.SupplierId == id))
+                return NotFound();
+            var activeProducts = await _db.Products.CountAsync(p => p.CompanyId == companyId && p.SupplierId == id);
+            return Ok(new { activeProducts });
+        }
+
+        [HttpDelete("{id:int}")]
+        [Authorize(Policy = Permissions.DeleteSuppliers)]
+        public async Task<IActionResult> DeleteSupplier(int id, [FromQuery] bool confirm = false)
+        {
+            if (!confirm) return BadRequest(new { message = "Deletion confirmation is required." });
             await _repository.Delete(id, User.GetCurrentUserId(), User.GetCurrentCompanyId());
 
             return Ok(new { message = "Supplier deleted successfully." });

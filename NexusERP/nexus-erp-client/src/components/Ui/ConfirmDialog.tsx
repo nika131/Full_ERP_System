@@ -8,6 +8,7 @@ interface confirmDialogProps {
     onConfirm: () => void;
     onCancel: () => void;
     isProcessing?: boolean;
+    confirmDisabled?: boolean;
 }
 
 export function ConfirmDialog({
@@ -16,7 +17,8 @@ export function ConfirmDialog({
     message,
     onConfirm,
     onCancel,
-    isProcessing = false
+    isProcessing = false,
+    confirmDisabled = false
 }: confirmDialogProps) {
 
     useEffect(() => {
@@ -45,7 +47,7 @@ export function ConfirmDialog({
           </button>
           <button
             onClick={onConfirm}
-            disabled={isProcessing}
+            disabled={isProcessing || confirmDisabled}
             className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
           >
             {isProcessing ? 'Deleting...' : 'Delete'}

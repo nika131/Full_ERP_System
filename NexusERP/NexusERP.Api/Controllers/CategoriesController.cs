@@ -1,6 +1,8 @@
 using NexusERP.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using NexusERP.Infrastructure.Database;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
@@ -15,10 +17,12 @@ namespace NexusERP.Api.Controllers
     public class CategoriesController : Controller
     {
         private readonly ICategoryRepository _repository;
+        private readonly ApplicationDbContext _db;
 
-        public CategoriesController(ICategoryRepository repository)
+        public CategoriesController(ICategoryRepository repository, ApplicationDbContext db)
         {
             _repository = repository;
+            _db = db;
         }
 
         [HttpGet]
@@ -78,10 +82,22 @@ namespace NexusERP.Api.Controllers
             return Ok(new { message = "Category saved." });
         }
 
-        [HttpDelete("{id}")]
+        [HttpGet("{id:int}/deletion-impact")]
         [Authorize(Policy = Permissions.DeleteCategories)]
-        public async Task<IActionResult> DeleteCategory(int id)
+        public async Task<IActionResult> GetDeletionImpact(int id)
         {
+            var companyId = User.GetCurrentCompanyId();
+            if (!await _db.Categories.AnyAsync(c => c.CompanyId == companyId && c.CategoryId == id))
+                return NotFound();
+            var activeProducts = await _db.Products.CountAsync(p => p.CompanyId == companyId && p.CategoryId == id);
+            return Ok(new { activeProducts });
+        }
+
+        [HttpDelete("{id:int}")]
+        [Authorize(Policy = Permissions.DeleteCategories)]
+        public async Task<IActionResult> DeleteCategory(int id, [FromQuery] bool confirm = false)
+        {
+            if (!confirm) return BadRequest(new { message = "Deletion confirmation is required." });
             await _repository.Delete(id, User.GetCurrentUserId(), User.GetCurrentCompanyId());
 
             return Ok(new { message = "Category deleted successfully." });

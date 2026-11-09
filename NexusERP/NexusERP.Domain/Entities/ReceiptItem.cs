@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +13,7 @@ namespace NexusERP.Domain.Entities
         public int ReceiptId { get; set; }
         public Receipt? Receipt { get; set; }
 
-        public int ProductId { get; set; }
+        public int? ProductId { get; set; }
         public Product? Product { get; set; }
 
         public int Quantity { get; set; }
@@ -25,7 +25,8 @@ namespace NexusERP.Domain.Entities
         public decimal ManualItemDiscountPercentage { get; set; }
 
         public decimal LineTotal { get; set; }
-        // Immutable allocated cart-discount-adjusted financial amounts.
+
+        // Immutable receipt-level discounts and VAT allocated to this line.
         public decimal FinalAmount { get; set; }
         public decimal AllocatedVatAmount { get; set; }
 
