@@ -41,8 +41,9 @@ namespace NexusERP.Infrastructure.Repositories
         )
         {
             var baseQuery = _context.InventoryTransactions
+                .IgnoreQueryFilters()
                 .Include(t => t.Product)
-                    .ThenInclude(p => p!.Supplier)
+                .ThenInclude(p => p!.Supplier)
                 .Include(t => t.User)
                 .Where(t => t.CompanyId == companyId && t.TransactionType != TransactionAction.Sale)
                 .AsNoTracking();
@@ -333,6 +334,7 @@ namespace NexusERP.Infrastructure.Repositories
         public async Task<PagedResult<ShiftAuditDto>> GetPagedShiftsAsync(int companyId, int pageNumber, int pageSize, int? storeId)
         {
             var query = _context.Shifts
+                .IgnoreQueryFilters()
                 .Include(s => s.User)
                 .Include(s => s.Store)
                 .Where(s => s.CompanyId == companyId)
@@ -374,6 +376,7 @@ namespace NexusERP.Infrastructure.Repositories
         public async Task<PagedResult<ReceiptAuditDto>> GetPagedReceiptsAsync(int companyId, int pageNumber, int pageSize, string? receiptNumber)
         {
             var query = _context.Receipts
+                .IgnoreQueryFilters()
                 .Include(r => r.User)
                 .Include(r => r.Store)
                 .Where(r => r.CompanyId == companyId)

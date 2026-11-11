@@ -20,6 +20,7 @@ namespace NexusERP.Infrastructure.Repositories
             var minimumDate = startDate ?? DateTime.UtcNow.AddDays(-30);
 
             var baseQuery = _context.SystemAuditLogs
+                .IgnoreQueryFilters()
                 .Include(log => log.User)
                 .Where(log => log.CompanyId == companyId && log.CreatedAt >= minimumDate)
                 .AsNoTracking();

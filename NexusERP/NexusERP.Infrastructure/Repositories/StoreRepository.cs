@@ -70,7 +70,7 @@ namespace NexusERP.Infrastructure.Repositories
             );
         }
 
-        public async Task AddStoreAsync(Store store, int companyId)
+        public async Task AddStoreAsync(Store store, int companyId, int actorUserId)
         {
 
             store.Name = store.Name?.Trim() ?? string.Empty;
@@ -89,11 +89,32 @@ namespace NexusERP.Infrastructure.Repositories
 
             store.CompanyId = companyId;
 
-            await _context.Stores.AddAsync(store);
-            await _context.SaveChangesAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx =
+                    await _context.Database.BeginTransactionAsync();
+
+                _context.Stores.Add(store);
+                await _context.SaveChangesAsync();
+
+                _context.SystemAuditLogs.Add(new SystemAuditLog
+                {
+                    CompanyId = companyId,
+                    UserId = actorUserId,
+                    EntityType = "Store",
+                    EntityId = store.StoreId,
+                    Action = "Create",
+                    ChangesMade = $"Created store '{store.Name}'"
+                });
+
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+            });
         }
 
-        public async Task UpdateStoreAsync(Store store, int companyId)
+        public async Task UpdateStoreAsync(Store store, int companyId, int actorUserId)
         {
             store.Name = store.Name?.Trim() ?? string.Empty;
 
@@ -125,6 +146,16 @@ namespace NexusERP.Infrastructure.Repositories
             existing.Address = store.Address;
             existing.Location = store.Location;
             existing.IsActive = store.IsActive;
+
+            _context.SystemAuditLogs.Add(new SystemAuditLog
+            {
+                CompanyId = companyId,
+                UserId = actorUserId,
+                EntityType = "Store",
+                EntityId = existing.StoreId,
+                Action = "Update",
+                ChangesMade = $"Updated store '{existing.Name}'"
+            });
 
             await _context.SaveChangesAsync();
         }

@@ -131,6 +131,16 @@ namespace NexusERP.Infrastructure.Services
                     }
                 );
 
+                _context.SystemAuditLogs.Add(new SystemAuditLog
+                {
+                    CompanyId = company.CompanyId,
+                    UserId = adminUser.UserId,
+                    EntityType = "Company",
+                    EntityId = company.CompanyId,
+                    Action = "Create",
+                    ChangesMade = $"Created company '{company.Name}'"
+                });
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 

@@ -8,8 +8,8 @@ namespace NexusERP.Application.Interfaces.Repositories
     {
         Task<IEnumerable<Store>> GetAllStoresAsync(int companyId);
         Task<Store?> GetStoreByIdAsync(int companyId, int id);
-        Task AddStoreAsync(Store store, int companyId);
-        Task UpdateStoreAsync(Store store, int companyId);
+        Task AddStoreAsync(Store store, int companyId, int actorUserId);
+        Task UpdateStoreAsync(Store store, int companyId, int actorUserId);
         Task<IEnumerable<Store>> GetStoresWithinRadiusAsync(int companyId, Point location, double radiusInMeters);
         Task<PagedResult<Store>> GetPagedStoresAsync(int companyId, int pageNumber, int pageSize, string? searchTerm = null);
     }

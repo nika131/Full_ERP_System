@@ -75,11 +75,18 @@ namespace NexusERP.Api.Controllers
                 employeeIds
             );
 
+            var deletedProductCutoff = DateTime.UtcNow.AddDays(-30);
+
             var responseItems = secureData.Items.Select(t => new TransactionResponseDto
             {
                 TransactionId = t.TransactionId,
                 ProductId = t.ProductId,
-                ProductName = t.Product?.Name ?? "Unknown",
+                ProductName = t.Product != null &&
+                    (t.Product.IsActive ||
+                     (t.Product.DeletedAt.HasValue &&
+                      t.Product.DeletedAt.Value > deletedProductCutoff))
+                    ? t.Product.Name
+                    : "Deleted product",
                 SupplierName = t.Product?.Supplier?.ContactName ?? "N/A",
                 TransactionType = t.TransactionType.ToString(),
                 Quantity = t.Quantity,

@@ -45,7 +45,7 @@ namespace NexusERP.Infrastructure.Services
             return store == null ? null : MapToDto(store);
         }
 
-        public async Task<StoreDto> CreateStoreAsync(int companyId, CreateStoreDto dto)
+        public async Task<StoreDto> CreateStoreAsync(int companyId, int actorUserid, CreateStoreDto dto)
         {
             var store = new Store
             {
@@ -56,12 +56,12 @@ namespace NexusERP.Infrastructure.Services
                 IsActive = true
             };
 
-            await _storeRepository.AddStoreAsync(store, companyId);
+            await _storeRepository.AddStoreAsync(store, companyId, actorUserid);
 
             return MapToDto(store);
         }
 
-        public async Task UpdateStoreAsync(int companyId, int id, UpdateStoreDto dto)
+        public async Task UpdateStoreAsync(int companyId, int actorUserId, int id, UpdateStoreDto dto)
         {
             var store = await _storeRepository.GetStoreByIdAsync(companyId, id)
                 ?? throw new AppException($"Store with ID {id} not found.");
@@ -71,7 +71,7 @@ namespace NexusERP.Infrastructure.Services
             store.Location = _geometryFactory.CreatePoint(new Coordinate(dto.Longitude, dto.Latitude));
             store.IsActive = dto.IsActive;
 
-            await _storeRepository.UpdateStoreAsync(store, companyId);
+            await _storeRepository.UpdateStoreAsync(store, companyId, actorUserId);
         }
 
         public async Task<IEnumerable<StoreDto>> GetStoresNearbyAsync(int companyId, double latitude, double longitude, double radiusInMeters)

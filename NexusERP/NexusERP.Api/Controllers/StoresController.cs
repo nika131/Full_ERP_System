@@ -57,7 +57,7 @@ namespace NexusERP.Api.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var createdStore = await _storeService.CreateStoreAsync(User.GetCurrentCompanyId(), dto);
+            var createdStore = await _storeService.CreateStoreAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), dto);
 
             return CreatedAtAction(nameof(GetStoreById), new { id = createdStore.StoreId }, createdStore);
         }
@@ -68,7 +68,7 @@ namespace NexusERP.Api.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            await _storeService.UpdateStoreAsync(User.GetCurrentCompanyId(), id, dto);
+            await _storeService.UpdateStoreAsync(User.GetCurrentCompanyId(), User.GetCurrentUserId(), id, dto);
 
             return NoContent();
         }
