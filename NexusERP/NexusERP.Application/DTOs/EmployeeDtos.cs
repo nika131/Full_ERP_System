@@ -25,9 +25,8 @@ namespace NexusERP.Application.DTOs
         [Required(ErrorMessage = "Role is required.")]
         public int RoleId { get; set; }
 
-        [Required]
-        [StringLength(4, MinimumLength = 4, ErrorMessage = "PIN must be exactly 4 digits.")]
-        public string PosPin { get; set; } = string.Empty;
+        [RegularExpression(@"^\d{4}$", ErrorMessage = "PIN must contain exactly 4 digits.")]
+        public string? PosPin { get; set; }
     }
 
     public class UserLookupDto

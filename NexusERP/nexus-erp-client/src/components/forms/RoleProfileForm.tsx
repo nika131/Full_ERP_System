@@ -21,7 +21,7 @@ export const RoleForm = ({ employee, onSuccess }: { employee: EmployeeResponse, 
             fullName: employee.fullName,
             username: employee.username,
             roleId: employee.roleId,
-            posPin: employee.posPin ?? '' 
+            posPin: '' 
         }
     });
 
@@ -74,12 +74,12 @@ export const RoleForm = ({ employee, onSuccess }: { employee: EmployeeResponse, 
 
                 {/* POS PIN Field with Generate Button */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-700">POS Access PIN</label>
+                    <label className="block text-sm font-medium text-slate-700">New POS PIN (optional)</label>
                     <div className="flex gap-2 mt-1">
                         <input
                             type="text"
                             maxLength={4}
-                            placeholder="e.g. 1234"
+                            placeholder="Leave blank to keep current PIN"
                             {...register('posPin')}
                             className={`flex-1 p-2 border rounded-md outline-none transition-colors tracking-widest font-mono text-center ${errors.posPin ? 'border-red-500 focus:border-red-500' : 'border-slate-300 focus:border-blue-500'}`}
                             onKeyPress={(e) => {

@@ -6,6 +6,7 @@ import {
   useRolesQuery,
   useRegisterEmployeeMutation,
 } from '../../hooks/queries/useHrQueries';
+import { RolePermissionGuide } from '../Ui/RolePermissionGuide';
 
 interface InviteModalProps {
   onClose: () => void;
@@ -283,6 +284,7 @@ export const InviteEmployeeModal = ({
                 ))}
               </select>
             </div>
+            <RolePermissionGuide />
 
             {availableRoles.length === 0 && (
               <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">

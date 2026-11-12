@@ -49,8 +49,7 @@ export const employeeUpdateSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     roleId: z.number().min(1, "Role is required"),
     posPin: z.string()
-        .length(4, "PIN must be exactly 4 digits")
-        .regex(/^\d{4}$/, "PIN can only contain numbers"),
+    .regex(/^$|^\d{4}$/, "Enter exactly 4 digits or leave blank"),
 });
 
 export type LeaveRequestFormData = z.infer<typeof leaveRequestSchema>;

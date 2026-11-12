@@ -2,21 +2,23 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
 import { useEffect, useState } from 'react';
-import { Menu, Settings, Bug, Lightbulb, Boxes, UserRound, LayoutDashboard, Package, Truck, Tags, ShieldCheck, UsersRound, Store, CalendarClock, ScrollText, Link2, Check } from 'lucide-react';
+import { Menu, Settings, Bug, Lightbulb, Boxes, UserRound, LayoutDashboard, Package, Truck, Tags, ShieldCheck, UsersRound, Store, CalendarClock, ScrollText, Link2, Check, MoreHorizontal, LogOut } from 'lucide-react';
 import FeedbackDialog from '../components/FeedbackDialog';
 import { useUrlString } from '../hooks/useUrlState';
 import toast from 'react-hot-toast';
 
 export default function MainLayout() {
-  const { user, logout, switchCompany, companyId } = useAuth();
+  const { user, logout, companyId } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [feedbackParam, setFeedbackParam] = useUrlString('feedback');
   const feedbackKind = feedbackParam === 'bug' || feedbackParam === 'idea' ? feedbackParam : null;
   const setFeedbackKind = (value: 'bug' | 'idea' | null) => setFeedbackParam(value ?? '');
   const [copied, setCopied] = useState(false);
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -28,7 +30,6 @@ export default function MainLayout() {
   };
 
   const handleSwitchCompany = () => {
-    switchCompany();
     navigate('/companies');
   };
 
@@ -105,7 +106,7 @@ export default function MainLayout() {
 
         <div className="flex-1 flex flex-col overflow-hidden">
             {/* HEADER */}
-            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10 shrink-0">
+            <header className="relative z-20 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-3 shadow-sm sm:px-4 lg:px-6">
                 
                 {/* Left side: Toggle Button */}
                 <div className="flex items-center space-x-4">
@@ -118,7 +119,7 @@ export default function MainLayout() {
                 </div>
 
                 {/* Right side: fast feedback and user menu */}
-                <div className="flex items-center gap-2 sm:gap-4">
+                <div className="hidden items-center gap-2 lg:flex lg:gap-3">
                     <button type="button" onClick={async () => {
                       try {
                         await navigator.clipboard.writeText(window.location.href);
@@ -143,10 +144,100 @@ export default function MainLayout() {
                     </button>
                     <button
                         onClick={() => { void handleLogout(); }}
-                        className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors border border-gray-300"
+                        className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
                     >
                         Logout
                     </button>
+                </div>
+
+                {/* Mobile menu dropdown */}
+                <div className="relative lg:hidden">
+                    <button
+                        type="button"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label="More options"
+                        aria-expanded={isMobileMenuOpen}
+                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+                    >
+                        <MoreHorizontal size={24} />
+                    </button>
+
+                    {isMobileMenuOpen && (
+                        <div className="absolute right-0 top-full z-30 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-xl">
+                            <div className="border-b border-gray-100 px-3 py-2">
+                                <p className="text-sm font-semibold text-gray-900">
+                                    {user?.username}
+                                </p>
+                                <p className="text-xs text-emerald-600">
+                                    {user?.role}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await navigator.clipboard.writeText(window.location.href);
+                                        setCopied(true);
+                                    } catch {
+                                        toast.error('Could not copy link.');
+                                    }
+                                    setIsMobileMenuOpen(false);
+                                }}
+                                className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100"
+                            >
+                                Copy page link
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setFeedbackKind('bug');
+                                    setIsMobileMenuOpen(false);
+                                }}
+                                className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100"
+                            >
+                                Report a problem
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setFeedbackKind('idea');
+                                    setIsMobileMenuOpen(false);
+                                }}
+                                className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100"
+                            >
+                                Suggest a feature
+                            </button>
+
+                            <Link
+                                to="/settings"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100"
+                            >
+                                Settings
+                            </Link>
+
+                            <button
+                                onClick={() => {
+                                    setIsMobileMenuOpen(false);
+                                    handleSwitchCompany();
+                                }}
+                                className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100"
+                            >
+                                Switch company
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setIsMobileMenuOpen(false);
+                                    void handleLogout();
+                                }}
+                                className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-gray-100 px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+                            >
+                                <LogOut size={16} />
+                                Log out
+                            </button>
+                        </div>
+                    )}
                 </div>
             </header>
 

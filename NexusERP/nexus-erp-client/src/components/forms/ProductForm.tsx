@@ -8,6 +8,9 @@ import { useLookupCategoriesQuery } from "../../hooks/queries/useCategoryQueries
 import { Upload, X, Loader2, Image as ImageIcon, Shapes } from "lucide-react";
 import { productService } from "../../api/productService";
 import { InfoTooltip } from '../Ui/InfoTooltip';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { Permissions } from '../../constants/permissions';
 
 interface ProductFormProps {
     initialData?: Product | null;
@@ -26,6 +29,16 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
 
     const [activeMode, setActiveMode] = useState<'image' | 'shape'>('image');
     
+    const { hasPermission } = useAuth();
+
+    const canCreateCategory =
+        hasPermission(Permissions.CreateCategories) &&
+        hasPermission(Permissions.ViewCategories);
+
+    const canCreateSupplier =
+        hasPermission(Permissions.CreateSuppliers) &&
+        hasPermission(Permissions.ViewSuppliers);
+        
     const {
         register,
         handleSubmit,
@@ -252,7 +265,22 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                 {/* Categorization Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                        <label className="text-sm font-medium text-slate-700">
+                            Category
+                        </label>
+
+                        {canCreateCategory && (
+                            <Link
+                                to="/categories?dialog=create"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-semibold text-emerald-700 hover:underline"
+                            >
+                                + Create category ↗
+                            </Link>
+                        )}
+                    </div>
                         <select
                             {...register('categoryId', {
                                 setValueAs: (value) => value === '' ? null : Number(value)
@@ -267,11 +295,31 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                                 </option>
                             ))}
                         </select>
+                        {!isLoadingCategories && categories.length === 0 && (
+                            <p className="mt-1 text-xs text-slate-500">
+                                No categories yet. You can create one or leave this empty.
+                            </p>
+                        )}
                         {errors.categoryId && <p className="text-red-500 text-xs mt-1">{errors.categoryId.message}</p>}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Supplier</label>
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                            <label className="text-sm font-medium text-slate-700">
+                                Supplier
+                            </label>
+
+                            {canCreateSupplier && (
+                                <Link
+                                    to="/suppliers?dialog=create"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-semibold text-emerald-700 hover:underline"
+                                >
+                                    + Create supplier ↗
+                                </Link>
+                            )}
+                        </div>
                         <select
                             {...register('supplierId', {
                                 setValueAs: (value) => value === '' ? null : Number(value)
@@ -284,6 +332,11 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                                 <option key={sup.supplierId} value={sup.supplierId}>{sup.companyName}</option>
                             ))}
                         </select>
+                        {!isLoadingSuppliers && suppliers.length === 0 && (
+                            <p className="mt-1 text-xs text-slate-500">
+                                No suppliers yet. You can create one or leave this empty.
+                            </p>
+                        )}
                         {errors.supplierId && <p className="text-red-500 text-xs mt-1">{errors.supplierId.message}</p>}
                     </div>
                 </div>

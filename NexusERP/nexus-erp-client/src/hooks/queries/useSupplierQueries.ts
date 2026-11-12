@@ -36,6 +36,7 @@ export const useSupplierLookupQuery = (enabled: boolean = true) => {
         queryKey: ['suppliers', 'lookup'],
         queryFn: () => supplierService.getLookupSuppliers(),
         staleTime: 5 * 60 * 1000, 
+        refetchOnWindowFocus: 'always',
     });
 };
 

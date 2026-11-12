@@ -197,12 +197,10 @@ export default function Landing() {
                         <div className="rounded-xl border border-slate-100 bg-white p-4">
                           <div className="text-xs font-medium text-slate-500">Today's activity</div>
                           <div className="mt-3 text-3xl font-extrabold text-slate-800">128</div>
-                          <div className="text-xs text-emerald-700">Example transactions</div>
                         </div>
                         <div className="rounded-xl border border-slate-100 bg-white p-4">
                           <div className="text-xs font-medium text-slate-500">Stock items</div>
                           <div className="mt-3 text-3xl font-extrabold text-slate-800">842</div>
-                          <div className="text-xs text-slate-400">Example products</div>
                         </div>
                       </div>
 
@@ -435,36 +433,18 @@ export default function Landing() {
               TenexERP POS for Android
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Available to enrolled testers. Join the testing group, opt in through Google Play, then install the application.
+              Download TenexERP POS on your Android device to manage sales, products, and cashier shifts directly from your store.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 text-sm">
-            <a
-              href="https://groups.google.com/g/tenexerp-testing-group"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-xl border border-emerald-200 bg-white px-4 py-3 font-semibold text-emerald-900 hover:bg-emerald-50"
-            >
-              1. Join testing group
-            </a>
-            <a
-              href="https://play.google.com/apps/testing/com.tenexerp.pos"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-xl border border-emerald-200 bg-white px-4 py-3 font-semibold text-emerald-900 hover:bg-emerald-50"
-            >
-              2. Become a tester
-            </a>
-            <a
+          <a
               href="https://play.google.com/store/apps/details?id=com.tenexerp.pos"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl bg-[#163f35] px-4 py-3 font-semibold text-white hover:bg-[#215b4a]"
-            >
-              3. Install Android app
-            </a>
-          </div>
+              className="inline-flex items-center justify-center rounded-xl bg-[#163f35] px-6 py-3 font-semibold text-white transition hover:bg-[#215b4a]"
+          >
+              Download on Google Play
+          </a>
         </div>
       </section>
 

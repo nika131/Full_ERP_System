@@ -348,7 +348,7 @@ export default function EmployeeList() {
                             <EmployeeManagerForm 
                                 employee={selectedEmployee} 
                                 onSuccess={() => { 
-                                                                        setDialog(''); 
+                                    setDialog(''); 
                                     queryClient.invalidateQueries({ queryKey: ['employees'] });
                                 }} 
                                 onCancel={() => { setDialog(''); }} 

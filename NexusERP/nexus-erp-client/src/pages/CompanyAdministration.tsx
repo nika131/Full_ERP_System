@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
 import { companyAdminService, type RoleOption } from '../api/companyAdminService';
 import { apiErrorMessage, type JoinRequestSummary } from '../api/authService';
+import { RolePermissionGuide } from '../components/Ui/RolePermissionGuide';
 
 export default function CompanyAdministration() {
     const { hasPermission } = useAuth();
@@ -86,6 +87,7 @@ export default function CompanyAdministration() {
             {canReview && <section className="rounded-xl border border-gray-200 bg-white p-6">
                 <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-900">Pending join requests ({requests.length})</h2><button onClick={() => void reload()} className="text-sm font-medium text-emerald-700 hover:underline">Refresh</button></div>
                 {roles.length === 0 && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Create a non-system employee role using <Link className="font-semibold underline" to="/employees">Employees / Roles</Link> before approving requests.</p>}
+                <RolePermissionGuide />
                 {requests.length === 0 ? <p className="text-sm text-gray-500">No pending join requests.</p> : <div className="space-y-4">
                     {requests.map(req => <div key={req.joinRequestId} className="rounded-lg border border-gray-200 p-4">
                         <div className="mb-3 flex flex-wrap items-start justify-between gap-2"><div><div className="font-semibold text-gray-900">{req.fullName} <span className="font-normal text-gray-500">(@{req.username})</span></div><div className="text-sm text-gray-500">{req.accountEmail}</div></div><span className="text-xs text-gray-500">{new Date(req.createdAt).toLocaleString()}</span></div>

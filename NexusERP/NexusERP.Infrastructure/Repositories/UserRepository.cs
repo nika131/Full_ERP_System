@@ -29,6 +29,9 @@ namespace NexusERP.Infrastructure.Repositories
             if (existingUser == null)
                 throw new AppException("Employee not found.");
 
+            if (actorUserId == user.UserId && existingUser.RoleId != user.RoleId)
+                throw new AppException("You cannot change your own role.");
+
             var roleExists = await _context.Roles.AnyAsync(r =>
                 r.RoleId == user.RoleId &&
                 r.CompanyId == companyId &&
@@ -62,7 +65,10 @@ namespace NexusERP.Infrastructure.Repositories
             existingUser.FullName = user.FullName;
             existingUser.Username = user.Username;
             existingUser.RoleId = user.RoleId;
-            existingUser.PosPin = user.PosPin;
+            if (!string.IsNullOrEmpty(user.PosPin))
+            {
+                existingUser.PosPin = BCrypt.Net.BCrypt.HashPassword(user.PosPin);
+            }
 
             var audit = new SystemAuditLog
             {

@@ -94,7 +94,9 @@ namespace NexusERP.Infrastructure.Services
                     FullName = fullName,
                     Username = username,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(unusedLegacyPassword),
-                    PosPin = string.IsNullOrWhiteSpace(dto.PosPin) ? null : dto.PosPin,
+                    PosPin = string.IsNullOrWhiteSpace(dto.PosPin)
+                        ? null
+                        : BCrypt.Net.BCrypt.HashPassword(dto.PosPin),
                     IsActive = true
                 };
 

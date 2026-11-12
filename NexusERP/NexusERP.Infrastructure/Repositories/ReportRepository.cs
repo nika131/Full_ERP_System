@@ -168,6 +168,7 @@ namespace NexusERP.Infrastructure.Repositories
         public async Task<InventoryTransaction?> GetById(int companyId, int transactionId)
         {
             return await _context.InventoryTransactions
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(t =>
                     t.CompanyId == companyId &&

@@ -38,7 +38,7 @@ namespace NexusERP.Api.Controllers
                 Username = u.Username,
                 RoleId = u.RoleId,
                 RoleName = u.Role?.Name ?? "Unassigned",
-                PosPin = User.HasPermission(Permissions.EditUsers) ? u.PosPin : null,
+                PosPin = null,
                 CreatedAt = u.CreatedAt
             }).ToList();
 
@@ -57,9 +57,6 @@ namespace NexusERP.Api.Controllers
         {
             int currentUserId = User.GetCurrentUserId();
             int companyId = User.GetCurrentCompanyId();
-
-            if (id == currentUserId)
-                return BadRequest(new { message = "Security Lock: You cannot remove your own Admin privileges." });
 
             var userToUpdate = new User
             {

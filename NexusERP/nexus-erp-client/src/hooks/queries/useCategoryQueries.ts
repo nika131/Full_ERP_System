@@ -16,6 +16,7 @@ export const useSaveCategoryMutation = () => {
         mutationFn: (payload: CategoryFormData & { categoryId?: number }) => categoryService.saveCategory(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
+            queryClient.invalidateQueries({ queryKey: ['lookupCategories'] });
         }
     });
 };
@@ -36,6 +37,7 @@ export const useLookupCategoriesQuery = (enabled: boolean = true) => {
         queryKey: ['lookupCategories'],
         queryFn: ()  => categoryService.getLookupCategories(),
         staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: 'always',
     })
 }
 

@@ -98,7 +98,7 @@ export default function PendingLeaves() {
                 totalPages={totalPages}
                 totalCount={filteredRequests.length}
                 onPageChange={setPage}
-            />
+            />c
         </div>
     );
 }
