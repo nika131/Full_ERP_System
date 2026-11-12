@@ -3,12 +3,27 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Boxes, ExternalLink, HelpCircle, Lightbulb, LogOut, ShieldCheck, Smartphone, Trash2, UserRound, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import FeedbackDialog from '../components/FeedbackDialog';
+import toast from 'react-hot-toast';
 export default function AccountSettings() {
   const { logout, companyId } = useAuth();
+  
   const navigate = useNavigate();
+
   const [feedback,setFeedback]=useState<'bug'|'idea'|null>(null);
+  
   const [busy,setBusy]=useState(false);
-  const signOut=async()=>{setBusy(true);try{await logout();navigate('/login');}finally{setBusy(false);}};
+
+  const signOut = async () => {
+      setBusy(true);
+      try {
+          await logout();
+          navigate('/login');
+      } catch {
+          toast.error('Could not sign out. Please try again.');
+      } finally {
+          setBusy(false);
+      }
+  };
   return <div className="mx-auto max-w-4xl space-y-7 text-left">
     <div>
       <span className="text-xs font-bold uppercase tracking-[.2em] text-emerald-600">Your workspace</span>

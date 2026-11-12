@@ -67,18 +67,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isAccountAuthenticated, setAccountAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [restoreError, setRestoreError] = useState(false);
+    const [restoreAttempt, setRestoreAttempt] = useState(0);
 
     useEffect(() => {
         let active = true;
-        authService.restoreSession().then((restored) => {
-            if (!active) return;
-            setAccountAuthenticated(restored);
-            setUser(restored && tokenStorage.getCompanyAccess() ? decodeCompanyUser(tokenStorage.getCompanyAccess()!) : null);
-        }).finally(() => {
-            if (active) setIsLoading(false);
-        });
-        return () => { active = false; };
-    }, []);
+
+        setIsLoading(true);
+        setRestoreError(false);
+
+        authService.restoreSession()
+            .then(restored => {
+                if (!active) return;
+
+                setAccountAuthenticated(restored);
+
+                const token = tokenStorage.getCompanyAccess();
+
+                setUser(
+                    restored && token
+                        ? decodeCompanyUser(token)
+                        : null
+                );
+            })
+            .catch(() => {
+                if (active) setRestoreError(true);
+            })
+            .finally(() => {
+                if (active) setIsLoading(false);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [restoreAttempt]);
 
     const loginAccount = async (email: string, password: string) => {
         await authService.loginAccount(email, password);
@@ -99,13 +121,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const logout = async () => {
-        try {
-            await authService.logoutAccount();
-        } finally {
-            tokenStorage.clearAll();
-            setAccountAuthenticated(false);
-            setUser(null);
-        }
+        await authService.logoutAccount();
+
+        setAccountAuthenticated(false);
+        setUser(null);
     };
 
     const hasPermission = (permission: string) => user?.permissions.includes(permission) ?? false;
@@ -125,6 +144,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }}>
             {isLoading ? (
                 <div className="min-h-screen flex items-center justify-center text-gray-600">Loading TenexERP...</div>
+            ) : restoreError ? (
+                <main className="flex min-h-screen items-center justify-center p-6">
+                    <div className="max-w-sm text-center">
+                        <h2 className="text-xl font-bold text-slate-900">
+                            Unable to connect
+                        </h2>
+
+                        <p className="mt-3 text-sm text-slate-600">
+                            We couldn't verify your session right now.
+                            Your saved login hasn't been cleared.
+                            Check your connection and try again.
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={() => setRestoreAttempt(x => x + 1)}
+                            className="mt-5 rounded-lg bg-emerald-700 px-5 py-2.5 font-semibold text-white"
+                        >
+                            Retry connection
+                        </button>
+                    </div>
+                </main>
             ) : children}
         </AuthContext.Provider>
     );

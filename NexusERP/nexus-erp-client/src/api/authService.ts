@@ -3,6 +3,7 @@ import { expiresSoon, tokenStorage, type SessionTokens } from './tokenStorage';
 
 const accountApi = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
+    withCredentials: true,
     headers: { 'Content-Type': 'application/json' },
 });
 
@@ -41,17 +42,30 @@ let refreshPromise: Promise<void> | null = null;
 let restorePromise: Promise<boolean> | null = null;
 
 async function rotateAccountTokens() {
-    const refreshToken = tokenStorage.getRefresh();
-    if (!refreshToken) throw new Error('Your account session has ended. Please sign in.');
-
     if (!refreshPromise) {
-        refreshPromise = accountApi.post<SessionTokens>('/account-auth/refresh', { refreshToken })
-            .then(({ data }) => tokenStorage.setAccount(data))
-            .catch((error: unknown) => {
-                tokenStorage.clearAll();
-                throw error;
-            })
-            .finally(() => { refreshPromise = null; });
+        const refresh = async () => {
+            const { data } = await accountApi.post<SessionTokens>(
+                '/account-auth/refresh',
+                {}
+            );
+
+            tokenStorage.setAccount(data);
+        };
+
+        refreshPromise = (async () => {
+            // Prevent concurrent refresh requests across browser tabs.
+            if (navigator.locks) {
+                await navigator.locks.request(
+                    'tenexerp-auth-refresh',
+                    { mode: 'exclusive' },
+                    refresh
+                );
+            } else {
+                await refresh();
+            }
+        })().finally(() => {
+            refreshPromise = null;
+        });
     }
 
     await refreshPromise;
@@ -71,27 +85,43 @@ async function authorizationHeader() {
     return { Authorization: `Bearer ${await accountAccessToken()}` };
 }
 
-async function doRestoreSession() {
-    if (!tokenStorage.getRefresh()) {
-        tokenStorage.clearAll();
-        return false;
-    }
-
+async function doRestoreSession(): Promise<boolean> {
     try {
         await rotateAccountTokens();
-        const selectedCompany = tokenStorage.getCompanyId();
-        if (selectedCompany) {
-            try {
-                await authService.selectCompany(selectedCompany);
-            } catch {
+    } catch (error) {
+        // Only an explicitly invalid session means logged out.
+        if (
+            axios.isAxiosError(error) &&
+            error.response?.status === 401
+        ) {
+            tokenStorage.clearAll();
+            return false;
+        }
+
+        // Network errors, rate limits and server failures
+        // must not destroy a potentially valid session.
+        throw error;
+    }
+
+    const selectedCompany = tokenStorage.getCompanyId();
+
+    if (selectedCompany) {
+        try {
+            await authService.selectCompany(selectedCompany);
+        } catch (error) {
+            if (
+                axios.isAxiosError(error) &&
+                error.response &&
+                [400, 401, 403, 404].includes(error.response.status)
+            ) {
                 tokenStorage.clearCompany();
+            } else {
+                throw error;
             }
         }
-        return true;
-    } catch {
-        tokenStorage.clearAll();
-        return false;
     }
+
+    return true;
 }
 
 export const authService = {
@@ -111,7 +141,7 @@ export const authService = {
     },
 
     loginAccount: async (email: string, password: string) => {
-        const { data } = await accountApi.post<SessionTokens & { message: string }>('/account-auth/login', { email, password });
+        const { data } = await accountApi.post<SessionTokens>('/account-auth/login', { email, password });
         tokenStorage.clearAll();
         tokenStorage.setAccount(data);
         return data;
@@ -166,11 +196,25 @@ export const authService = {
     },
 
     logoutAccount: async () => {
-        try {
-            const token = await accountAccessToken();
-            await accountApi.post('/account-auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } });
-        } finally {
+        const performLogout = async () => {
+            await accountApi.post('/account-auth/logout', {});
+
             tokenStorage.clearAll();
+
+            // Notify other tabs without sharing credentials.
+            localStorage.setItem(
+                'tenex_logout_event',
+                `${Date.now()}-${crypto.randomUUID()}`
+            );
+        };
+
+        if (navigator.locks) {
+            await navigator.locks.request(
+                'tenexerp-auth-refresh',
+                performLogout
+            );
+        } else {
+            await performLogout();
         }
     },
 };

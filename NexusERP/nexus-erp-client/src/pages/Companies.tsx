@@ -119,7 +119,6 @@ export default function Companies() {
             navigate('/login');
         } catch (err: unknown) {
             setError(apiErrorMessage(err, 'Signed out locally, but server logout could not be confirmed.'));
-            navigate('/login');
         } finally {
             setBusy(false);
         }
@@ -251,7 +250,7 @@ export default function Companies() {
                     <form onSubmit={create} className="space-y-4">
                         <label className="block text-sm font-medium">Company name<input required minLength={2} maxLength={150} value={companyName} onChange={e => setCompanyName(e.target.value)} className={fieldClass} /></label>
                         <label className="block text-sm font-medium">Your full name<input required minLength={2} maxLength={150} value={fullName} onChange={e => setFullName(e.target.value)} className={fieldClass} /></label>
-                        <label className="block text-sm font-medium">ERP username<input required minLength={2} maxLength={100} value={username} onChange={e => setUsername(e.target.value)} className={fieldClass} /></label>
+                        <label className="block text-sm font-medium">Username<input required minLength={2} maxLength={100} value={username} onChange={e => setUsername(e.target.value)} className={fieldClass} /></label>
                         <label className="block text-sm font-medium">Optional POS PIN<input inputMode="numeric" pattern="[0-9]{4}" maxLength={4} value={posPin} onChange={e => setPosPin(e.target.value.replace(/\D/g, ''))} className={fieldClass} placeholder="Four digits" /></label>
                         <button disabled={busy} className={buttonClass}>{busy ? 'Creating...' : 'Create company'}</button>
                     </form>
@@ -263,7 +262,7 @@ export default function Companies() {
                     <form onSubmit={join} className="space-y-4">
                         <label className="block text-sm font-medium">Company join code<input required pattern="[A-Fa-f0-9]{32}" maxLength={32} value={joinCode} onChange={e => setJoinCode(e.target.value.trim().toUpperCase())} className={fieldClass + ' font-mono'} placeholder="32-character code" /></label>
                         <label className="block text-sm font-medium">Your full name<input required minLength={2} maxLength={150} value={fullName} onChange={e => setFullName(e.target.value)} className={fieldClass} /></label>
-                        <label className="block text-sm font-medium">Preferred ERP username<input required minLength={2} maxLength={100} value={username} onChange={e => setUsername(e.target.value)} className={fieldClass} /></label>
+                        <label className="block text-sm font-medium">Preferred Username<input required minLength={2} maxLength={100} value={username} onChange={e => setUsername(e.target.value)} className={fieldClass} /></label>
                         <button disabled={busy} className={buttonClass}>{busy ? 'Submitting...' : 'Submit join request'}</button>
                     </form>
                 </section>}

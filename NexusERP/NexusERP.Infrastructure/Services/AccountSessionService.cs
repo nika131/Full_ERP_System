@@ -76,37 +76,36 @@ namespace NexusERP.Infrastructure.Services
         {
             string refreshHash = HashRefreshToken(dto.RefreshToken);
 
-            var strategy = _context.Database.CreateExecutionStrategy();
+            var session = await _context.AuthSessions
+                .Include(s => s.Account)
+                .FirstOrDefaultAsync(s =>
+                    s.RefreshTokenHash == refreshHash &&
+                    s.CompanyId == null
+                );
 
-            return await strategy.ExecuteAsync(async () =>
+            var now = DateTime.UtcNow;
+
+            if (session == null ||
+                session.RevokedAt.HasValue ||
+                session.ExpiresAt <= now ||
+                !session.Account.IsActive ||
+                !session.Account.EmailVerified)
             {
-                _context.ChangeTracker.Clear();
+                throw new UnauthorizedAccessException(
+                    "Invalid or expired session."
+                );
+            }
 
-                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            session.LastUsedAt = now;
 
-                var session = await _context.AuthSessions
-                    .Include(s => s.Account)
-                    .FirstOrDefaultAsync(s =>
-                        s.RefreshTokenHash == refreshHash &&
-                        s.CompanyId == null
-                    );
+            await _context.SaveChangesAsync();
 
-                var now = DateTime.UtcNow;
-
-                if (session == null || session.RevokedAt.HasValue || session.ExpiresAt <= now ||
-                    !session.Account.IsActive || !session.Account.EmailVerified)
-                    throw new AppException("Invalid or expired session. Please log in again.");
-
-                string newRefreshToken = CreateRefreshToken();
-
-                session.RefreshTokenHash = HashRefreshToken(newRefreshToken);
-                session.LastUsedAt = now;
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return CreateResponse(session.Account, session, newRefreshToken, "Session refreshed successfully.");
-            });
+            return CreateResponse(
+                session.Account,
+                session,
+                dto.RefreshToken,
+                "Session refreshed successfully."
+            );
         }
 
         public async Task LogoutAsync(int accountId, Guid sessionId)
@@ -170,6 +169,24 @@ namespace NexusERP.Infrastructure.Services
             return Convert.ToHexString(
                 SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken))
             );
+        }
+
+        public async Task LogoutByRefreshTokenAsync(string refreshToken)
+        {
+            string hash = HashRefreshToken(refreshToken);
+
+            var session = await _context.AuthSessions
+                .FirstOrDefaultAsync(s =>
+                    s.RefreshTokenHash == hash &&
+                    s.CompanyId == null &&
+                    s.RevokedAt == null);
+
+            // Logout should be safe to repeat.
+            if (session == null)
+                return;
+
+            session.RevokedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
         }
     }
 }

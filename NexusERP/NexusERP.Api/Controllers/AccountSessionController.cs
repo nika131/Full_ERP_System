@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using NexusERP.Application.DTOs;
@@ -12,11 +11,75 @@ namespace NexusERP.Api.Controllers
     [Route("api/account-auth")]
     public class AccountSessionController : ControllerBase
     {
-        private readonly IAccountSessionService _service;
+        private const string CookieName = "__Secure-tenexerp-refresh";
+        private const string CookiePath = "/api/account-auth";
 
-        public AccountSessionController(IAccountSessionService service)
+        private readonly IAccountSessionService _service;
+        private readonly IWebHostEnvironment _env;
+
+        private static readonly string[] TrustedOrigins =
+        {
+            "https://www.tenexerp.com",
+            "https://tenexerp.com",
+            "http://localhost:5173"
+        };
+
+        public AccountSessionController(
+            IAccountSessionService service,
+            IWebHostEnvironment env)
         {
             _service = service;
+            _env = env;
+        }
+
+        private bool HasTrustedOrigin()
+        {
+            var origin = Request.Headers["Origin"].ToString();
+
+            return TrustedOrigins.Contains(
+                origin,
+                StringComparer.Ordinal
+            );
+        }
+
+        private CookieOptions GetCookieOptions(DateTime? expires = null)
+        {
+            return new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = _env.IsDevelopment()
+                    ? SameSiteMode.None
+                    : SameSiteMode.Lax,
+                Path = CookiePath,
+                Expires = expires.HasValue
+                    ? new DateTimeOffset(
+                        DateTime.SpecifyKind(
+                            expires.Value,
+                            DateTimeKind.Utc))
+                    : null
+            };
+        }
+
+        private void SetRefreshCookie(AccountSessionResponseDto result)
+        {
+            Response.Cookies.Append(
+                CookieName,
+                result.RefreshToken,
+                GetCookieOptions(result.RefreshTokenExpiresAt)
+            );
+        }
+
+        private IActionResult SessionResponse(AccountSessionResponseDto result)
+        {
+            // Never return the refresh token in JSON.
+            return Ok(new
+            {
+                result.Message,
+                result.AccessToken,
+                result.AccessTokenExpiresAt,
+                result.RefreshTokenExpiresAt
+            });
         }
 
         [HttpPost("login")]
@@ -24,31 +87,56 @@ namespace NexusERP.Api.Controllers
         [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> Login([FromBody] AccountLoginDto dto)
         {
+            if (!HasTrustedOrigin())
+                return StatusCode(403, new { message = "Untrusted origin." });
+
             var result = await _service.LoginAsync(dto);
-            return Ok(result);
+
+            SetRefreshCookie(result);
+
+            return SessionResponse(result);
         }
 
         [HttpPost("refresh")]
         [AllowAnonymous]
         [EnableRateLimiting("AuthPolicy")]
-        public async Task<IActionResult> Refresh([FromBody] RefreshAccountSessionDto dto)
+        public async Task<IActionResult> Refresh()
         {
-            var result = await _service.RefreshAsync(dto);
-            return Ok(result);
+            if (!HasTrustedOrigin())
+                return StatusCode(403, new { message = "Untrusted origin." });
+
+            if (!Request.Cookies.TryGetValue(CookieName, out var token)
+                || string.IsNullOrWhiteSpace(token))
+            {
+                return Unauthorized(new { message = "No active session." });
+            }
+
+            var result = await _service.RefreshAsync(
+                new RefreshAccountSessionDto
+                {
+                    RefreshToken = token
+                }
+            );
+
+            SetRefreshCookie(result);
+
+            return SessionResponse(result);
         }
 
         [HttpPost("logout")]
-        [Authorize(AuthenticationSchemes = AccountJwtConstants.AuthenticationScheme)]
+        [AllowAnonymous]
         public async Task<IActionResult> Logout()
         {
-            string? accountIdClaim = User.FindFirst("account_id")?.Value;
-            string? sessionIdClaim = User.FindFirst("session_id")?.Value;
+            if (!HasTrustedOrigin())
+                return StatusCode(403, new { message = "Untrusted origin." });
 
-            if (!int.TryParse(accountIdClaim, out int accountId) ||
-                !Guid.TryParse(sessionIdClaim, out Guid sessionId))
-                throw new UnauthorizedAccessException("Invalid account session.");
+            if (Request.Cookies.TryGetValue(CookieName, out var token) &&
+                !string.IsNullOrWhiteSpace(token))
+            {
+                await _service.LogoutByRefreshTokenAsync(token);
+            }
 
-            await _service.LogoutAsync(accountId, sessionId);
+            Response.Cookies.Delete(CookieName, GetCookieOptions());
 
             return Ok(new { message = "Logged out successfully." });
         }

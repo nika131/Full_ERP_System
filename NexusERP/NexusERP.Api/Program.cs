@@ -34,7 +34,8 @@ builder.Services.AddCors(options =>
                 "https://white-mushroom-0c070b10f.6.azurestaticapps.net"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 

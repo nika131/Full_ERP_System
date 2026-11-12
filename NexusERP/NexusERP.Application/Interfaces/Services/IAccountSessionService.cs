@@ -8,5 +8,6 @@ namespace NexusERP.Application.Interfaces.Services
         Task<AccountSessionResponseDto> LoginAsync(AccountLoginDto dto);
         Task<AccountSessionResponseDto> RefreshAsync(RefreshAccountSessionDto dto);
         Task LogoutAsync(int accountId, Guid sessionId);
+        Task LogoutByRefreshTokenAsync(string refreshToken);
     }
 }

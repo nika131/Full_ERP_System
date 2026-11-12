@@ -21,13 +21,13 @@ export default function MainLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } catch {
-      // The Account context clears local tokens even if remote revocation fails.
-    }
-    navigate('/login');
-  };
+        try {
+            await logout();
+            navigate('/login');
+        } catch {
+            toast.error('Could not sign out. Please try again.');
+        }
+    };
 
   const handleSwitchCompany = () => {
     navigate('/companies');

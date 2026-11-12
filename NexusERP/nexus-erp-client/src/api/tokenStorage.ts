@@ -1,42 +1,69 @@
+
 import { jwtDecode } from 'jwt-decode';
 
-const KEYS = {
-    account: 'tenex_account_access',
-    refresh: 'tenex_account_refresh',
-    company: 'tenex_company_access',
-    companyId: 'tenex_company_id',
-} as const;
+const COMPANY_ID_KEY = 'tenex_company_id';
+
+// Access tokens exist only in memory.
+let accountAccess: string | null = null;
+let companyAccess: string | null = null;
 
 export type SessionTokens = {
     accessToken: string;
-    refreshToken: string;
 };
 
+// Remove tokens stored by the previous authentication system.
+const oldTokenKeys = [
+    'tenex_account_access',
+    'tenex_account_refresh',
+    'tenex_company_access',
+    'jwt_token'
+];
+
+oldTokenKeys.forEach(key => {
+    sessionStorage.removeItem(key);
+    localStorage.removeItem(key);
+});
+
 export const tokenStorage = {
-    getAccountAccess: () => sessionStorage.getItem(KEYS.account),
-    getRefresh: () => sessionStorage.getItem(KEYS.refresh),
-    getCompanyAccess: () => sessionStorage.getItem(KEYS.company),
+    getAccountAccess: () => accountAccess,
+
+    getCompanyAccess: () => companyAccess,
+
     getCompanyId: () => {
-        const value = sessionStorage.getItem(KEYS.companyId);
+        const value =
+            sessionStorage.getItem(COMPANY_ID_KEY) ??
+            localStorage.getItem(COMPANY_ID_KEY);
         const id = value ? Number(value) : NaN;
+
         return Number.isInteger(id) && id > 0 ? id : null;
     },
+
     setAccount: (tokens: SessionTokens) => {
-        sessionStorage.setItem(KEYS.account, tokens.accessToken);
-        sessionStorage.setItem(KEYS.refresh, tokens.refreshToken);
+        accountAccess = tokens.accessToken;
     },
+
     setCompany: (companyId: number, token: string) => {
-        sessionStorage.setItem(KEYS.companyId, String(companyId));
-        sessionStorage.setItem(KEYS.company, token);
+        sessionStorage.setItem(COMPANY_ID_KEY, String(companyId));
+        localStorage.setItem(COMPANY_ID_KEY, String(companyId));
+        companyAccess = token;
     },
+
     clearCompany: () => {
-        sessionStorage.removeItem(KEYS.company);
-        sessionStorage.removeItem(KEYS.companyId);
+        companyAccess = null;
+        sessionStorage.removeItem(COMPANY_ID_KEY);
+        localStorage.removeItem(COMPANY_ID_KEY);
     },
+
     clearAll: () => {
-        Object.values(KEYS).forEach((key) => sessionStorage.removeItem(key));
-        localStorage.removeItem('jwt_token'); // Remove the old website token.
-    },
+        accountAccess = null;
+        companyAccess = null;
+        sessionStorage.removeItem(COMPANY_ID_KEY);
+        localStorage.removeItem(COMPANY_ID_KEY);
+        oldTokenKeys.forEach(key => {
+            sessionStorage.removeItem(key);
+            localStorage.removeItem(key);
+        });
+    }
 };
 
 export const expiresSoon = (token: string, seconds = 45) => {
