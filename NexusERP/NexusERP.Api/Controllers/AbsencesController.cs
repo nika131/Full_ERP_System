@@ -72,6 +72,17 @@ namespace NexusERP.Api.Controllers
             return Ok(new { message = $"Leave request {dto.Status.ToLower()}." });
         }
 
+        [HttpGet("recent")]
+        [Authorize(Policy = "RequireAbsenceManage")]
+        public async Task<IActionResult> GetRecentRequests()
+        {
+            var absences = await _repository.GetRecentRequestsAsync(
+                User.GetCurrentCompanyId()
+            );
+
+            return Ok(absences.Select(MapToResponseDto));
+        }
+
         private static LeaveResponseDto MapToResponseDto(UserAbsence a)
         {
             return new LeaveResponseDto
@@ -82,6 +93,9 @@ namespace NexusERP.Api.Controllers
                 Type = a.Type.ToString(),
                 StartDate = a.StartDate,
                 EndDate = a.EndDate,
+                ReviewedAt = a.Status == AbsenceStatus.Pending
+                    ? null
+                    : a.UpdatedAt,
                 Notes = a.Notes,
                 Status = a.Status.ToString(),
                 ReviewerName = a.ReviewedBy?.FullName,

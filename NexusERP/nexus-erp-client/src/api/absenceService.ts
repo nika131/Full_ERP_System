@@ -22,5 +22,16 @@ export const absenceService = {
 
     reviewLeave: async (absenceId: number, payload: LeaveReviewPayload): Promise<void> => {
         await apiClient.put(`/absences/${absenceId}/review`, payload);
-    }
+    },
+
+    getRecentRequests: async (
+        signal?: AbortSignal
+    ): Promise<LeaveResponse[]> => {
+        const response = await apiClient.get(
+            '/absences/recent',
+            { signal }
+        );
+
+        return response.data;
+    },
 };

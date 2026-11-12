@@ -76,5 +76,26 @@ namespace NexusERP.Infrastructure.Repositories
                 a.EndDate >= start
             );
         }
+
+        public async Task<IEnumerable<UserAbsence>> GetRecentRequestsAsync(int companyId)
+        {
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
+            return await _context.UserAbsences
+                .IgnoreQueryFilters()
+                .Include(a => a.User)
+                .Include(a => a.ReviewedBy)
+                .Where(a =>
+                    a.CompanyId == companyId &&
+                    (
+                        a.Status == AbsenceStatus.Pending ||
+                        (a.Status != AbsenceStatus.Pending &&
+                         a.UpdatedAt >= cutoff)
+                    ))
+                .OrderBy(a => a.Status != AbsenceStatus.Pending)
+                .ThenByDescending(a => a.UpdatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }

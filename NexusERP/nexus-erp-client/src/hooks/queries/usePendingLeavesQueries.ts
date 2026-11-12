@@ -19,9 +19,19 @@ export const useReviewLeaveMutation = () => {
             toast.success(`Request ${variables.status} successfully.`);
             queryClient.invalidateQueries({ queryKey: ['pendingLeaves'] });
             queryClient.invalidateQueries({ queryKey: ['profile', 'leaveHistory'] });
+            queryClient.invalidateQueries({queryKey: ['recentLeaves']});
         },
         onError: () => {
             toast.error("Action failed.");
         }
+    });
+};
+
+export const useRecentLeavesQuery = () => {
+    return useQuery({
+        queryKey: ['recentLeaves'],
+        queryFn: ({ signal }) =>
+            absenceService.getRecentRequests(signal),
+        staleTime: 0,
     });
 };

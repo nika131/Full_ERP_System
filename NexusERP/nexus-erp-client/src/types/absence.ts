@@ -17,6 +17,7 @@ export interface LeaveResponse {
     type: string;
     startDate: string;
     endDate: string;
+    reviewedAt: string | null;
     notes: string | null;
     status: string;
     reviewerName: string | null;
