@@ -139,6 +139,12 @@ namespace NexusERP.Api.Controllers
 
             if (id == currentUserId)
                 return BadRequest(new { message = "Security Lock: You cannot set your own salary." });
+            
+            if (dto.EffectiveDate == default)
+                return BadRequest(new
+                {
+                    message = "Effective date is required."
+                });
 
             var record = new SalaryRecord
             {
