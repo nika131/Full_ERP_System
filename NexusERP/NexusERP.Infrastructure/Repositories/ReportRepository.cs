@@ -415,5 +415,119 @@ namespace NexusERP.Infrastructure.Repositories
                 PageSize = pageSize
             };
         }
+
+
+        public async Task<ShiftDetailsDto?> GetShiftDetailsAsync(
+            int companyId, int shiftId)
+        {
+            var shift = await _context.Shifts
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(s => s.CompanyId == companyId &&
+                            s.ShiftId == shiftId)
+                .Select(s => new
+                {
+                    s.ShiftId,
+                    s.StartDate,
+                    s.EndDate,
+                    s.StartingCash,
+                    s.ActualEndingCash,
+                    s.Notes,
+                    Status = s.Status.ToString(),
+                    StoreName = s.Store != null
+                        ? s.Store.Name : "Unknown store",
+                    CashierName = s.User != null
+                        ? s.User.FullName : "Unknown employee"
+                })
+                .FirstOrDefaultAsync();
+
+            if (shift == null) return null;
+
+            // Same receipt calculations used by the POS shift summary.
+            var sales = await _context.Receipts
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(r => r.CompanyId == companyId &&
+                            r.ShiftId == shiftId &&
+                            r.IsActive)
+                .GroupBy(r => 1)
+                .Select(g => new
+                {
+                    Total = g.Sum(r => r.FinalTotal),
+                    Cost = g.Sum(r => r.TotalCostAmount),
+                    Vat = g.Sum(r => r.TotalVatAmount),
+                    Cash = g.Sum(r => r.PaymentMethod == PaymentMethod.Cash
+                        ? r.FinalTotal : 0m),
+                    Card = g.Sum(r => r.PaymentMethod == PaymentMethod.Card
+                        ? r.FinalTotal : 0m),
+                    Voucher = g.Sum(r => r.PaymentMethod == PaymentMethod.Voucher
+                        ? r.FinalTotal : 0m),
+                    Count = g.Count()
+                })
+                .FirstOrDefaultAsync();
+
+            // Every recorded active cash movement, including the employee.
+            var movements = await _context.CashMovements
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(m => m.CompanyId == companyId &&
+                            m.ShiftId == shiftId &&
+                            m.IsActive)
+                .OrderBy(m => m.CreatedAt)
+                .ThenBy(m => m.MovementId)
+                .Select(m => new ShiftCashMovementDto
+                {
+                    MovementId = m.MovementId,
+                    UserId = m.UserId,
+                    UserName = m.User != null ? m.User.FullName : null,
+                    MovementType = m.MovementType,
+                    Amount = m.Amount,
+                    Reason = m.Reason,
+                    CreatedAt = m.CreatedAt
+                })
+                .ToListAsync();
+
+            var payIns = movements
+                .Where(m => m.MovementType == CashMovementType.PayIn)
+                .Sum(m => m.Amount);
+
+            var payOuts = movements
+                .Where(m => m.MovementType == CashMovementType.PayOut)
+                .Sum(m => m.Amount);
+
+            var cashSales = sales?.Cash ?? 0m;
+
+            var expectedCash =
+                shift.StartingCash + cashSales + payIns - payOuts;
+
+            return new ShiftDetailsDto
+            {
+                ShiftId = shift.ShiftId,
+                StoreName = shift.StoreName,
+                CashierName = shift.CashierName,
+                Status = shift.Status,
+                StartDate = shift.StartDate,
+                EndDate = shift.EndDate,
+                StartingCash = shift.StartingCash,
+                ExpectedEndingCash = expectedCash,
+                ActualEndingCash = shift.ActualEndingCash,
+                Variance = shift.ActualEndingCash.HasValue
+                    ? shift.ActualEndingCash.Value - expectedCash
+                    : null,
+                TotalSales = sales?.Total ?? 0m,
+                TotalProfit = (sales?.Total ?? 0m)
+                    - (sales?.Cost ?? 0m)
+                    - (sales?.Vat ?? 0m),
+                CashSales = cashSales,
+                CardSales = sales?.Card ?? 0m,
+                VoucherSales = sales?.Voucher ?? 0m,
+                TotalPayIns = payIns,
+                TotalPayOuts = payOuts,
+                ReceiptCount = sales?.Count ?? 0,
+                Notes = shift.Notes,
+                Movements = movements
+            };
+        }
+
     }
 }

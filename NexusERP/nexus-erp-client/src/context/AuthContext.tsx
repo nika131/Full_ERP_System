@@ -153,7 +153,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
                         <p className="mt-3 text-sm text-slate-600">
                             We couldn't verify your session right now.
-                            Your saved login hasn't been cleared.
                             Check your connection and try again.
                         </p>
 

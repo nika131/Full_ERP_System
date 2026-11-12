@@ -1,15 +1,16 @@
 import { useUrlNumber } from '../hooks/useUrlState';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/apiClient';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
+import { ShiftDetailsDialog } from '../components/shift/ShiftDetailsDialog';
 
 interface ShiftAudit {
     shiftId: number;
     storeName: string;
     cashierName: string;
-    startTime: string;
-    endTime: string | null;
+    startDate: string;
+    endDate: string | null;
     startingCash: number;
     expectedEndingCash: number;
     actualEndingCash: number | null;
@@ -20,6 +21,7 @@ interface ShiftAudit {
 
 export default function ShiftAuditList() {
     const [page, setPage] = useUrlNumber('page');
+    const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
 
     const { data, isLoading } = useQuery({
         queryKey: ['shift-audits', page],
@@ -32,11 +34,11 @@ export default function ShiftAuditList() {
     const columns = useMemo<ColumnDef<ShiftAudit>[]>(() => [
         { header: 'ID', accessor: 'shiftId', className: 'w-16' },
         { header: 'Store', accessor: 'storeName', className: 'font-medium' },
-        { header: 'Cashier', accessor: 'cashierName' },
+        { header: 'Opened by', accessor: 'cashierName' },
         { 
             header: 'Start Time', 
             accessor: 'startTime',
-            render: (item) => new Date(item.startTime).toLocaleString()
+            render: (item) => new Date(item.startDate).toLocaleString()
         },
         { 
             header: 'Status', 
@@ -81,6 +83,12 @@ export default function ShiftAuditList() {
                     totalPages={data?.totalPages || 1}
                     totalCount={data?.totalCount || 0}
                     onPageChange={setPage}
+                    onRowClick={(shift) => setSelectedShiftId(shift.shiftId)}
+                />
+
+                <ShiftDetailsDialog
+                    shiftId={selectedShiftId}
+                    onClose={() => setSelectedShiftId(null)}
                 />
             </div>
         </div>

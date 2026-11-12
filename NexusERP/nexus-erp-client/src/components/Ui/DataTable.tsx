@@ -16,6 +16,7 @@ interface DataTableProps<T> {
     totalPages: number;
     totalCount: number;
     onPageChange: (newPage: number) => void;
+    onRowClick?: (item: T) => void;
 }
 
 export function DataTable<T>({ 
@@ -25,7 +26,8 @@ export function DataTable<T>({
   page, 
   totalPages, 
   totalCount,
-  onPageChange 
+  onPageChange,
+  onRowClick,
 }: DataTableProps<T>) {
 
   return (
@@ -56,7 +58,22 @@ export function DataTable<T>({
               </tr>
             ) : (
               data.map((item, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-slate-50 transition-colors">
+                <tr
+                    key={rowIndex}
+                    onClick={() => onRowClick?.(item)}
+                    onKeyDown={event => {
+                        if (onRowClick && (event.key === 'Enter' || event.key === ' ')) {
+                            event.preventDefault();
+                            onRowClick(item);
+                        }
+                    }}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    className={`hover:bg-slate-50 transition-colors ${
+                        onRowClick
+                            ? 'cursor-pointer focus-visible:outline-2 focus-visible:outline-emerald-600'
+                            : ''
+                    }`}
+                >
                   {columns.map((col, colIndex) => (
                     <td key={colIndex} className={`p-4 text-slate-700 ${col.className || ''}`}>
                       {col.render ? col.render(item) : String(item[col.accessor as keyof T] || '')}

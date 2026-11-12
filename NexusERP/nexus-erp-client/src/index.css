@@ -161,36 +161,33 @@ code {
 }
 
 
-/* =========================================
-   TENEXERP CUSTOM SCROLLBARS
-   Only applies to .tenex-scroll elements
-   ========================================= */
+/* TENEXERP GLOBAL SCROLLBARS */
 
-.tenex-scroll {
+* {
   scrollbar-width: thin;
   scrollbar-color: #b5c8bf transparent;
 }
 
-.tenex-scroll::-webkit-scrollbar {
+*::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.tenex-scroll::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.tenex-scroll::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background-color: #b5c8bf;
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 999px;
 }
 
-.tenex-scroll::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
   background-color: #789f8d;
 }
 
-.tenex-scroll::-webkit-scrollbar-corner {
+*::-webkit-scrollbar-corner {
   background: transparent;
 }

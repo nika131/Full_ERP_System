@@ -122,5 +122,18 @@ namespace NexusERP.Api.Controllers
 
             return Ok(await _repository.GetPagedReceiptsAsync(User.GetCurrentCompanyId(), page, pageSize, search));
         }
+
+        [HttpGet("shifts/{shiftId:int}")]
+        [Authorize(Policy = Permissions.ViewShifts)]
+        public async Task<IActionResult> GetShiftDetails(int shiftId)
+        {
+            var details = await _repository.GetShiftDetailsAsync(
+                User.GetCurrentCompanyId(), shiftId);
+
+            if (details == null)
+                return NotFound(new { message = "Shift not found." });
+
+            return Ok(details);
+        }
     }
 }

@@ -33,5 +33,6 @@ namespace NexusERP.Application.Interfaces.Repositories
         Task<List<TopProductChartData>> GetTopPerformingProducts(int companyId, DashboardFilterRequest request);
         Task<PagedResult<ShiftAuditDto>> GetPagedShiftsAsync(int companyId, int pageNumber, int pageSize, int? storeId);
         Task<PagedResult<ReceiptAuditDto>> GetPagedReceiptsAsync(int companyId, int pageNumber, int pageSize, string? receiptNumber);
+        Task<ShiftDetailsDto?> GetShiftDetailsAsync(int companyId, int shiftId);
     }
 }

@@ -116,6 +116,11 @@ export default function MainLayout() {
                     >
                         <Menu size={24} />
                     </button>
+                    
+                    <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900">{user?.username}</div>
+                        <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">{user?.role}</div>
+                    </div>
                 </div>
 
                 {/* Right side: fast feedback and user menu */}
@@ -131,10 +136,6 @@ export default function MainLayout() {
                     <button type="button" onClick={() => setFeedbackKind('bug')} title="Report a problem" aria-label="Report a problem" className="rounded-lg p-2 text-gray-500 hover:bg-rose-50 hover:text-rose-700"><Bug size={19}/></button>
                     <button type="button" onClick={() => setFeedbackKind('idea')} title="Suggest a feature" aria-label="Suggest a feature" className="rounded-lg p-2 text-gray-500 hover:bg-amber-50 hover:text-amber-700"><Lightbulb size={19}/></button>
                     <Link to="/settings" title="Settings" aria-label="Settings" className="rounded-lg p-2 text-gray-500 hover:bg-emerald-50 hover:text-emerald-700"><Settings size={19}/></Link>
-                    <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">{user?.username}</div>
-                        <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">{user?.role}</div>
-                    </div>
                     <button
                         onClick={handleSwitchCompany}
                         className="px-3 py-1.5 text-sm bg-emerald-50 text-emerald-800 rounded hover:bg-emerald-100 transition-colors border border-emerald-200"

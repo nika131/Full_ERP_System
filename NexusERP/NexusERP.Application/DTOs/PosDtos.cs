@@ -171,4 +171,42 @@ namespace NexusERP.Application.DTOs
     {
         public List<PosLayoutSlotDto> Slots { get; set; } = new();
     }
+
+    public class ShiftCashMovementDto
+    {
+        public int MovementId { get; set; }
+        public int UserId { get; set; }
+        public string? UserName { get; set; }
+        public CashMovementType MovementType { get; set; }
+        public decimal Amount { get; set; }
+        public string? Reason { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class ShiftDetailsDto
+    {
+        public int ShiftId { get; set; }
+        public string StoreName { get; set; } = string.Empty;
+        public string CashierName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+
+        public decimal StartingCash { get; set; }
+        public decimal ExpectedEndingCash { get; set; }
+        public decimal? ActualEndingCash { get; set; }
+        public decimal? Variance { get; set; }
+
+        public decimal TotalSales { get; set; }
+        public decimal TotalProfit { get; set; }
+        public decimal CashSales { get; set; }
+        public decimal CardSales { get; set; }
+        public decimal VoucherSales { get; set; }
+        public decimal TotalPayIns { get; set; }
+        public decimal TotalPayOuts { get; set; }
+        public int ReceiptCount { get; set; }
+
+        public string? Notes { get; set; }
+        public List<ShiftCashMovementDto> Movements { get; set; } = new();
+    }
 }
