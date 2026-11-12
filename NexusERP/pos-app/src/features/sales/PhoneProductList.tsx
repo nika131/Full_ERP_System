@@ -1,8 +1,8 @@
 import React from "react";
-import { FlatList, Image, Pressable, Text, TextInput, View } from "react-native";
+import { FlatList, Image, Linking, Pressable, Text, TextInput, View } from "react-native";
 import { Check, Pencil, Plus, Search, ShoppingCart, SlidersHorizontal, Trash2, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { API_BASE_URL } from "@/api/client";
+import { API_BASE_URL } from "@/api/apiConfig";
 import { MenuButton } from "@/components/MenuButton";
 import { ShapeIcon } from "@/components/ShapeIcon";
 import type { Product } from "@/types";
@@ -170,17 +170,35 @@ export function PhoneProductList({
           </View>
         )}
         ListEmptyComponent={
-          <View className="items-center justify-center gap-2 px-6 py-16">
-            <Text className="text-sm text-slate-400">
-              No products on your list yet.
+          <View className="items-center justify-center gap-3 px-6 py-16">
+            <Text className="text-center text-base font-semibold text-slate-700">
+              No products in your POS layout
             </Text>
+
+            <Text className="text-center text-sm text-slate-500">
+              Add existing products to this register,
+              or create your first products on TenexERP.
+            </Text>
+
             <Pressable
               onPress={onAddProduct}
-              className="mt-2 flex-row items-center gap-1.5 rounded-md bg-emerald-600 px-4 py-2"
+              className="rounded-lg bg-emerald-600 px-5 py-3"
             >
-              <Plus size={16} color="white" />
-              <Text className="text-sm font-semibold text-white">
-                Add a product
+              <Text className="font-semibold text-white">
+                Add existing product
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() =>
+                void Linking.openURL(
+                  "https://tenexerp.com/inventory?dialog=create"
+                )
+              }
+              className="rounded-lg border border-emerald-600 px-5 py-3"
+            >
+              <Text className="font-semibold text-emerald-700">
+                Create product on website
               </Text>
             </Pressable>
           </View>

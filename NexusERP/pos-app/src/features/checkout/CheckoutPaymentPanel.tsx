@@ -37,7 +37,11 @@ export function CheckoutPaymentPanel({
   onConfirm,
 }: CheckoutPaymentPanelProps) {
   return (
-    <BottomActionBar>
+    <BottomActionBar
+      respectSafeArea={false}
+      minimumBottomPadding={16}
+      extraBottomPadding={0}
+    >
       <View className="flex-row gap-2">
         <PaymentMethodButton
           active={paymentMethod === "Cash"}

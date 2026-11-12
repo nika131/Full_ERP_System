@@ -144,7 +144,7 @@ export function CheckoutScreen({ navigation }: Props) {
   }
 
   return (
-    <AppScreen edges={["top"]}>
+    <AppScreen>
       <ScreenHeader
         title="Checkout"
         left={

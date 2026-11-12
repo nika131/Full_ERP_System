@@ -32,7 +32,23 @@ export function LoginScreen() {
         </View>
         <View className="mb-3 flex-row items-center gap-3 rounded-lg border border-slate-300 px-3 py-2.5">
           <Lock size={18} color="#64748b" />
-          <TextInput className="flex-1 text-[15px]" secureTextEntry autoComplete="password" autoCapitalize="none" value={password} onChangeText={setPassword} placeholder="Password" onSubmitEditing={() => void submit()} />
+          <TextInput
+            className="flex-1 text-[15px]"
+            style={{
+              color: "#0f172a",
+              minHeight: 24,
+              paddingVertical: 0,
+            }}
+            secureTextEntry={true}
+            autoComplete="password"
+            textContentType="password"
+            autoCapitalize="none"
+            placeholder="Password"
+            placeholderTextColor="#94a3b8"
+            value={password}
+            onChangeText={setPassword}
+            onSubmitEditing={() => void submit()}
+          />
         </View>
         {!!error && <Text className="mb-3 text-sm text-red-600">{error}</Text>}
         <Pressable disabled={busy} onPress={() => void submit()} className="mt-3 flex-row items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 disabled:opacity-50">
