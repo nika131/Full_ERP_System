@@ -648,6 +648,34 @@ namespace NexusERP.Infrastructure.Database
             });
 
 
+            // SQL Server datetime2 does not store DateTime.Kind. Restore UTC only for
+            // instants; salary and leave calendar dates must remain date-only values.
+            var utcConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
+                value => value,
+                value => DateTime.SpecifyKind(value, DateTimeKind.Utc));
+            var instantProperties = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "CreatedAt", "UpdatedAt", "DeletedAt", "ExpiresAt", "RevokedAt",
+                "LastUsedAt", "ReviewedAt", "SubscriptionStartedAt",
+                "JoinCodeCreatedAt", "EmailVerificationExpiresAt",
+                "EmailVerificationSentAt", "EmailVerificationWindowStart"
+            };
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if ((property.ClrType == typeof(DateTime) ||
+                         property.ClrType == typeof(DateTime?)) &&
+                        (instantProperties.Contains(property.Name) ||
+                         (entityType.ClrType == typeof(Shift) &&
+                          (property.Name == nameof(Shift.StartDate) ||
+                           property.Name == nameof(Shift.EndDate)))))
+                    {
+                        property.SetValueConverter(utcConverter);
+                    }
+                }
+            }
+
             // ============================================================
             // DEFAULT DELETE BEHAVIOR
             // ============================================================

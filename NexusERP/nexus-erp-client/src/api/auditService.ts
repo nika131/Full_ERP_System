@@ -1,6 +1,7 @@
 import type { AuditLog } from "../types/auditLog";
 import type { CursorPagedResult } from "../types/pagination";
 import apiClient from "./apiClient";
+import { deviceTimeZone } from "../utils/dateTime";
 
 export const auditService = {
     getLogs: async (
@@ -19,6 +20,7 @@ export const auditService = {
         if (lastCreatedAt) params.append('lastCreatedAt', lastCreatedAt);
         if (lastLogId !== null) params.append('lastLogId', lastLogId.toString());
         if (search) params.append('searchTerm', search);
+        params.append('timeZoneId', deviceTimeZone());
         if (startDate) params.append('startDate', startDate)
         if (endDate) params.append('endDate', endDate)
 

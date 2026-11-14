@@ -26,7 +26,8 @@ namespace NexusERP.Application.Interfaces.Repositories
             int[]? storeIds = null,
             int[]? categoryIds = null,
             int[]? supplierIds = null,
-            int[]? employeeIds = null
+            int[]? employeeIds = null,
+            string timeZoneId = "UTC"
         );
         Task<InventoryTransaction?> GetById(int companyId, int transactionId);
         Task<List<RevenueChartData>> GetWeeklyRevenueChart(int companyId, DashboardFilterRequest request);

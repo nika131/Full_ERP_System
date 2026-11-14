@@ -14,12 +14,14 @@ import { useAuth } from '../context/AuthContext';
 import { Permissions } from '../constants/permissions';
 import { useUrlQuery } from '../hooks/useUrlState';
 import { SalesLedger } from "../components/reports/SalesLedger";
+import { deviceTimeZone, localCalendarDate } from "../utils/dateTime";
 
 export type DashboardFilters = {
   startDate: string | null;
   endDate: string | null;
   startHour: string | null;
   endHour: string | null;
+  timeZoneId: string;
   storeIds: number[];
   categoryIds: number[];
   supplierIds: number[];
@@ -33,13 +35,8 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   return `${hour}:${minute}`;
 });
 
-const formatLocalDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
+const formatLocalDate = localCalendarDate;
+const TIME_ZONES = Array.from(new Set(['UTC', deviceTimeZone(), ...Intl.supportedValuesOf('timeZone')])).sort();
 
 const defaultEnd = new Date();
 const defaultStart = new Date();
@@ -48,7 +45,7 @@ defaultStart.setDate(defaultEnd.getDate() - 7);
 const initialFilters: DashboardFilters = {
   startDate: formatLocalDate(defaultStart),
   endDate: formatLocalDate(defaultEnd),
-  startHour: '', endHour: '', storeIds: [], categoryIds: [], supplierIds: [], employeeIds: []
+  startHour: '', endHour: '', timeZoneId: deviceTimeZone(), storeIds: [], categoryIds: [], supplierIds: [], employeeIds: []
 };
 
 function readFilters(raw: string | null): DashboardFilters {
@@ -60,7 +57,9 @@ function readFilters(raw: string | null): DashboardFilters {
         const ids = (key: string) => Array.isArray(value[key]) ? (value[key] as unknown[]).filter(v => typeof v === 'number' && Number.isSafeInteger(v) && v > 0).slice(0, 100) as number[] : [];
         return {
             startDate: date('startDate', initialFilters.startDate), endDate: date('endDate', initialFilters.endDate),
-            startHour: time('startHour'), endHour: time('endHour'), storeIds: ids('storeIds'),
+            startHour: time('startHour'), endHour: time('endHour'),
+            timeZoneId: typeof value.timeZoneId === 'string' && TIME_ZONES.includes(value.timeZoneId) ? value.timeZoneId : deviceTimeZone(),
+            storeIds: ids('storeIds'),
             categoryIds: ids('categoryIds'), supplierIds: ids('supplierIds'), employeeIds: ids('employeeIds')
         };
     } catch { return initialFilters; }
@@ -207,6 +206,16 @@ export default function Dashboard() {
             ))}
           </select>
         </div>
+
+        <select
+          aria-label="Reporting time zone"
+          title="Time zone for sales dates, hourly filters and charts"
+          value={globalFilters.timeZoneId}
+          onChange={event => setGlobalFilters(prev => ({ ...prev, timeZoneId: event.target.value }))}
+          className="h-10 max-w-[230px] rounded border border-slate-300 bg-white px-2 text-sm text-slate-700"
+        >
+          {TIME_ZONES.map(zone => <option key={zone} value={zone}>{zone}</option>)}
+        </select>
 
         {/* Category Filter */}
         {canViewCategories && (<div className="flex-1 min-w-40">

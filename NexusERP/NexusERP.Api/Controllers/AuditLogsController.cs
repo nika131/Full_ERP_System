@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using NexusERP.Api.Extensions;
 using NexusERP.Application.Interfaces.Repositories;
+using NexusERP.Infrastructure.Services;
 
 namespace NexusERP.Api.Controllers
 {
@@ -18,7 +19,7 @@ namespace NexusERP.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSystemLogs([FromQuery] int pageSize = 50, [FromQuery] DateTime? lastCreatedAt = null, [FromQuery] int? lastLogId = null, [FromQuery] string? searchTerm = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
+        public async Task<IActionResult> GetSystemLogs([FromQuery] int pageSize = 50, [FromQuery] DateTime? lastCreatedAt = null, [FromQuery] int? lastLogId = null, [FromQuery] string? searchTerm = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string timeZoneId = "UTC")
         {
             if (pageSize > 100) pageSize = 100;
 
@@ -29,7 +30,8 @@ namespace NexusERP.Api.Controllers
                 lastLogId,
                 searchTerm,
                 startDate,
-                endDate
+                endDate,
+                timeZoneId
             );
 
             return Ok(new

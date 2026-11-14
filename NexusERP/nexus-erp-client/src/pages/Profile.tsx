@@ -1,3 +1,4 @@
+import { localCalendarDisplay } from '../utils/dateTime';
 import { Permissions } from '../constants/permissions';
 import { useUrlBoolean } from '../hooks/useUrlState';
 import { useAuth } from '../context/AuthContext';
@@ -156,8 +157,8 @@ export default function Profile() {
                                 {history.map((record) => (
                                     <tr key={record.absenceId} className="hover:bg-slate-50">
                                         <td className="p-4 font-medium text-slate-800">{record.type}</td>
-                                        <td className="p-4 text-slate-600">{new Date(record.startDate).toLocaleDateString()}</td>
-                                        <td className="p-4 text-slate-600">{new Date(record.endDate).toLocaleDateString()}</td>
+                                        <td className="p-4 text-slate-600">{localCalendarDisplay(record.startDate)}</td>
+                                        <td className="p-4 text-slate-600">{localCalendarDisplay(record.endDate)}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(record.status)}`}>
                                                 {record.status}
@@ -197,7 +198,7 @@ export default function Profile() {
                             {salaryHistory.map(record => (
                                 <tr key={record.salaryRecordId}>
                                     <td className="p-2 font-medium text-emerald-600">${record.amount.toLocaleString()}</td>
-                                    <td className="p-2">{new Date(record.effectiveDate).toLocaleDateString()}</td>
+                                    <td className="p-2">{localCalendarDisplay(record.effectiveDate)}</td>
                                     <td className="p-2 text-slate-500">{record.notes || '-'}</td>
                                 </tr>
                             ))}

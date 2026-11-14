@@ -1,3 +1,4 @@
+import { localInstantDisplay } from '../utils/dateTime';
 import { useUrlNumber } from '../hooks/useUrlState';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -43,7 +44,7 @@ export default function ShiftAuditList() {
         { 
             header: 'Start Time', 
             accessor: 'startTime',
-            render: (item) => new Date(item.startDate).toLocaleString()
+            render: (item) => localInstantDisplay(item.startDate)
         },
         { 
             header: 'Status', 

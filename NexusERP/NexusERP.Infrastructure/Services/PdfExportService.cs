@@ -33,7 +33,7 @@ namespace NexusERP.Infrastructure.Services
                         {
                             col.Item().Text("TRANSACTION INVOICE").FontSize(22).SemiBold().FontColor(Colors.Blue.Medium);
                             col.Item().Text($"Transaction ID: #{model.TransactionId}").FontSize(12);
-                            col.Item().Text($"Date: {model.CreatedAt:MMMM dd, yyyy HH:mm}");
+                            col.Item().Text($"Date (UTC): {model.CreatedAt:MMMM dd, yyyy HH:mm}");
                         });
 
                         row.RelativeItem().AlignRight().Column(col =>

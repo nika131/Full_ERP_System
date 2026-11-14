@@ -12,6 +12,7 @@ namespace NexusERP.Application.DTOs
         public DateTime? EndDate { get; set; }
         public TimeSpan? StartHour { get; set; }
         public TimeSpan? EndHour { get; set; }
+        public string TimeZoneId { get; set; } = "UTC";
 
         public List<int>? StoreIds { get; set; }
         public List<int>? CategoryIds { get; set; }

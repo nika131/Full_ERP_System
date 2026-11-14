@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import type { ReactNode } from 'react'
 import { HistoricalUserName } from '../Ui/HistoricalUserName';
+import { localInstantDisplay } from '../../utils/dateTime';
 
 interface CashMovement {
     movementId: number;
@@ -42,11 +43,7 @@ interface ShiftDetails {
 
 const money = (value: number) => `$${value.toFixed(2)}`;
 
-const dateTime = (value: string) => {
-    const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(value);
-    return new Date(hasTimezone ? value : `${value}Z`)
-        .toLocaleString();
-};
+const dateTime = localInstantDisplay;
 
 function Stat({
     label,

@@ -71,31 +71,21 @@ function money(amount: number) {
   })}`;
 }
 
-function dateTime(value: string) {
+function dateTime(value: string, timeZone: string) {
   return new Date(value).toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone,
   });
-}
-
-function localMidnightUtc(day: string | null, addDay = false) {
-  if (!day) return null;
-  const local = new Date(`${day}T00:00:00`);
-  if (!Number.isFinite(local.getTime())) return null;
-  if (addDay) local.setDate(local.getDate() + 1);
-  return local.toISOString();
 }
 
 function salesParams(filters: DashboardFilters, productIds: number[], search: string, page: number) {
   const params = new URLSearchParams();
   params.set('page', String(page));
   params.set('pageSize', '10');
-  params.set('utcOffsetMinutes', String(new Date().getTimezoneOffset()));
+  params.set('timeZoneId', filters.timeZoneId);
 
-  const fromUtc = localMidnightUtc(filters.startDate);
-  const toUtcExclusive = localMidnightUtc(filters.endDate, true);
-  if (fromUtc) params.set('fromUtc', fromUtc);
-  if (toUtcExclusive) params.set('toUtcExclusive', toUtcExclusive);
+  if (filters.startDate) params.set('startDate', filters.startDate);
+  if (filters.endDate) params.set('endDate', filters.endDate);
   if (filters.startHour) params.set('startHour', filters.startHour);
   if (filters.endHour) params.set('endHour', filters.endHour);
 
@@ -286,7 +276,7 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
               ) : pageData.mode === 'receipts' ? (
                 pageData.items.map(r => (
                   <tr key={r.receiptId} onClick={() => setReceiptId(r.receiptId)} className="cursor-pointer hover:bg-slate-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{dateTime(r.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{dateTime(r.createdAt, filters.timeZoneId)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-baseline gap-2 whitespace-nowrap">
                         <button type="button" onClick={() => setReceiptId(r.receiptId)} className="font-semibold text-emerald-700 hover:underline" title="View full receipt">
@@ -309,7 +299,7 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
               ) : (
                 pageData.items.map(r => (
                   <tr key={r.itemId} className="hover:bg-slate-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{dateTime(r.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{dateTime(r.createdAt, filters.timeZoneId)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-baseline gap-2 whitespace-nowrap">
                         <button type="button" onClick={() => setReceiptId(r.receiptId)} className="font-semibold text-emerald-700 hover:underline" title="View full receipt">
@@ -375,7 +365,7 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
                   <div className="text-center">
                     <h4 className="!m-0 text-xl font-extrabold text-slate-800">{detail.storeName}</h4>
                     <p className="mt-1 font-mono text-sm">#{detail.receiptNumber} · ID {detail.receiptId}</p>
-                    <p className="mt-1 text-xs text-slate-500">{dateTime(detail.createdAt)} · 
+                    <p className="mt-1 text-xs text-slate-500">{dateTime(detail.createdAt, filters.timeZoneId)} · 
                       <HistoricalUserName
                         name={detail.cashierName}
                         deletedRecently={detail.cashierDeletedRecently}
