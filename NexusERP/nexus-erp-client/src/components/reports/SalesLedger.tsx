@@ -71,10 +71,10 @@ function money(amount: number) {
   })}`;
 }
 
-function dateTime(value: string) {
+function dateTime(value: string, timeZone: string) {
   return new Date(value).toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone,
   });
 }
 
@@ -276,7 +276,7 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
               ) : pageData.mode === 'receipts' ? (
                 pageData.items.map(r => (
                   <tr key={r.receiptId} onClick={() => setReceiptId(r.receiptId)} className="cursor-pointer hover:bg-slate-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{dateTime(r.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{dateTime(r.createdAt, filters.timeZoneId)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-baseline gap-2 whitespace-nowrap">
                         <button type="button" onClick={() => setReceiptId(r.receiptId)} className="font-semibold text-emerald-700 hover:underline" title="View full receipt">
@@ -299,7 +299,7 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
               ) : (
                 pageData.items.map(r => (
                   <tr key={r.itemId} className="hover:bg-slate-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{dateTime(r.createdAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{dateTime(r.createdAt, filters.timeZoneId)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-baseline gap-2 whitespace-nowrap">
                         <button type="button" onClick={() => setReceiptId(r.receiptId)} className="font-semibold text-emerald-700 hover:underline" title="View full receipt">
@@ -365,7 +365,7 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
                   <div className="text-center">
                     <h4 className="!m-0 text-xl font-extrabold text-slate-800">{detail.storeName}</h4>
                     <p className="mt-1 font-mono text-sm">#{detail.receiptNumber} · ID {detail.receiptId}</p>
-                    <p className="mt-1 text-xs text-slate-500">{dateTime(detail.createdAt)} · 
+                    <p className="mt-1 text-xs text-slate-500">{dateTime(detail.createdAt, filters.timeZoneId)} · 
                       <HistoricalUserName
                         name={detail.cashierName}
                         deletedRecently={detail.cashierDeletedRecently}
