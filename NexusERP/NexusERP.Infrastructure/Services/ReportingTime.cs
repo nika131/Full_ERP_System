@@ -53,8 +53,14 @@ public static class ReportingTime
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), zone);
 
     // Azure SQL Server uses Windows time zone IDs, whereas browsers send IANA IDs.
-    public static string SqlZone(TimeZoneInfo zone) =>
-        TimeZoneInfo.TryConvertIanaIdToWindowsId(zone.Id, out var windows)
-            ? windows
-            : zone.Id;
+    public static string SqlZone(TimeZoneInfo zone)
+    {
+        if (zone.Id == "UTC")
+            return "UTC";
+
+        if (!TimeZoneInfo.TryConvertIanaIdToWindowsId(zone.Id, out var windows))
+            throw new AppException("This reporting time zone is not supported by SQL Server.");
+
+        return windows!;
+    }
 }
