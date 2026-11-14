@@ -5,6 +5,7 @@ using NexusERP.Api.Extensions;
 using NexusERP.Domain.Constants;
 using NexusERP.Domain.Entities;
 using NexusERP.Infrastructure.Database;
+using NexusERP.Domain.Helpers;
 
 namespace NexusERP.Api.Controllers;
 
@@ -90,6 +91,8 @@ public sealed class SalesLedgerController : ControllerBase
             filter.CategoryIds is { Length: > 0 } ||
             filter.SupplierIds is { Length: > 0 };
 
+        var userCutoff = DateTime.UtcNow.AddDays(-30);
+
         if (!productMode)
         {
             if (!string.IsNullOrWhiteSpace(search))
@@ -109,16 +112,29 @@ public sealed class SalesLedgerController : ControllerBase
                 {
                     r.ReceiptId, r.ReceiptNumber, r.CreatedAt,
                     StoreName = r.Store != null ? r.Store.Name : "Unknown store",
-                    CashierName = r.User != null ? r.User.FullName : "Unknown cashier",
+                    CashierName = r.User != null &&
+                        (r.User.IsActive ||
+                         (r.User.DeletedAt.HasValue &&
+                          r.User.DeletedAt > userCutoff))
+                        ? r.User.FullName
+                        : "Deleted user",
+                    CashierDeletedRecently =
+                        r.User != null &&
+                        !r.User.IsActive &&
+                        r.User.DeletedAt.HasValue &&
+                        r.User.DeletedAt > userCutoff,
                     r.PaymentMethod, r.FinalTotal, r.TotalCostAmount, r.TotalVatAmount
                 })
                 .ToListAsync();
 
             var items = raw.Take(pageSize).Select(r => new
             {
-                r.ReceiptId, r.ReceiptNumber,
+                r.ReceiptId, 
+                r.ReceiptNumber,
                 CreatedAt = AsUtc(r.CreatedAt),
-                r.StoreName, r.CashierName,
+                r.StoreName, 
+                r.CashierName,
+                r.CashierDeletedRecently,
                 PaymentMethod = r.PaymentMethod.ToString(),
                 Total = r.FinalTotal,
                 Profit = r.FinalTotal - r.TotalCostAmount - r.TotalVatAmount
@@ -234,7 +250,8 @@ public sealed class SalesLedgerController : ControllerBase
         {
             r.ReceiptId, r.ReceiptNumber, CreatedAt = AsUtc(r.CreatedAt),
             StoreName = r.Store?.Name ?? "Unknown store",
-            CashierName = r.User?.FullName ?? "Unknown cashier",
+            CashierName = DeletedUserDisplay.GetName(r.User, cutoff),
+            CashierDeletedRecently = DeletedUserDisplay.IsRecentlyDeleted(r.User, cutoff),
             PaymentMethod = r.PaymentMethod.ToString(),
             r.SubTotal, r.CartDiscountPercentage, r.TotalVatAmount,
             r.FinalTotal,

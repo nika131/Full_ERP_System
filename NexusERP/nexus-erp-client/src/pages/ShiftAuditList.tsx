@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/apiClient';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import { ShiftDetailsDialog } from '../components/shift/ShiftDetailsDialog';
+import { HistoricalUserName } from '../components/Ui/HistoricalUserName';
 
 interface ShiftAudit {
     shiftId: number;
@@ -17,6 +18,7 @@ interface ShiftAudit {
     variance: number;
     totalSales: number;
     status: string;
+    cashierDeletedRecently: boolean;
 }
 
 export default function ShiftAuditList() {
@@ -34,7 +36,10 @@ export default function ShiftAuditList() {
     const columns = useMemo<ColumnDef<ShiftAudit>[]>(() => [
         { header: 'ID', accessor: 'shiftId', className: 'w-16' },
         { header: 'Store', accessor: 'storeName', className: 'font-medium' },
-        { header: 'Opened by', accessor: 'cashierName' },
+        { header: 'Opened by', 
+            accessor: 'cashierName', 
+            render: item => (<HistoricalUserName name={item.cashierName} deletedRecently={item.cashierDeletedRecently} />) 
+        },
         { 
             header: 'Start Time', 
             accessor: 'startTime',

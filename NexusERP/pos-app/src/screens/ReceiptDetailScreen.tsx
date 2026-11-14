@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ArrowLeft } from "lucide-react-native"; 
+import { ArrowLeft, Info } from "lucide-react-native"; 
 import type { ReceiptsStackParamList } from "@/navigation/types";
 import { useReceiptDetailQuery } from "@/hooks/queries/usePosQueries";
 import { formatCurrency } from "@/utils/currency";
@@ -62,6 +62,14 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
             <Text className="mt-1 text-center text-xs text-slate-400">
               {new Date(receipt.createdAt).toLocaleString()} · {receipt.cashierName}
             </Text>
+            {receipt.cashierDeletedRecently && (
+              <View className="mt-1 flex-row items-center justify-center gap-1">
+                <Info size={14} color="#94a3b8" />
+                <Text className="text-xs text-slate-400">
+                  Deleted employee — name will be hidden after 30 days
+                </Text>
+              </View>
+            )}
 
             <View className="my-4 h-px bg-slate-200" />
 
@@ -72,7 +80,12 @@ export function ReceiptDetailScreen({ navigation, route }: Props) {
                     {line.productName}
                   </Text>
                   {line.productDeletedRecently ? (
-                    <Text className="text-xs text-slate-400">ⓘ Deleted product — name retained for up to 30 days</Text>
+                    <View className="flex-row items-center gap-1">
+                      <Info size={14} color="#94a3b8" />
+                      <Text className="text-xs text-slate-400">
+                        Deleted product — name retained for up to 30 days
+                      </Text>
+                    </View>
                   ) : null}
                   <View className="mt-1">
                     <Text className="text-xs text-slate-500">

@@ -58,6 +58,7 @@ namespace NexusERP.Application.DTOs
         public decimal Variance => (ActualEndingCash ?? ExpectedEndingCash) - ExpectedEndingCash;
         public decimal TotalSales { get; set; }
         public string Status { get; set; } = string.Empty;
+        public bool CashierDeletedRecently { get; set; }
     }
 
     public class ReceiptAuditDto
@@ -72,6 +73,7 @@ namespace NexusERP.Application.DTOs
         public decimal TotalVatAmount { get; set; }
         public decimal FinalTotal { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
+        public bool CashierDeletedRecently { get; set; }
     }
 
     public class CurrentShiftDto
@@ -104,6 +106,7 @@ namespace NexusERP.Application.DTOs
         public decimal? ActualEndingCash { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Notes { get; set; }
+        public bool CashierDeletedRecently { get; set; }
     }
 
     public class ShiftReceiptSummaryDto
@@ -129,6 +132,7 @@ namespace NexusERP.Application.DTOs
         public decimal FinalTotal { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public List<ReceiptLineDto> Lines { get; set; } = new();
+        public bool CashierDeletedRecently { get; set; }
     }
 
     public class ReceiptLineDto
@@ -181,6 +185,7 @@ namespace NexusERP.Application.DTOs
         public decimal Amount { get; set; }
         public string? Reason { get; set; }
         public DateTime CreatedAt { get; set; }
+        public bool UserDeletedRecently { get; set; }
     }
 
     public class ShiftDetailsDto
@@ -208,5 +213,7 @@ namespace NexusERP.Application.DTOs
 
         public string? Notes { get; set; }
         public List<ShiftCashMovementDto> Movements { get; set; } = new();
+
+        public bool CashierDeletedRecently { get; set; }
     }
 }

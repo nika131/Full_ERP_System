@@ -16,5 +16,6 @@ namespace NexusERP.Domain.Models
         public string Action { get; set; } = string.Empty;
         public string ChangesMade { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public bool UsernameDeletedRecently { get; set; }
     }
 }

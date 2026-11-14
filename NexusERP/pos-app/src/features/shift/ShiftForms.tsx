@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, Text, TextInput, View } from "react-native";
-import { X } from "lucide-react-native";
+import { Info, X } from "lucide-react-native";
 import { useCashMovementMutation, useCloseShiftMutation, useOpenShiftMutation, useShiftHistoryQuery } from "@/hooks/queries/usePosQueries";
 import { getErrorMessage } from "@/api/client";
 import { formatCurrency } from "@/utils/currency";
@@ -269,6 +269,14 @@ export function ShiftHistoryList({
               <View className="flex-1">
                 <Text className="text-sm font-bold text-slate-800 md:text-base">
                   {item.cashierName}
+                  {item.cashierDeletedRecently && (
+                    <View className="mt-1 flex-row items-center gap-1">
+                      <Info size={14} color="#94a3b8" />
+                      <Text className="text-xs text-slate-400">
+                        Deleted employee — name will be hidden after 30 days
+                      </Text>
+                    </View>
+                  )}
                 </Text>
                 <Text className="mt-0.5 text-xs text-slate-500 md:text-sm">
                   {new Date(item.startDate).toLocaleString()}

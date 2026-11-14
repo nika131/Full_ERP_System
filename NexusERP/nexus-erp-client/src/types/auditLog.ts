@@ -7,4 +7,5 @@ export interface AuditLog {
     action: string;
     changesMade: string;
     createdAt: string;
+    usernameDeletedRecently: boolean
 }

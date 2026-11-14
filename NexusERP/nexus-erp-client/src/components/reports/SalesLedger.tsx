@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, Search, X } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import type { DashboardFilters } from '../../pages/Dashboard';
+import { HistoricalUserName } from '../Ui/HistoricalUserName';
 
 type ReceiptRow = {
   receiptId: number;
@@ -14,6 +15,7 @@ type ReceiptRow = {
   paymentMethod: string;
   total: number;
   profit: number;
+  cashierDeletedRecently: boolean;
 };
 
 type ProductRow = {
@@ -48,6 +50,7 @@ type ReceiptDetail = {
   totalVatAmount: number;
   finalTotal: number;
   profit: number;
+  cashierDeletedRecently: boolean;
   lines: {
     itemId: number;
     productId: number | null;
@@ -292,7 +295,12 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
                         <span className="text-xs text-slate-400">ID {r.receiptId}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3">{r.storeName}</td><td className="px-4 py-3">{r.cashierName}</td>
+                    <td className="px-4 py-3">{r.storeName}</td><td className="px-4 py-3">
+                      <HistoricalUserName
+                        name={r.cashierName}
+                        deletedRecently={r.cashierDeletedRecently}
+                      />
+                    </td>
                     <td className="px-4 py-3">{r.paymentMethod}</td>
                     <td className="px-4 py-3 text-right font-semibold">{money(r.total)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-emerald-700">{money(r.profit)}</td>
@@ -310,7 +318,17 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
                         <span className="text-xs text-slate-400">ID {r.receiptId}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-700">{r.productName}{r.productDeletedRecently && <span className="ml-1 cursor-help text-slate-400" title="This product was deleted and will be removed from the catalog after 30 days.">ⓘ</span>}</td>
+                    <td className="px-4 py-3 font-medium text-slate-700">
+                      {r.productName}
+                      {r.productDeletedRecently && (
+                        <span
+                          className="ml-1 inline-flex cursor-help align-middle text-slate-400"
+                          title="This product was deleted. Its name will be hidden after 30 days."
+                        >
+                          <Info size={14} />
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right">{r.quantity}</td>
                     <td className="px-4 py-3 text-right">{money(r.unitPrice)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{money(r.total)}</td>
@@ -357,13 +375,23 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
                   <div className="text-center">
                     <h4 className="!m-0 text-xl font-extrabold text-slate-800">{detail.storeName}</h4>
                     <p className="mt-1 font-mono text-sm">#{detail.receiptNumber} · ID {detail.receiptId}</p>
-                    <p className="mt-1 text-xs text-slate-500">{dateTime(detail.createdAt)} · {detail.cashierName}</p>
+                    <p className="mt-1 text-xs text-slate-500">{dateTime(detail.createdAt)} · 
+                      <HistoricalUserName
+                        name={detail.cashierName}
+                        deletedRecently={detail.cashierDeletedRecently}
+                      />
+                    </p>
                   </div>
                   <div className="space-y-3 border-y border-slate-200 py-4">
                     {detail.lines.map(l => (
                       <div key={l.itemId} className="flex justify-between gap-4">
                         <div>
-                          <p className="font-semibold text-slate-800">{l.productName}{l.productDeletedRecently && <span className="ml-1 cursor-help text-slate-400" title="This product was deleted and will be removed from the catalog after 30 days.">ⓘ</span>}</p>
+                          <span
+                            className="ml-1 inline-flex cursor-help align-middle text-slate-400"
+                            title="This product was deleted and its name will be hidden after 30 days."
+                          >
+                            <Info size={14} />
+                          </span>
                           <p className="text-xs text-slate-500">{l.quantity} × {money(l.unitPrice)}</p>
                           {l.marketDiscountPercentage > 0 && <p className="text-xs text-amber-700">Market discount {l.marketDiscountPercentage}%</p>}
                           {l.manualItemDiscountPercentage > 0 && <p className="text-xs text-amber-700">Manual discount {l.manualItemDiscountPercentage}%</p>}

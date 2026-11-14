@@ -95,6 +95,7 @@ namespace NexusERP.Infrastructure.Repositories
                 throw new AppException("Employee not found.");
 
             user.IsActive = false;
+            user.DeletedAt = DateTime.UtcNow;
 
             var audit = new SystemAuditLog
             {

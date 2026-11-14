@@ -48,6 +48,8 @@ namespace NexusERP.Infrastructure.Repositories
                 .Where(t => t.CompanyId == companyId && t.TransactionType != TransactionAction.Sale)
                 .AsNoTracking();
 
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
             if (!canViewAll)
                 baseQuery = baseQuery.Where(t => t.UserId == currentUserId);
 
@@ -167,6 +169,8 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<InventoryTransaction?> GetById(int companyId, int transactionId)
         {
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
             return await _context.InventoryTransactions
                 .IgnoreQueryFilters()
                 .AsNoTracking()
@@ -178,6 +182,8 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<List<RevenueChartData>> GetWeeklyRevenueChart(int companyId, DashboardFilterRequest dto)
         {
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
             var actualStart = dto.StartDate ?? DateTime.UtcNow.Date.AddDays(-6);
             var actualEnd = dto.EndDate ?? DateTime.UtcNow.Date;
             var endOfDay = actualEnd.Date.AddDays(1).AddTicks(-1);
@@ -341,6 +347,8 @@ namespace NexusERP.Infrastructure.Repositories
                 .Where(s => s.CompanyId == companyId)
                 .AsNoTracking();
 
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
             if (storeId.HasValue)
                 query = query.Where(s => s.StoreId == storeId.Value);
 
@@ -382,6 +390,8 @@ namespace NexusERP.Infrastructure.Repositories
                 .Include(r => r.Store)
                 .Where(r => r.CompanyId == companyId)
                 .AsNoTracking();
+
+            var cutoff = DateTime.UtcNow.AddDays(-30);
 
             if (!string.IsNullOrWhiteSpace(receiptNumber))
                 query = query.Where(r => r.ReceiptNumber.Contains(receiptNumber));
@@ -440,6 +450,8 @@ namespace NexusERP.Infrastructure.Repositories
                         ? s.User.FullName : "Unknown employee"
                 })
                 .FirstOrDefaultAsync();
+
+
 
             if (shift == null) return null;
 

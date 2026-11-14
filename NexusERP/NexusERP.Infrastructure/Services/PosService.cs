@@ -8,6 +8,7 @@ using NexusERP.Domain.Exceptions;
 using NexusERP.Infrastructure.Database;
 using System.Data;
 using System.Text.Json;
+using NexusERP.Domain.Helpers;
 
 namespace NexusERP.Infrastructure.Services
 {
@@ -326,7 +327,9 @@ namespace NexusERP.Infrastructure.Services
 
         public async Task<List<ShiftHistoryItemDto>> GetShiftHistoryAsync(int companyId, int userId, int storeId)
         {
-            return await _context.Shifts
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
+            return await _context.Shifts.IgnoreQueryFilters()
                 .Where(s =>
                     s.CompanyId == companyId &&
                     s.StoreId == storeId &&
@@ -338,7 +341,16 @@ namespace NexusERP.Infrastructure.Services
                 .Select(s => new ShiftHistoryItemDto
                 {
                     ShiftId = s.ShiftId,
-                    CashierName = s.User != null ? s.User.FullName : "Unknown",
+                    CashierName = s.User != null &&
+                        (s.User.IsActive ||
+                         (s.User.DeletedAt.HasValue && s.User.DeletedAt > cutoff))
+                        ? s.User.FullName
+                        : "Deleted user",
+                    CashierDeletedRecently =
+                        s.User != null &&
+                        !s.User.IsActive &&
+                        s.User.DeletedAt.HasValue &&
+                        s.User.DeletedAt > cutoff,
                     StartDate = s.StartDate,
                     EndDate = s.EndDate,
                     TotalSales = s.TotalSales,
@@ -484,7 +496,8 @@ namespace NexusERP.Infrastructure.Services
                 ReceiptId = receipt.ReceiptId,
                 ReceiptNumber = receipt.ReceiptNumber,
                 CreatedAt = receipt.CreatedAt,
-                CashierName = receipt.User?.FullName ?? "Unknown",
+                CashierName = DeletedUserDisplay.GetName(receipt.User, cutoff),
+                CashierDeletedRecently = DeletedUserDisplay.IsRecentlyDeleted(receipt.User, cutoff),
                 StoreName = receipt.Store?.Name ?? string.Empty,
                 SubTotal = receipt.SubTotal,
                 CartDiscountPercentage = receipt.CartDiscountPercentage,

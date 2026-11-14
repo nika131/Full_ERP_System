@@ -7,6 +7,7 @@ import { useAuditLogsQuery } from "../hooks/queries/useAuditQueries";
 import DatePicker from "react-datepicker";
 import { useUrlCursor } from '../hooks/useUrlCursor';
 import "react-datepicker/dist/react-datepicker.css";
+import { HistoricalUserName } from '../components/Ui/HistoricalUserName';
 
 export default function AuditLogsList() {
     const [searchTerm] = useUrlString('search');
@@ -42,7 +43,16 @@ export default function AuditLogsList() {
     const columns = useMemo<ColumnDef<AuditLog>[]>(() => [
         { header: 'Date', accessor: 'createdAt', render: (l) => new Date(l.createdAt).toLocaleString() },
         { header: 'UserId', accessor: 'userId' },
-        { header: 'UserName', accessor: 'username'},
+        { 
+            header: 'UserName', 
+            accessor: 'username',
+            render: log => (
+                <HistoricalUserName
+                name={log.username}
+                deletedRecently={log.usernameDeletedRecently}
+                />
+            )
+        },
         { header: 'Entity', accessor: 'entityType' },
         { header: 'Action', accessor: 'action', render: (l) => (
             <span className={`px-2 py-1 rounded text-xs font-semibold ${l.action === 'Delete' ? 'bg-red-100 text-red-700' : l.action === 'Create' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>

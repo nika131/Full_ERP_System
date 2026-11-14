@@ -23,4 +23,6 @@ export interface LeaveResponse {
     reviewerName: string | null;
     reviewerComments: string | null;
     createdAt: string;
+    employeeDeletedRecently: boolean;
+    reviewerDeletedRecently: boolean;
 }

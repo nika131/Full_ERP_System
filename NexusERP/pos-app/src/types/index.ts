@@ -88,6 +88,7 @@ export interface ShiftHistoryItem {
   actualEndingCash: number | null;
   status: "Open" | "Closed";
   notes: string | null;
+  cashierDeletedRecently: boolean;
 }
 
 export interface ShiftReceiptSummary {
@@ -121,6 +122,7 @@ export interface ReceiptDetail {
   finalTotal: number;
   paymentMethod: "Cash" | "Card" | "Voucher";
   lines: ReceiptLine[];
+  cashierDeletedRecently: boolean;
 }
 
 export interface PosSlot {

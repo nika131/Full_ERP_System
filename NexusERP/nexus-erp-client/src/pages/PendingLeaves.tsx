@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useRecentLeavesQuery, useReviewLeaveMutation } from '../hooks/queries/usePendingLeavesQueries';
 import { DataTable, type ColumnDef } from '../components/Ui/DataTable';
 import type { LeaveResponse } from '../types/absence';
+import { HistoricalUserName } from '../components/Ui/HistoricalUserName';
 
 export default function PendingLeaves() {
     const { data: requests = [], isLoading } = useRecentLeavesQuery();
@@ -38,7 +39,16 @@ export default function PendingLeaves() {
     );
 
     const columns: ColumnDef<LeaveResponse>[] = [
-        { header: 'Employee', accessor: 'employeeName' },
+        { 
+            header: 'Employee', 
+            accessor: 'employeeName',
+            render: item => (
+                <HistoricalUserName
+                name={item.employeeName}
+                deletedRecently={item.employeeDeletedRecently}
+                />
+            )
+        },
         { header: 'Type', accessor: 'type' },
         {
             header: 'Dates',

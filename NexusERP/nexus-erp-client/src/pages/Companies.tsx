@@ -2,7 +2,7 @@ import { CopyCodeButton } from '../components/Ui/CopyCodeButton';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUrlString } from '../hooks/useUrlState';
-import { Building2, Plus, UserRoundPlus, ArrowRight, LogOut, Boxes } from 'lucide-react';
+import { Building2, Plus, UserRoundPlus, ArrowRight, LogOut, Boxes, Info } from 'lucide-react';
 import { apiErrorMessage, authService, type CompanySummary, type CreatedCompany, type JoinRequestSummary } from '../api/authService';
 import { useAuth } from '../context/AuthContext';
 
@@ -155,7 +155,7 @@ export default function Companies() {
                 {/* Shared-page notice — only when relevant */}
                 {safeNext && !created && view === 'list' && (
                     <div className="mb-4 flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-600">
-                        <span className="shrink-0 text-emerald-600">ⓘ</span>
+                        <Info size={16} className="shrink-0 text-emerald-600" />
                         <span>
                         You opened a shared page. Select its company to continue.
                         </span>

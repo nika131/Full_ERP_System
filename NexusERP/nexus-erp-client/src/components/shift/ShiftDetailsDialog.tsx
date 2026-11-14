@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import apiClient from '../../api/apiClient';
+import type { ReactNode } from 'react'
+import { HistoricalUserName } from '../Ui/HistoricalUserName';
 
 interface CashMovement {
     movementId: number;
@@ -12,6 +14,7 @@ interface CashMovement {
     amount: number;
     reason: string | null;
     createdAt: string;
+    userDeletedRecently: boolean
 }
 
 interface ShiftDetails {
@@ -35,6 +38,7 @@ interface ShiftDetails {
     receiptCount: number;
     notes: string | null;
     movements: CashMovement[];
+    cashierDeletedRecently: boolean
 }
 
 const money = (value: number) => `$${value.toFixed(2)}`;
@@ -50,7 +54,7 @@ function Stat({
     value
 }: {
     label: string;
-    value: string;
+    value: React.ReactNode;
 }) {
     return (
         <div className="flex justify-between gap-4 py-2 text-sm">
@@ -156,7 +160,12 @@ export function ShiftDetailsDialog({
                                 </span>
                             </div>
 
-                            <Stat label="Opened by" value={data.cashierName} />
+                            <Stat label="Opened by" value={
+                                <HistoricalUserName
+                                name={data.cashierName}
+                                deletedRecently={data.cashierDeletedRecently}
+                                />
+                            } />
                             <Stat label="Started" value={dateTime(data.startDate)} />
                             {data.endDate && (
                                 <Stat label="Closed" value={dateTime(data.endDate)} />
@@ -254,7 +263,10 @@ export function ShiftDetailsDialog({
                                                     </p>
 
                                                     <p className="mt-2 text-xs text-slate-500">
-                                                        {movement.userName || `User #${movement.userId}`}
+                                                        <HistoricalUserName
+                                                            name={movement.userName || 'Deleted user'}
+                                                            deletedRecently={movement.userDeletedRecently}
+                                                        />
                                                         {' · '}ID: {movement.userId}
                                                         {' · '}{dateTime(movement.createdAt)}
                                                     </p>

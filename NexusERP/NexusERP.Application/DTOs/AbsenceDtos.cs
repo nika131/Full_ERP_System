@@ -30,6 +30,9 @@
             public string? ReviewerName { get; set; }
             public string? ReviewerComments { get; set; }
             public DateTime CreatedAt { get; set; }
+
+            public bool EmployeeDeletedRecently { get; set; }
+            public bool ReviewerDeletedRecently { get; set; }
         }
     }
 }
