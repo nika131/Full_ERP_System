@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NexusERP.Infrastructure.Services;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
@@ -281,20 +282,20 @@ namespace NexusERP.Infrastructure.Repositories
                 )
                 .AsQueryable();
 
-            if (dto.StartDate.HasValue)
-                salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt >= dto.StartDate.Value);
-
-            if (dto.EndDate.HasValue)
-            {
-                var endOfDay = dto.EndDate.Value.Date.AddDays(1).AddTicks(-1);
-                salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt <= endOfDay);
-            }
-
+            var zone = ReportingTime.Resolve(dto.TimeZoneId);
+            var startUtc = ReportingTime.StartUtc(dto.StartDate, zone);
+            var endUtc = ReportingTime.EndUtcExclusive(dto.EndDate, zone);
+            var sqlZone = ReportingTime.SqlZone(zone);
+            if (startUtc.HasValue)
+                salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt >= startUtc.Value);
+            if (endUtc.HasValue)
+                salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt < endUtc.Value);
             if (dto.StartHour.HasValue)
-                salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay >= dto.StartHour.Value);
-
+                salesQuery = salesQuery.Where(ri =>
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(ri.Receipt!.CreatedAt, "UTC"), sqlZone).TimeOfDay >= dto.StartHour.Value);
             if (dto.EndHour.HasValue)
-                salesQuery = salesQuery.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
+                salesQuery = salesQuery.Where(ri =>
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(ri.Receipt!.CreatedAt, "UTC"), sqlZone).TimeOfDay <= dto.EndHour.Value);
 
             if (dto.StoreIds != null && dto.StoreIds.Any())
                 salesQuery = salesQuery.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));

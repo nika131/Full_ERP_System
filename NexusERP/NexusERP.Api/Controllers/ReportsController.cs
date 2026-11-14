@@ -5,6 +5,7 @@ using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Constants;
+using NexusERP.Infrastructure.Services;
 
 namespace NexusERP.Api.Controllers
 {
@@ -45,7 +46,8 @@ namespace NexusERP.Api.Controllers
             [FromQuery] int[]? storeIds = null,
             [FromQuery] int[]? categoryIds = null,
             [FromQuery] int[]? supplierIds = null,
-            [FromQuery] int[]? employeeIds = null
+            [FromQuery] int[]? employeeIds = null,
+            [FromQuery] string timeZoneId = "UTC"
         )
         {
             if (pageSize > 100) pageSize = 100;
@@ -72,7 +74,8 @@ namespace NexusERP.Api.Controllers
                 storeIds,
                 categoryIds,
                 supplierIds,
-                employeeIds
+                employeeIds,
+                timeZoneId
             );
 
             var deletedProductCutoff = DateTime.UtcNow.AddDays(-30);

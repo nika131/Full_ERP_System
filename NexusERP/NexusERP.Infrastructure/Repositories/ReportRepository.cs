@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using NexusERP.Infrastructure.Services;
 using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
@@ -37,7 +38,8 @@ namespace NexusERP.Infrastructure.Repositories
             int[]? storeIds = null,
             int[]? categoryIds = null,
             int[]? supplierIds = null,
-            int[]? employeeIds = null
+            int[]? employeeIds = null,
+            string timeZoneId = "UTC"
         )
         {
             var baseQuery = _context.InventoryTransactions
@@ -74,26 +76,20 @@ namespace NexusERP.Infrastructure.Repositories
             if (categoryId.HasValue)
                 baseQuery = baseQuery.Where(t => t.Product != null && t.Product.CategoryId == categoryId.Value);
 
-            if (startDate.HasValue)
-                baseQuery = baseQuery.Where(t => t.CreatedAt >= startDate.Value);
-
-            if (endDate.HasValue)
-            {
-                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
-                baseQuery = baseQuery.Where(t => t.CreatedAt <= endOfDay);
-            }
-
+            var reportZone = ReportingTime.Resolve(timeZoneId);
+            var reportStart = ReportingTime.StartUtc(startDate, reportZone);
+            var reportEnd = ReportingTime.EndUtcExclusive(endDate, reportZone);
+            var reportSqlZone = ReportingTime.SqlZone(reportZone);
+            if (reportStart.HasValue)
+                baseQuery = baseQuery.Where(t => t.CreatedAt >= reportStart.Value);
+            if (reportEnd.HasValue)
+                baseQuery = baseQuery.Where(t => t.CreatedAt < reportEnd.Value);
             if (startHour.HasValue)
-            {
                 baseQuery = baseQuery.Where(t =>
-                    t.CreatedAt.TimeOfDay >= startHour.Value);
-            }
-
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(t.CreatedAt, "UTC"), reportSqlZone).TimeOfDay >= startHour.Value);
             if (endHour.HasValue)
-            {
                 baseQuery = baseQuery.Where(t =>
-                    t.CreatedAt.TimeOfDay <= endHour.Value);
-            }
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(t.CreatedAt, "UTC"), reportSqlZone).TimeOfDay <= endHour.Value);
 
             if (storeIds is { Length: > 0 })
             {
@@ -180,9 +176,13 @@ namespace NexusERP.Infrastructure.Repositories
         {
             var cutoff = DateTime.UtcNow.AddDays(-30);
 
-            var actualStart = dto.StartDate ?? DateTime.UtcNow.Date.AddDays(-6);
-            var actualEnd = dto.EndDate ?? DateTime.UtcNow.Date;
-            var endOfDay = actualEnd.Date.AddDays(1).AddTicks(-1);
+            var zone = ReportingTime.Resolve(dto.TimeZoneId);
+            var today = ReportingTime.LocalTime(DateTime.UtcNow, zone).Date;
+            var actualStart = dto.StartDate?.Date ?? today.AddDays(-6);
+            var actualEnd = dto.EndDate?.Date ?? today;
+            var startUtc = ReportingTime.ToUtcMidnight(actualStart, zone);
+            var endUtc = ReportingTime.ToUtcMidnight(actualEnd.AddDays(1), zone);
+            var sqlZone = ReportingTime.SqlZone(zone);
 
             var query = _context.ReceiptItems
                 .IgnoreQueryFilters()
@@ -193,16 +193,18 @@ namespace NexusERP.Infrastructure.Repositories
                     ri.Receipt != null &&
                     ri.Receipt.CompanyId == companyId &&
                     ri.Receipt.IsActive &&
-                    ri.Receipt.CreatedAt >= actualStart &&
-                    ri.Receipt.CreatedAt <= endOfDay
+                    ri.Receipt.CreatedAt >= startUtc &&
+                    ri.Receipt.CreatedAt < endUtc
                 )
                 .AsQueryable();
 
             if (dto.StartHour.HasValue)
-                query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay >= dto.StartHour.Value);
+                query = query.Where(ri =>
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(ri.Receipt!.CreatedAt, "UTC"), sqlZone).TimeOfDay >= dto.StartHour.Value);
 
             if (dto.EndHour.HasValue)
-                query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
+                query = query.Where(ri =>
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(ri.Receipt!.CreatedAt, "UTC"), sqlZone).TimeOfDay <= dto.EndHour.Value);
 
             if (dto.StoreIds != null && dto.StoreIds.Any())
                 query = query.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));
@@ -221,7 +223,7 @@ namespace NexusERP.Infrastructure.Repositories
             if (actualStart.Date == actualEnd.Date)
             {
                 var rawData = await query
-                    .GroupBy(ri => ri.Receipt!.CreatedAt.Hour)
+                    .GroupBy(ri => EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(ri.Receipt!.CreatedAt, "UTC"), sqlZone).Hour)
                     .Select(g => new
                     {
                         Hour = g.Key,
@@ -245,7 +247,7 @@ namespace NexusERP.Infrastructure.Repositories
             else
             {
                 var rawData = await query
-                    .GroupBy(ri => ri.Receipt!.CreatedAt.Date)
+                    .GroupBy(ri => EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(ri.Receipt!.CreatedAt, "UTC"), sqlZone).Date)
                     .Select(g => new
                     {
                         Date = g.Key,
@@ -287,20 +289,20 @@ namespace NexusERP.Infrastructure.Repositories
                 )
                 .AsQueryable();
 
-            if (dto.StartDate.HasValue)
-                query = query.Where(ri => ri.Receipt!.CreatedAt >= dto.StartDate.Value);
-
-            if (dto.EndDate.HasValue)
-            {
-                var endOfDay = dto.EndDate.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(ri => ri.Receipt!.CreatedAt <= endOfDay);
-            }
-
+            var zone = ReportingTime.Resolve(dto.TimeZoneId);
+            var startUtc = ReportingTime.StartUtc(dto.StartDate, zone);
+            var endUtc = ReportingTime.EndUtcExclusive(dto.EndDate, zone);
+            var sqlZone = ReportingTime.SqlZone(zone);
+            if (startUtc.HasValue)
+                query = query.Where(ri => ri.Receipt!.CreatedAt >= startUtc.Value);
+            if (endUtc.HasValue)
+                query = query.Where(ri => ri.Receipt!.CreatedAt < endUtc.Value);
             if (dto.StartHour.HasValue)
-                query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay >= dto.StartHour.Value);
-
+                query = query.Where(ri =>
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(ri.Receipt!.CreatedAt, "UTC"), sqlZone).TimeOfDay >= dto.StartHour.Value);
             if (dto.EndHour.HasValue)
-                query = query.Where(ri => ri.Receipt!.CreatedAt.TimeOfDay <= dto.EndHour.Value);
+                query = query.Where(ri =>
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(ri.Receipt!.CreatedAt, "UTC"), sqlZone).TimeOfDay <= dto.EndHour.Value);
 
             if (dto.StoreIds != null && dto.StoreIds.Any())
                 query = query.Where(ri => dto.StoreIds.Contains(ri.Receipt!.StoreId));

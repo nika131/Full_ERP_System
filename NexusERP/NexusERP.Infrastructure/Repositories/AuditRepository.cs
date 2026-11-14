@@ -3,6 +3,7 @@ using NexusERP.Application.Interfaces.Repositories;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
+using NexusERP.Infrastructure.Services;
 
 namespace NexusERP.Infrastructure.Repositories
 {
@@ -15,9 +16,11 @@ namespace NexusERP.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<CursorPagedResult<AuditLogResponseDto>> GetPagedLogsOptimized(int companyId, int pageSize, DateTime? lastCreatedAt, int? lastLogId, string? searchTerm, DateTime? startDate, DateTime? endDate)
+        public async Task<CursorPagedResult<AuditLogResponseDto>> GetPagedLogsOptimized(int companyId, int pageSize, DateTime? lastCreatedAt, int? lastLogId, string? searchTerm, DateTime? startDate, DateTime? endDate, string timeZoneId = "UTC")
         {
-            var minimumDate = startDate ?? DateTime.UtcNow.AddDays(-30);
+            var zone = ReportingTime.Resolve(timeZoneId);
+            var minimumDate = ReportingTime.StartUtc(startDate, zone) ?? DateTime.UtcNow.AddDays(-30);
+            var endUtc = ReportingTime.EndUtcExclusive(endDate, zone);
 
             var cutoff = DateTime.UtcNow.AddDays(-30);
 
@@ -44,11 +47,8 @@ namespace NexusERP.Infrastructure.Repositories
                 );
             }
 
-            if (endDate.HasValue)
-            {
-                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
-                baseQuery = baseQuery.Where(log => log.CreatedAt <= endOfDay);
-            }
+            if (endUtc.HasValue)
+                baseQuery = baseQuery.Where(log => log.CreatedAt < endUtc.Value);
 
             if (lastCreatedAt.HasValue && lastLogId.HasValue)
             {

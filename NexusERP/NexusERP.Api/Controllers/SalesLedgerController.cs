@@ -6,6 +6,7 @@ using NexusERP.Domain.Constants;
 using NexusERP.Domain.Entities;
 using NexusERP.Infrastructure.Database;
 using NexusERP.Domain.Helpers;
+using NexusERP.Infrastructure.Services;
 
 namespace NexusERP.Api.Controllers;
 
@@ -15,7 +16,7 @@ public sealed class SalesLedgerQuery
     public DateTime? ToUtcExclusive { get; set; }
     public TimeSpan? StartHour { get; set; }
     public TimeSpan? EndHour { get; set; }
-    public int UtcOffsetMinutes { get; set; }
+    public string TimeZoneId { get; set; } = "UTC";
     public int[]? StoreIds { get; set; }
     public int[]? EmployeeIds { get; set; }
     public int[]? CategoryIds { get; set; }
@@ -63,15 +64,17 @@ public sealed class SalesLedgerController : ControllerBase
         if (filter.EmployeeIds is { Length: > 0 })
             receipts = receipts.Where(r => filter.EmployeeIds.Contains(r.UserId));
 
-        // The UI sends JS Date.getTimezoneOffset(): minutes to add to local time for UTC.
-        // Filter hours in the user's selected local clock, not the server's time zone.
-        int offset = Math.Clamp(filter.UtcOffsetMinutes, -840, 840);
-        if (filter.StartHour.HasValue)
-            receipts = receipts.Where(r =>
-                r.CreatedAt.AddMinutes(-offset).TimeOfDay >= filter.StartHour.Value);
-        if (filter.EndHour.HasValue)
-            receipts = receipts.Where(r =>
-                r.CreatedAt.AddMinutes(-offset).TimeOfDay <= filter.EndHour.Value);
+        // AT TIME ZONE uses the offset valid at each sale's instant, including DST.
+        if (filter.StartHour.HasValue || filter.EndHour.HasValue)
+        {
+            var sqlZone = ReportingTime.SqlZone(ReportingTime.Resolve(filter.TimeZoneId));
+            if (filter.StartHour.HasValue)
+                receipts = receipts.Where(r =>
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(r.CreatedAt, "UTC"), sqlZone).TimeOfDay >= filter.StartHour.Value);
+            if (filter.EndHour.HasValue)
+                receipts = receipts.Where(r =>
+                    EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(r.CreatedAt, "UTC"), sqlZone).TimeOfDay <= filter.EndHour.Value);
+        }
 
         return receipts;
     }
