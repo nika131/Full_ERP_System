@@ -35,7 +35,11 @@ namespace NexusERP.Infrastructure.Repositories
                 baseQuery = baseQuery.Where(log =>
                     EF.Functions.Contains(log.Action, formattedSearch) ||
                     EF.Functions.Contains(log.EntityType, formattedSearch) ||
-                    (log.User != null && log.User.Username.Contains(searchTerm)) ||
+                    (log.User != null &&
+                      (log.User.IsActive ||
+                        (log.User.DeletedAt.HasValue &&
+                          log.User.DeletedAt > cutoff)) &&
+                    log.User.Username.Contains(searchTerm)) ||
                     (isNumeric && log.UserId == searchUserId)
                 );
             }
@@ -114,6 +118,46 @@ namespace NexusERP.Infrastructure.Repositories
             }
 
             bool hasMorePages = items.Count == fetchCount;
+
+
+            var joinRequestIds = items
+                .Where(x => x.EntityType == "CompanyJoinRequest")
+                .Select(x => x.EntityId)
+                .Distinct()
+                .ToArray();
+
+            if (joinRequestIds.Length > 0)
+            {
+                var expiredRequestIds = await _context.CompanyJoinRequests
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(r =>
+                        r.CompanyId == companyId &&
+                        joinRequestIds.Contains(r.JoinRequestId) &&
+                        _context.Users.IgnoreQueryFilters().Any(u =>
+                            u.CompanyId == companyId &&
+                            u.AccountId == r.AccountId &&
+                            !u.IsActive &&
+                            (!u.DeletedAt.HasValue || u.DeletedAt <= cutoff)))
+                    .Select(r => r.JoinRequestId)
+                    .ToArrayAsync();
+
+                var expiredSet = expiredRequestIds.ToHashSet();
+
+                foreach (var item in items)
+                {
+                    if (item.EntityType != "CompanyJoinRequest" ||
+                        !expiredSet.Contains(item.EntityId))
+                        continue;
+
+                    item.ChangesMade = item.Action switch
+                    {
+                        "Approve" => $"Approved employee (Deleted user), request #{item.EntityId}",
+                        "Reject" => $"Rejected request #{item.EntityId} (Deleted user)",
+                        _ => item.ChangesMade
+                    };
+                }
+            }
 
             DateTime? nextCreatedAtCursor = null;
             int? nextLogIdCursor = null;

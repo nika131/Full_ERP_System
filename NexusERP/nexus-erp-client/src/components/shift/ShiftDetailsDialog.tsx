@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
@@ -54,7 +53,7 @@ function Stat({
     value
 }: {
     label: string;
-    value: React.ReactNode;
+    value: ReactNode;
 }) {
     return (
         <div className="flex justify-between gap-4 py-2 text-sm">

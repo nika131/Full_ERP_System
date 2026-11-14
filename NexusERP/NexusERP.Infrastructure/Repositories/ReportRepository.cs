@@ -48,8 +48,6 @@ namespace NexusERP.Infrastructure.Repositories
                 .Where(t => t.CompanyId == companyId && t.TransactionType != TransactionAction.Sale)
                 .AsNoTracking();
 
-            var cutoff = DateTime.UtcNow.AddDays(-30);
-
             if (!canViewAll)
                 baseQuery = baseQuery.Where(t => t.UserId == currentUserId);
 
@@ -169,8 +167,6 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<InventoryTransaction?> GetById(int companyId, int transactionId)
         {
-            var cutoff = DateTime.UtcNow.AddDays(-30);
-
             return await _context.InventoryTransactions
                 .IgnoreQueryFilters()
                 .AsNoTracking()
