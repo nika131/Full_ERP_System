@@ -82,6 +82,7 @@ builder.Services.AddScoped<ICompanyJoinRequestService, CompanyJoinRequestService
 builder.Services.AddScoped<ICompanyJoinCodeService, CompanyJoinCodeService>();
 
 builder.Services.AddScoped<PosSessionValidator>();
+builder.Services.AddScoped<PosPinService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

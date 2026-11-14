@@ -19,6 +19,8 @@ namespace NexusERP.Infrastructure.Repositories
         {
             var minimumDate = startDate ?? DateTime.UtcNow.AddDays(-30);
 
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
             var baseQuery = _context.SystemAuditLogs
                 .IgnoreQueryFilters()
                 .Include(log => log.User)
@@ -62,7 +64,14 @@ namespace NexusERP.Infrastructure.Repositories
                 {
                     LogId = log.LogId,
                     UserId = log.UserId,
-                    Username = log.User != null ? log.User.Username : "Deleted User",
+                    Username = log.User != null &&
+                        (log.User.IsActive ||
+                         (log.User.DeletedAt.HasValue && log.User.DeletedAt > cutoff))
+                        ? log.User.Username : "Deleted user",
+                    UsernameDeletedRecently = log.User != null &&
+                        !log.User.IsActive &&
+                        log.User.DeletedAt.HasValue &&
+                        log.User.DeletedAt > cutoff,
                     EntityType = log.EntityType,
                     EntityId = log.EntityId,
                     Action = log.Action,
@@ -70,6 +79,39 @@ namespace NexusERP.Infrastructure.Repositories
                     CreatedAt = log.CreatedAt
                 })
                 .ToListAsync();
+
+
+            var userEntityIds = items
+                .Where(x => x.EntityType == "User")
+                .Select(x => x.EntityId)
+                .Distinct()
+                .ToArray();
+
+            if (userEntityIds.Length > 0)
+            {
+                var expiredUserIds = await _context.Users
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Where(u =>
+                        u.CompanyId == companyId &&
+                        userEntityIds.Contains(u.UserId) &&
+                        !u.IsActive &&
+                        (!u.DeletedAt.HasValue || u.DeletedAt <= cutoff))
+                    .Select(u => u.UserId)
+                    .ToArrayAsync();
+
+                var expiredSet = expiredUserIds.ToHashSet();
+
+                foreach (var item in items)
+                {
+                    if (item.EntityType == "User" &&
+                        expiredSet.Contains(item.EntityId))
+                    {
+                        item.ChangesMade =
+                            $"{item.Action} employee #{item.EntityId}";
+                    }
+                }
+            }
 
             bool hasMorePages = items.Count == fetchCount;
 

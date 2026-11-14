@@ -8,6 +8,7 @@ using NexusERP.Domain.Constants;
 using NexusERP.Domain.Entities;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Infrastructure.Database;
+using NexusERP.Infrastructure.Services;
 
 namespace NexusERP.Api.Controllers
 {
@@ -32,10 +33,12 @@ namespace NexusERP.Api.Controllers
     public class PosOnlyEmployeesController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
+        private readonly PosPinService _posPin;
 
-        public PosOnlyEmployeesController(ApplicationDbContext db)
+        public PosOnlyEmployeesController(ApplicationDbContext db, PosPinService posPin)
         {
             _db = db;
+            _posPin = posPin;
         }
 
         [HttpPost]
@@ -75,10 +78,11 @@ namespace NexusERP.Api.Controllers
                 FullName = fullName,
                 Username = username,
                 RoleId = role.RoleId,
-                PosPin = BCrypt.Net.BCrypt.HashPassword(dto.PosPin),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(Convert.ToHexString(RandomNumberGenerator.GetBytes(32))),
                 IsActive = true
             };
+
+            await _posPin.AssignAsync(user, dto.PosPin);
 
             _db.Users.Add(user);
             await _db.SaveChangesAsync();

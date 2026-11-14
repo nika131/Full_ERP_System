@@ -152,6 +152,18 @@ namespace NexusERP.Infrastructure.Database
                     .IsUnique()
                     .HasFilter("[AccountId] IS NOT NULL");
 
+                entity.Property(u => u.PosPinLookupHash)
+                    .HasMaxLength(64);
+
+                entity.HasIndex(u => new
+                {
+                    u.CompanyId,
+                    u.PosPinLookupHash
+                })
+                .IsUnique()
+                .HasDatabaseName("IX_Users_CompanyId_PosPinLookupHash")
+                .HasFilter("[IsActive] = 1 AND [PosPinLookupHash] IS NOT NULL");
+
                 entity.HasIndex(e => new
                 {
                     e.CompanyId,

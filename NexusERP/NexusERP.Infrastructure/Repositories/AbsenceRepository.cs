@@ -47,7 +47,7 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<IEnumerable<UserAbsence>> GetMyAbsencesAsync(int companyId, int userId)
         {
-            return await _context.UserAbsences
+            return await _context.UserAbsences.IgnoreQueryFilters()
                 .Include(a => a.User)
                 .Include(a => a.ReviewedBy)
                 .Where(a => a.CompanyId == companyId && a.UserId == userId)
@@ -58,7 +58,7 @@ namespace NexusERP.Infrastructure.Repositories
 
         public async Task<IEnumerable<UserAbsence>> GetPendingRequestsAsync(int companyId)
         {
-            return await _context.UserAbsences
+            return await _context.UserAbsences.IgnoreQueryFilters()
                 .Include(a => a.User)
                 .Where(a => a.CompanyId == companyId && a.Status == AbsenceStatus.Pending)
                 .AsNoTracking()

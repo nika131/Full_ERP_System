@@ -362,7 +362,15 @@ namespace NexusERP.Infrastructure.Repositories
                 {
                     ShiftId = s.ShiftId,
                     StoreName = s.Store!.Name,
-                    CashierName = s.User!.Username,
+                    CashierName = s.User != null &&
+                        (s.User.IsActive ||
+                         (s.User.DeletedAt.HasValue && s.User.DeletedAt > cutoff))
+                        ? s.User.Username : "Deleted user",
+
+                    CashierDeletedRecently = s.User != null &&
+                        !s.User.IsActive &&
+                        s.User.DeletedAt.HasValue &&
+                        s.User.DeletedAt > cutoff,
                     StartDate = s.StartDate,
                     EndDate = s.EndDate,
                     StartingCash = s.StartingCash,
@@ -407,7 +415,14 @@ namespace NexusERP.Infrastructure.Repositories
                     ReceiptId = r.ReceiptId,
                     ReceiptNumber = r.ReceiptNumber,
                     StoreName = r.Store!.Name,
-                    CashierName = r.User!.Username,
+                    CashierName = r.User != null &&
+                        (r.User.IsActive ||
+                         (r.User.DeletedAt.HasValue && r.User.DeletedAt > cutoff))
+                        ? r.User.Username : "Deleted user",
+                    CashierDeletedRecently = r.User != null &&
+                        !r.User.IsActive &&
+                        r.User.DeletedAt.HasValue &&
+                        r.User.DeletedAt > cutoff,
                     CreatedAt = r.CreatedAt,
                     SubTotal = r.SubTotal,
                     CartDiscountPercentage = r.CartDiscountPercentage,
@@ -430,6 +445,8 @@ namespace NexusERP.Infrastructure.Repositories
         public async Task<ShiftDetailsDto?> GetShiftDetailsAsync(
             int companyId, int shiftId)
         {
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
             var shift = await _context.Shifts
                 .IgnoreQueryFilters()
                 .AsNoTracking()
@@ -446,12 +463,16 @@ namespace NexusERP.Infrastructure.Repositories
                     Status = s.Status.ToString(),
                     StoreName = s.Store != null
                         ? s.Store.Name : "Unknown store",
-                    CashierName = s.User != null
-                        ? s.User.FullName : "Unknown employee"
+                    CashierName = s.User != null &&
+                        (s.User.IsActive ||
+                         (s.User.DeletedAt.HasValue && s.User.DeletedAt > cutoff))
+                        ? s.User.FullName : "Deleted user",
+                    CashierDeletedRecently = s.User != null &&
+                        !s.User.IsActive &&
+                        s.User.DeletedAt.HasValue &&
+                        s.User.DeletedAt > cutoff
                 })
                 .FirstOrDefaultAsync();
-
-
 
             if (shift == null) return null;
 
@@ -491,7 +512,14 @@ namespace NexusERP.Infrastructure.Repositories
                 {
                     MovementId = m.MovementId,
                     UserId = m.UserId,
-                    UserName = m.User != null ? m.User.FullName : null,
+                    UserName = m.User != null &&
+                        (m.User.IsActive ||
+                         (m.User.DeletedAt.HasValue && m.User.DeletedAt > cutoff))
+                        ? m.User.FullName : "Deleted user",
+                    UserDeletedRecently = m.User != null &&
+                        !m.User.IsActive &&
+                        m.User.DeletedAt.HasValue &&
+                        m.User.DeletedAt > cutoff,
                     MovementType = m.MovementType,
                     Amount = m.Amount,
                     Reason = m.Reason,
@@ -519,6 +547,7 @@ namespace NexusERP.Infrastructure.Repositories
                 CashierName = shift.CashierName,
                 Status = shift.Status,
                 StartDate = shift.StartDate,
+                CashierDeletedRecently = shift.CashierDeletedRecently,
                 EndDate = shift.EndDate,
                 StartingCash = shift.StartingCash,
                 ExpectedEndingCash = expectedCash,

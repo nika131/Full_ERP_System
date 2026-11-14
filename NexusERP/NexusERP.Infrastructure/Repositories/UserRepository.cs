@@ -6,16 +6,19 @@ using NexusERP.Domain.Entities;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Domain.Models;
 using NexusERP.Infrastructure.Database;
+using NexusERP.Infrastructure.Services;
 
 namespace NexusERP.Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {
         private readonly ApplicationDbContext _context;
+        private readonly PosPinService _posPins;
 
-        public UserRepository(ApplicationDbContext context)
+        public UserRepository(ApplicationDbContext context, PosPinService posPins)
         {
             _context = context;
+            _posPins = posPins;
         }
 
 
@@ -65,9 +68,10 @@ namespace NexusERP.Infrastructure.Repositories
             existingUser.FullName = user.FullName;
             existingUser.Username = user.Username;
             existingUser.RoleId = user.RoleId;
+
             if (!string.IsNullOrEmpty(user.PosPin))
             {
-                existingUser.PosPin = BCrypt.Net.BCrypt.HashPassword(user.PosPin);
+                await _posPins.AssignAsync(existingUser, user.PosPin);
             }
 
             var audit = new SystemAuditLog

@@ -21,7 +21,8 @@ namespace NexusERP.Domain.Entities
         public string PasswordHash { get; set; } = string.Empty;
 
         public string? PosPin { get; set; }
-        
+        public string? PosPinLookupHash { get; set; }
+
         public int RoleId { get; set; }
         public Role Role { get; set; }
 

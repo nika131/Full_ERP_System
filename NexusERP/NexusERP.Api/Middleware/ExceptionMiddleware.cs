@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NexusERP.Domain.Exceptions;
 using System;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
-using NexusERP.Domain.Exceptions;
 
 namespace NexusERP.Api.Middleware
 {
@@ -54,6 +55,18 @@ namespace NexusERP.Api.Middleware
                 case DbUpdateConcurrencyException e:
                     response.StatusCode = (int)HttpStatusCode.Conflict;
                     responseModel.Message = "Data was modified by another process. Please refresh and try again.";
+                    break;
+
+                case DbUpdateException e
+                    when e.InnerException is SqlException sql &&
+                         (sql.Number == 2601 || sql.Number == 2627) &&
+                         sql.Message.Contains(
+                             "IX_Users_CompanyId_PosPinLookupHash",
+                             StringComparison.Ordinal):
+
+                    response.StatusCode = StatusCodes.Status409Conflict;
+                    responseModel.Message =
+                        "This POS PIN is already assigned to another employee.";
                     break;
 
                 default:

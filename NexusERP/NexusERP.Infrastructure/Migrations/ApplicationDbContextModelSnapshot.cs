@@ -932,6 +932,10 @@ namespace NexusERP.Infrastructure.Migrations
                     b.Property<string>("PosPin")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PosPinLookupHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
@@ -951,6 +955,11 @@ namespace NexusERP.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "AccountId")
                         .IsUnique()
                         .HasFilter("[AccountId] IS NOT NULL");
+
+                    b.HasIndex("CompanyId", "PosPinLookupHash")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_CompanyId_PosPinLookupHash")
+                        .HasFilter("[IsActive] = 1 AND [PosPinLookupHash] IS NOT NULL");
 
                     b.HasIndex("CompanyId", "Username")
                         .IsUnique()

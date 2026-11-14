@@ -13,10 +13,12 @@ namespace NexusERP.Infrastructure.Services
     public class CompanyRegistrationService : ICompanyRegistrationService
     {
         private readonly ApplicationDbContext _context;
+        private readonly PosPinService _posPins;
 
-        public CompanyRegistrationService(ApplicationDbContext context)
+        public CompanyRegistrationService(ApplicationDbContext context, PosPinService posPins)
         {
             _context = context;
+            _posPins = posPins;
         }
 
         public async Task<CreateCompanyResultDto> CreateCompanyAsync(int accountId, CreateCompanyRequestDto dto)
@@ -94,11 +96,13 @@ namespace NexusERP.Infrastructure.Services
                     FullName = fullName,
                     Username = username,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(unusedLegacyPassword),
-                    PosPin = string.IsNullOrWhiteSpace(dto.PosPin)
-                        ? null
-                        : BCrypt.Net.BCrypt.HashPassword(dto.PosPin),
                     IsActive = true
                 };
+
+                if (!string.IsNullOrWhiteSpace(dto.PosPin))
+                {
+                    await _posPins.AssignAsync(adminUser, dto.PosPin);
+                }
 
                 _context.Users.Add(adminUser);
                 await _context.SaveChangesAsync();

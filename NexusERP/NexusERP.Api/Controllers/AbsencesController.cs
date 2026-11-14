@@ -8,6 +8,7 @@ using NexusERP.Domain.Entities;
 using NexusERP.Domain.Enums;
 using NexusERP.Domain.Exceptions;
 using static NexusERP.Application.DTOs.AbsenceDtos;
+using NexusERP.Domain.Helpers;
 
 namespace NexusERP.Api.Controllers
 {
@@ -85,11 +86,14 @@ namespace NexusERP.Api.Controllers
 
         private static LeaveResponseDto MapToResponseDto(UserAbsence a)
         {
+            var cutoff = DateTime.UtcNow.AddDays(-30);
+
             return new LeaveResponseDto
             {
                 AbsenceId = a.AbsenceId,
                 UserId = a.UserId,
-                EmployeeName = a.User?.FullName ?? "Unknown",
+                EmployeeName = DeletedUserDisplay.GetName(a.User, cutoff),
+                EmployeeDeletedRecently = DeletedUserDisplay.IsRecentlyDeleted(a.User, cutoff),
                 Type = a.Type.ToString(),
                 StartDate = a.StartDate,
                 EndDate = a.EndDate,
@@ -98,7 +102,11 @@ namespace NexusERP.Api.Controllers
                     : a.UpdatedAt,
                 Notes = a.Notes,
                 Status = a.Status.ToString(),
-                ReviewerName = a.ReviewedBy?.FullName,
+                ReviewerName = a.ReviewedBy == null
+                    ? null
+                    : DeletedUserDisplay.GetName(a.ReviewedBy, cutoff),
+                ReviewerDeletedRecently =
+                    DeletedUserDisplay.IsRecentlyDeleted(a.ReviewedBy, cutoff),
                 ReviewerComments = a.ReviewerComments,
                 CreatedAt = a.CreatedAt
             };

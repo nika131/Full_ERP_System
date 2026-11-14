@@ -386,19 +386,41 @@ export function SalesLedger({ filters }: { filters: DashboardFilters }) {
                     {detail.lines.map(l => (
                       <div key={l.itemId} className="flex justify-between gap-4">
                         <div>
-                          <span
-                            className="ml-1 inline-flex cursor-help align-middle text-slate-400"
-                            title="This product was deleted and its name will be hidden after 30 days."
-                          >
-                            <Info size={14} />
-                          </span>
-                          <p className="text-xs text-slate-500">{l.quantity} × {money(l.unitPrice)}</p>
-                          {l.marketDiscountPercentage > 0 && <p className="text-xs text-amber-700">Market discount {l.marketDiscountPercentage}%</p>}
-                          {l.manualItemDiscountPercentage > 0 && <p className="text-xs text-amber-700">Manual discount {l.manualItemDiscountPercentage}%</p>}
+                          <p className="font-semibold text-slate-800">
+                            {l.productName}
+                            {l.productDeletedRecently && (
+                              <span
+                                className="ml-1 inline-flex cursor-help align-middle text-slate-400"
+                                title="This product was deleted. Its name will be hidden after 30 days."
+                              >
+                                <Info size={14} />
+                              </span>
+                            )}
+                          </p>
+
+                          <p className="text-xs text-slate-500">
+                            {l.quantity} × {money(l.unitPrice)}
+                          </p>
+
+                          {l.marketDiscountPercentage > 0 && (
+                            <p className="text-xs text-amber-700">
+                              Market discount {l.marketDiscountPercentage}%
+                            </p>
+                          )}
+
+                          {l.manualItemDiscountPercentage > 0 && (
+                            <p className="text-xs text-amber-700">
+                              Manual discount {l.manualItemDiscountPercentage}%
+                            </p>
+                          )}
                         </div>
-                        <span className="shrink-0 font-semibold text-slate-800">{money(l.lineTotal)}</span>
+
+                        <span className="shrink-0 font-semibold text-slate-800">
+                          {money(l.lineTotal)}
+                        </span>
                       </div>
                     ))}
+
                   </div>
                   <div className="space-y-2">
                     <SummaryRow label="Original subtotal" value={detail.subTotal} />
