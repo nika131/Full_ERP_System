@@ -12,8 +12,8 @@ namespace NexusERP.Api.Controllers;
 
 public sealed class SalesLedgerQuery
 {
-    public DateTime? FromUtc { get; set; }
-    public DateTime? ToUtcExclusive { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     public TimeSpan? StartHour { get; set; }
     public TimeSpan? EndHour { get; set; }
     public string TimeZoneId { get; set; } = "UTC";
@@ -55,10 +55,13 @@ public sealed class SalesLedgerController : ControllerBase
     private static IQueryable<Receipt> ApplyReceiptFilters(
         IQueryable<Receipt> receipts, SalesLedgerQuery filter)
     {
-        if (filter.FromUtc.HasValue)
-            receipts = receipts.Where(r => r.CreatedAt >= filter.FromUtc.Value);
-        if (filter.ToUtcExclusive.HasValue)
-            receipts = receipts.Where(r => r.CreatedAt < filter.ToUtcExclusive.Value);
+        var zone = ReportingTime.Resolve(filter.TimeZoneId);
+        var startUtc = ReportingTime.StartUtc(filter.StartDate, zone);
+        var endUtc = ReportingTime.EndUtcExclusive(filter.EndDate, zone);
+        if (startUtc.HasValue)
+            receipts = receipts.Where(r => r.CreatedAt >= startUtc.Value);
+        if (endUtc.HasValue)
+            receipts = receipts.Where(r => r.CreatedAt < endUtc.Value);
         if (filter.StoreIds is { Length: > 0 })
             receipts = receipts.Where(r => filter.StoreIds.Contains(r.StoreId));
         if (filter.EmployeeIds is { Length: > 0 })
@@ -67,7 +70,7 @@ public sealed class SalesLedgerController : ControllerBase
         // AT TIME ZONE uses the offset valid at each sale's instant, including DST.
         if (filter.StartHour.HasValue || filter.EndHour.HasValue)
         {
-            var sqlZone = ReportingTime.SqlZone(ReportingTime.Resolve(filter.TimeZoneId));
+            var sqlZone = ReportingTime.SqlZone(zone);
             if (filter.StartHour.HasValue)
                 receipts = receipts.Where(r =>
                     EF.Functions.AtTimeZone(EF.Functions.AtTimeZone(r.CreatedAt, "UTC"), sqlZone).TimeOfDay >= filter.StartHour.Value);

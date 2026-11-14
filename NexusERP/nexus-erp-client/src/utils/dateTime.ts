@@ -7,7 +7,7 @@ export function localCalendarDate(date: Date): string {
 }
 export function localCalendarDisplay(value: string): string {
   const date = value.slice(0, 10);
-  return new Date(`${date}T12:00:00`).toLocaleDateString();
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC' });
 }
 export function deviceTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;

@@ -78,24 +78,14 @@ function dateTime(value: string) {
   });
 }
 
-function localMidnightUtc(day: string | null, addDay = false) {
-  if (!day) return null;
-  const local = new Date(`${day}T00:00:00`);
-  if (!Number.isFinite(local.getTime())) return null;
-  if (addDay) local.setDate(local.getDate() + 1);
-  return local.toISOString();
-}
-
 function salesParams(filters: DashboardFilters, productIds: number[], search: string, page: number) {
   const params = new URLSearchParams();
   params.set('page', String(page));
   params.set('pageSize', '10');
   params.set('timeZoneId', filters.timeZoneId);
 
-  const fromUtc = localMidnightUtc(filters.startDate);
-  const toUtcExclusive = localMidnightUtc(filters.endDate, true);
-  if (fromUtc) params.set('fromUtc', fromUtc);
-  if (toUtcExclusive) params.set('toUtcExclusive', toUtcExclusive);
+  if (filters.startDate) params.set('startDate', filters.startDate);
+  if (filters.endDate) params.set('endDate', filters.endDate);
   if (filters.startHour) params.set('startHour', filters.startHour);
   if (filters.endHour) params.set('endHour', filters.endHour);
 
