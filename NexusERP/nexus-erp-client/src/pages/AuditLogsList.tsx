@@ -8,6 +8,7 @@ import DatePicker from "react-datepicker";
 import { useUrlCursor } from '../hooks/useUrlCursor';
 import "react-datepicker/dist/react-datepicker.css";
 import { HistoricalUserName } from '../components/Ui/HistoricalUserName';
+import { localCalendarDate, localInstantDisplay } from '../utils/dateTime';
 
 export default function AuditLogsList() {
     const [searchTerm] = useUrlString('search');
@@ -21,8 +22,8 @@ export default function AuditLogsList() {
     const cursor = useUrlCursor();
     const currentCursor = { createdAt: cursor.cursor.createdAt, logId: cursor.cursor.id };
 
-    const formattedStart = startDate ? startDate.toISOString().split('T')[0] : '';
-    const formattedEnd = endDate ? endDate.toISOString().split('T')[0] : '';
+    const formattedStart = from || '';
+    const formattedEnd = to || '';
 
     const { data, isLoading } = useAuditLogsQuery(
         10,
@@ -41,7 +42,7 @@ export default function AuditLogsList() {
     const handlePrevious = () => cursor.previous();
 
     const columns = useMemo<ColumnDef<AuditLog>[]>(() => [
-        { header: 'Date', accessor: 'createdAt', render: (l) => new Date(l.createdAt).toLocaleString() },
+        { header: 'Date', accessor: 'createdAt', render: (l) => localInstantDisplay(l.createdAt) },
         { header: 'UserId', accessor: 'userId' },
         { 
             header: 'UserName', 
@@ -84,7 +85,7 @@ export default function AuditLogsList() {
                         startDate={startDate}
                         endDate={endDate}
                         onChange={(update: [Date | null, Date | null]) => {
-                            patch({ from: update[0] ? update[0].toISOString().slice(0,10) : null, to: update[1] ? update[1].toISOString().slice(0,10) : null, cursorTrail: null, cursorPage: null });
+                            patch({ from: update[0] ? localCalendarDate(update[0]) : null, to: update[1] ? localCalendarDate(update[1]) : null, cursorTrail: null, cursorPage: null });
                         }}
                         maxDate={new Date()}
                         placeholderText="Select date range..."

@@ -30,6 +30,7 @@ export const dashboaredService = {
         if (lastTransactionId !== null) params.append('lastTransactionId', lastTransactionId.toString());
         if (searchTerm !== null) params.append('searchTerm', searchTerm);
 
+        params.append('timeZoneId', filters.timeZoneId);
         if (filters.startDate) params.append('startDate', filters.startDate);
         if (filters.endDate) params.append('endDate', filters.endDate);
 

@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
+import { localCalendarDate, localCalendarDisplay } from '../../utils/dateTime';
 import { Permissions } from '../../constants/permissions';
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { EmployeeResponse } from "../../types/employee";
@@ -17,7 +18,7 @@ export const SalaryForm = ({ employee, onSuccess }: { employee: EmployeeResponse
         resolver: zodResolver(salaryRecordSchema),
         defaultValues: {
             amount: 0,
-            effectiveDate: new Date().toISOString().split('T')[0],
+            effectiveDate: localCalendarDate(new Date()),
             notes: ''
         }
     });
@@ -94,7 +95,7 @@ export const SalaryForm = ({ employee, onSuccess }: { employee: EmployeeResponse
                             {salaryHistory.map(record => (
                                 <tr key={record.salaryRecordId}>
                                     <td className="p-2 font-medium text-emerald-600">${record.amount.toLocaleString()}</td>
-                                    <td className="p-2">{new Date(record.effectiveDate).toLocaleDateString()}</td>
+                                    <td className="p-2">{localCalendarDisplay(record.effectiveDate)}</td>
                                     <td className="p-2 text-slate-500">{record.notes || '-'}</td>
                                 </tr>
                             ))}

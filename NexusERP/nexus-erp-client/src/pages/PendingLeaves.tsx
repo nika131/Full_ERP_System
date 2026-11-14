@@ -1,3 +1,4 @@
+import { localCalendarDisplay } from '../utils/dateTime';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRecentLeavesQuery, useReviewLeaveMutation } from '../hooks/queries/usePendingLeavesQueries';
@@ -53,7 +54,7 @@ export default function PendingLeaves() {
         {
             header: 'Dates',
             accessor: 'startDate',
-            render: r => `${new Date(r.startDate).toLocaleDateString()} - ${new Date(r.endDate).toLocaleDateString()}`
+            render: r => `${localCalendarDisplay(r.startDate)} - ${localCalendarDisplay(r.endDate)}`
         },
         { header: 'Status', accessor: 'status' },
         {

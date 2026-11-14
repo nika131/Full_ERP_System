@@ -90,7 +90,7 @@ function salesParams(filters: DashboardFilters, productIds: number[], search: st
   const params = new URLSearchParams();
   params.set('page', String(page));
   params.set('pageSize', '10');
-  params.set('utcOffsetMinutes', String(new Date().getTimezoneOffset()));
+  params.set('timeZoneId', filters.timeZoneId);
 
   const fromUtc = localMidnightUtc(filters.startDate);
   const toUtcExclusive = localMidnightUtc(filters.endDate, true);
