@@ -14,11 +14,23 @@ export function CompanySelectionScreen() {
   const [error, setError] = useState("");
 
   const load = async () => {
-    setLoading(true); setError("");
-    try { setCompanies(await getCompanies()); }
-    catch (err) { setError(getErrorMessage(err)); }
-    finally { setLoading(false); }
+    setLoading(true);
+    setError("");
+
+    try {
+      const companies = await getCompanies();
+      setCompanies(companies);
+
+      if (companies.length === 1) {
+        await selectCompany(companies[0].companyId);
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
+
   useEffect(() => { void load(); }, []);
 
   const choose = async (id: number) => {
@@ -49,9 +61,9 @@ export function CompanySelectionScreen() {
           <ActivityIndicator color="#059669" /> : companies.length === 0 ?
           <View className="gap-3 rounded-xl bg-amber-50 p-4">
             <Text className="text-sm text-slate-700">
-              You don't have a company yet.
-              Create your own company or ask an administrator
-              to approve your membership.
+              You don't have a company available for POS activation. 
+              Create your own company or ask an administrator 
+              to grant you POS activation permission.
             </Text>
 
             <Pressable

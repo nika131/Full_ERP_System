@@ -4,6 +4,7 @@ using NexusERP.Application.DTOs;
 using NexusERP.Application.Interfaces.Services;
 using NexusERP.Domain.Exceptions;
 using NexusERP.Infrastructure.Database;
+using NexusERP.Domain.Constants;
 
 namespace NexusERP.Infrastructure.Services
 {
@@ -20,27 +21,33 @@ namespace NexusERP.Infrastructure.Services
 
         public async Task<List<MyCompanyDto>> GetMyCompaniesAsync(int accountId)
         {
-            return await _context.Users
+            var memberships = await _context.Users
                 .AsNoTracking()
+                .Include(u => u.Company)
+                .Include(u => u.Role)
                 .Where(u =>
                     u.AccountId == accountId &&
                     u.IsActive &&
                     u.Company.IsActive &&
                     u.Role.IsActive &&
-                    u.Role.CompanyId == u.CompanyId
-                )
+                    u.Role.CompanyId == u.CompanyId)
                 .OrderBy(u => u.Company.Name)
-                .Select(u => new MyCompanyDto
-                {
-                    CompanyId = u.CompanyId,
-                    CompanyName = u.Company.Name,
-                    UserId = u.UserId,
-                    FullName = u.FullName,
-                    Username = u.Username,
-                    RoleId = u.RoleId,
-                    RoleName = u.Role.Name
-                })
                 .ToListAsync();
+
+            return memberships.Select(u => new MyCompanyDto
+            {
+                CompanyId = u.CompanyId,
+                CompanyName = u.Company.Name,
+                UserId = u.UserId,
+                FullName = u.FullName,
+                Username = u.Username,
+                RoleId = u.RoleId,
+                RoleName = u.Role.Name,
+
+                CanActivatePos =
+                    u.Role.Permissions.Contains(Permissions.ActivatePos) &&
+                    u.Role.Permissions.Contains(Permissions.ViewPos)
+            }).ToList();
         }
 
         public async Task<SelectCompanyResponseDto> SelectCompanyAsync(int accountId, Guid sessionId, int companyId)

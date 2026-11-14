@@ -71,7 +71,7 @@ export const posSession = {
     refreshPromise = (async () => {
       const refreshToken = await get(KEYS.refresh);
       if (!refreshToken) throw new Error("Sign in again to activate this terminal.");
-      const { data } = await accountHttp.post<{ accessToken: string; refreshToken: string }>("/account-auth/refresh", { refreshToken });
+      const { data } = await accountHttp.post<{ accessToken: string; refreshToken: string }>("/account-auth/refresh", { refreshToken, clientType: "POS" });
       await posSession.setAccount(data.accessToken, data.refreshToken);
       return data.accessToken;
     })().finally(() => { refreshPromise = null; });
@@ -98,17 +98,26 @@ export const posSession = {
       const companyId = await posSession.getCompanyId();
       if (!companyId) throw new Error("Select a company first.");
       const refreshed = await posSession.selectCompany(companyId);
-      const active = await get(KEYS.active);
-      if (!active || tokenType(active) === "company") await put(KEYS.active, refreshed);
       return refreshed;
     })().finally(() => { companyPromise = null; });
     return companyPromise;
   },
   logout: async () => {
     try {
-      const token = await posSession.accountAccess();
-      await accountHttp.post("/account-auth/logout", {}, { headers: { Authorization: `Bearer ${token}` } });
-    } finally { await posSession.clearAll(); }
+      const refreshToken = await get(KEYS.refresh);
+
+      if (refreshToken) {
+        await accountHttp.post(
+          "/account-auth/logout",
+          {
+            refreshToken,
+            clientType: "POS"
+          }
+        );
+      }
+    } finally {
+      await posSession.clearAll();
+    }
   },
 };
 

@@ -283,13 +283,6 @@ builder.Services.AddAuthentication()
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("RequireProductUpsert", policy => policy.RequireClaim("Permission", Permissions.UpsertProducts));
-    options.AddPolicy("RequireProductDelete", policy => policy.RequireClaim("Permission", Permissions.DeleteProducts));
-
-    options.AddPolicy("RequireManageCategories", policy => policy.RequireClaim("Permission", Permissions.ManageCategories));
-    options.AddPolicy("RequireManageSuppliers", policy => policy.RequireClaim("Permission", Permissions.ManageSuppliers));
-
-    options.AddPolicy("RequireManageUsers", policy => policy.RequireClaim("Permission", Permissions.ManageUsers));
     options.AddPolicy("RequireViewAuditLogs", policy => policy.RequireClaim("Permission", Permissions.ViewAuditLogs));
     options.AddPolicy("RequireViewDashboard", policy => policy.RequireClaim("Permission", Permissions.ViewDashboard));
 
@@ -424,35 +417,7 @@ using (var scope = app.Services.CreateScope())
             admin.Permissions = canonicalPermissions.ToList();
     }
 
-    // Migrate old broad privileges to their equivalent granular privileges, without editing role names.
-    var legacyMap = new Dictionary<string, string[]>
-    {
-        [Permissions.UpsertProducts] = new[] { Permissions.CreateProducts, Permissions.EditProducts },
-        [Permissions.ManageCategories] = new[] { Permissions.ViewCategories, Permissions.CreateCategories, Permissions.EditCategories, Permissions.DeleteCategories },
-        [Permissions.ManageSuppliers] = new[] { Permissions.ViewSuppliers, Permissions.CreateSuppliers, Permissions.EditSuppliers, Permissions.DeleteSuppliers },
-        [Permissions.ManageUsers] = new[] { Permissions.ViewUsers, Permissions.CreateUsers, Permissions.EditUsers, Permissions.DeleteUsers, Permissions.ManageRoles, Permissions.AssignRoles, Permissions.ManageJoinRequests, Permissions.ManageJoinCodes, Permissions.ViewSalary, Permissions.ManageSalary },
-    };
-    foreach (var role in dbContext.Roles.Where(r => !r.IsSystemRole && r.IsActive).ToList())
-    {
-        var updated = role.Permissions.ToHashSet(StringComparer.Ordinal);
-        foreach (var entry in legacyMap)
-        {
-            if (updated.Remove(entry.Key))
-                updated.UnionWith(entry.Value);
-        }
-        // Pre-existing roles remain useful with the newly separated read/view policies.
-        if (updated.Contains(Permissions.PerformSales)) updated.Add(Permissions.ViewPos);
-        if (updated.Contains(Permissions.ManageShifts) || updated.Contains(Permissions.OpenCloseShift))
-        {
-            updated.Add(Permissions.ViewShifts);
-            updated.Add(Permissions.ViewPos);
-        }
-        if (updated.Contains(Permissions.ViewAllTransactions)) updated.Add(Permissions.ViewReceipts);
-        if (updated.Overlaps(new[] { Permissions.CreateProducts, Permissions.EditProducts, Permissions.DeleteProducts }))
-            updated.Add(Permissions.ViewProducts);
-        if (!role.Permissions.ToHashSet(StringComparer.Ordinal).SetEquals(updated))
-            role.Permissions = updated.OrderBy(p => p).ToList();
-    }
+    
 
     // Seed missing editable starter roles once; do not overwrite customized roles.
     foreach (int companyId in dbContext.Companies.Select(c => c.CompanyId).ToList())

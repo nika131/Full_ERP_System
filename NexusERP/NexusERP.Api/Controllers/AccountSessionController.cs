@@ -32,14 +32,72 @@ namespace NexusERP.Api.Controllers
             _env = env;
         }
 
-        private bool HasTrustedOrigin()
+        private bool IsTrustedRequest(string clientType)
         {
-            var origin = Request.Headers["Origin"].ToString();
+            string origin = Request.Headers.Origin.ToString();
 
-            return TrustedOrigins.Contains(
-                origin,
-                StringComparer.Ordinal
-            );
+            if (clientType == "Web")
+            {
+                return TrustedOrigins.Contains(
+                    origin,
+                    StringComparer.Ordinal
+                );
+            }
+
+            if (clientType == "POS")
+            {
+                // Native Android/iOS requests normally have no Origin.
+                if (string.IsNullOrWhiteSpace(origin))
+                    return true;
+
+                // Allow POS testing through Expo Web locally.
+                if (_env.IsDevelopment())
+                {
+                    return origin == "http://localhost:8081" ||
+                           origin == "http://127.0.0.1:8081";
+                }
+
+                return false;
+            }
+
+            return false;
+        }
+
+        private string? GetRefreshToken(RefreshAccountSessionDto dto)
+        {
+            if (dto.ClientType == "POS")
+                return dto.RefreshToken;
+
+            return Request.Cookies.TryGetValue(CookieName, out var token)
+                ? token
+                : null;
+        }
+
+        private IActionResult SessionResponse(
+            AccountSessionResponseDto result,
+            string clientType)
+        {
+            if (clientType == "POS")
+            {
+                return Ok(new
+                {
+                    result.Message,
+                    result.AccessToken,
+                    result.RefreshToken,
+                    result.AccessTokenExpiresAt,
+                    result.RefreshTokenExpiresAt
+                });
+            }
+
+            SetRefreshCookie(result);
+
+            return Ok(new
+            {
+                result.Message,
+                result.AccessToken,
+                result.AccessTokenExpiresAt,
+                result.RefreshTokenExpiresAt
+            });
         }
 
         private CookieOptions GetCookieOptions(DateTime? expires = null)
@@ -70,75 +128,70 @@ namespace NexusERP.Api.Controllers
             );
         }
 
-        private IActionResult SessionResponse(AccountSessionResponseDto result)
-        {
-            // Never return the refresh token in JSON.
-            return Ok(new
-            {
-                result.Message,
-                result.AccessToken,
-                result.AccessTokenExpiresAt,
-                result.RefreshTokenExpiresAt
-            });
-        }
+
 
         [HttpPost("login")]
         [AllowAnonymous]
         [EnableRateLimiting("AuthPolicy")]
-        public async Task<IActionResult> Login([FromBody] AccountLoginDto dto)
+        public async Task<IActionResult> Login(
+            [FromBody] AccountLoginDto dto)
         {
-            if (!HasTrustedOrigin())
+            if (!IsTrustedRequest(dto.ClientType))
                 return StatusCode(403, new { message = "Untrusted origin." });
 
             var result = await _service.LoginAsync(dto);
 
-            SetRefreshCookie(result);
-
-            return SessionResponse(result);
+            return SessionResponse(result, dto.ClientType);
         }
 
         [HttpPost("refresh")]
         [AllowAnonymous]
         [EnableRateLimiting("AuthPolicy")]
-        public async Task<IActionResult> Refresh()
+        public async Task<IActionResult> Refresh(
+            [FromBody] RefreshAccountSessionDto dto)
         {
-            if (!HasTrustedOrigin())
+            if (!IsTrustedRequest(dto.ClientType))
                 return StatusCode(403, new { message = "Untrusted origin." });
 
-            if (!Request.Cookies.TryGetValue(CookieName, out var token)
-                || string.IsNullOrWhiteSpace(token))
-            {
+            string? token = GetRefreshToken(dto);
+
+            if (string.IsNullOrWhiteSpace(token))
                 return Unauthorized(new { message = "No active session." });
-            }
 
             var result = await _service.RefreshAsync(
                 new RefreshAccountSessionDto
                 {
-                    RefreshToken = token
+                    RefreshToken = token,
+                    ClientType = dto.ClientType
                 }
             );
 
-            SetRefreshCookie(result);
-
-            return SessionResponse(result);
+            return SessionResponse(result, dto.ClientType);
         }
 
         [HttpPost("logout")]
         [AllowAnonymous]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout(
+            [FromBody] RefreshAccountSessionDto dto)
         {
-            if (!HasTrustedOrigin())
+            if (!IsTrustedRequest(dto.ClientType))
                 return StatusCode(403, new { message = "Untrusted origin." });
 
-            if (Request.Cookies.TryGetValue(CookieName, out var token) &&
-                !string.IsNullOrWhiteSpace(token))
+            string? token = GetRefreshToken(dto);
+
+            if (!string.IsNullOrWhiteSpace(token))
             {
-                await _service.LogoutByRefreshTokenAsync(token);
+                await _service.LogoutByRefreshTokenAsync(
+                    token,
+                    dto.ClientType
+                );
             }
 
-            Response.Cookies.Delete(CookieName, GetCookieOptions());
+            if (dto.ClientType == "Web")
+                Response.Cookies.Delete(CookieName, GetCookieOptions());
 
             return Ok(new { message = "Logged out successfully." });
         }
+
     }
 }

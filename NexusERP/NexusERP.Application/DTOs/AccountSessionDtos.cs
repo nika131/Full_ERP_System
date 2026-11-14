@@ -10,12 +10,18 @@ namespace NexusERP.Application.DTOs
 
         [Required]
         public string Password { get; set; } = string.Empty;
+
+        [Required, RegularExpression("^(Web|POS)$")]
+        public string ClientType { get; set; } = "Web";
     }
 
     public class RefreshAccountSessionDto
     {
-        [Required, StringLength(256, MinimumLength = 20)]
-        public string RefreshToken { get; set; } = string.Empty;
+        [StringLength(256)]
+        public string? RefreshToken { get; set; }
+
+        [Required, RegularExpression("^(Web|POS)$")]
+        public string ClientType { get; set; } = "Web";
     }
 
     public class AccountSessionResponseDto
@@ -26,4 +32,6 @@ namespace NexusERP.Application.DTOs
         public DateTime AccessTokenExpiresAt { get; set; }
         public DateTime RefreshTokenExpiresAt { get; set; }
     }
+
+
 }

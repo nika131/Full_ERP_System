@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { DeviceEventEmitter } from "react-native";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+import { AppState, DeviceEventEmitter } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
-import { authService, type PosCompany } from "../api/authService";
+import { authService, verifyPosActivation, type PosCompany } from "../api/authService";
 import { posSession, tokenExpiresSoon } from "../api/posSession";
 import { decodeToken } from "../utils/jwt";
 import type { AuthUser } from "../types";
@@ -33,52 +33,158 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearCart = useCartStore(s => s.clear);
   const queryClient = useQueryClient();
 
+  const [posUserCount, setPosUserCount] = useState<number | null>(null);
+  const sessionVersion = useRef(0);
+  const wasBackgrounded = useRef(false);
+
   const resetCashierData = useCallback(() => {
     queryClient.clear();
     clearCart();
     usePosLayoutStore.getState().reset();
   }, [queryClient, clearCart]);
 
+  const lockCashier = useCallback(
+    async (failedToken?: string) => {
+      const current = await posSession.getActive();
+
+      // Ignore errors from a previously active cashier.
+      if (failedToken && current !== failedToken) {
+        return;
+      }
+
+      sessionVersion.current += 1;
+
+      await posSession.clearActive();
+      resetCashierData();
+      setUser(null);
+
+      // Do not change accountAuthenticated or companyId.
+      // Do not clear the selected store.
+    },
+    [resetCashierData]
+  );
+
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       try {
-        await posSession.accountAccess(); // refresh and validate Account session
+        await posSession.accountAccess();
+
         if (cancelled) return;
         setAccountAuthenticated(true);
+
         const storedId = await posSession.getCompanyId();
+
         if (storedId) {
-          const owner = await posSession.ownerCompanyAccess();
-          let active = await posSession.getActive();
-          if (!active || tokenExpiresSoon(active, 0)) {
-            active = owner; // stale PIN session never silently re-authenticates as that cashier
-            await posSession.setActive(owner);
+          try {
+            const owner = await posSession.ownerCompanyAccess();
+
+            // Check that the saved activator is still authorized.
+            // getPosStatus requires POS.Activate.
+            const status = await authService.getPosStatus();
+
+            // Never restore an old PIN session automatically.
+            await posSession.clearActive();
+
+            if (cancelled) return;
+
+            setCompanyId(storedId);
+            setPosUserCount(status.posUserCount);
+
+            const ownerUser = decodeToken(owner);
+
+            if (
+              status.posUserCount === 1 &&
+              ownerUser?.userId === status.soleUserId
+            ) {
+              // Exactly one user: no PIN necessary.
+              await posSession.setActive(owner);
+              if (!cancelled) setUser(ownerUser);
+            } else {
+              // Multiple users: PIN required.
+              setUser(null);
+            }
+          } catch {
+            // Saved company activation is no longer valid.
+            // Preserve email login; allow company selection.
+            await posSession.clearCompany();
+
+            if (!cancelled) {
+              setCompanyId(null);
+              setUser(null);
+              setPosUserCount(null);
+            }
           }
-          if (cancelled) return;
-          setCompanyId(storedId);
-          setUser(decodeToken(active));
         }
       } catch {
         await posSession.clearAll();
-      } finally { if (!cancelled) setIsLoading(false); }
+
+        if (!cancelled) {
+          setAccountAuthenticated(false);
+          setCompanyId(null);
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     })();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener("tenexerp-pos-session-lost", () => {
-      void (async () => {
-        await posSession.clearAll();
-        resetCashierData();
-        await useTerminalStore.getState().clearStore();
-        useTerminalStore.getState().reset();
-        setAccountAuthenticated(false);
-        setCompanyId(null);
-        setUser(null);
-      })();
-    });
+    const subscription = AppState.addEventListener(
+      "change",
+      state => {
+        if (state === "background") {
+          wasBackgrounded.current = true;
+
+          if (companyId && posUserCount !== 1) {
+            void lockCashier();
+          }
+        }
+
+        if (
+          state === "active" &&
+          wasBackgrounded.current
+        ) {
+          wasBackgrounded.current = false;
+
+          // If the company previously had only one user,
+          // check whether another POS user has been added.
+          if (companyId && posUserCount === 1) {
+            void authService.getPosStatus()
+              .then(status => {
+                setPosUserCount(status.posUserCount);
+
+                if (status.posUserCount !== 1) {
+                  void lockCashier();
+                }
+              })
+              .catch(() => {
+                void lockCashier();
+              });
+          }
+        }
+      }
+    );
+
     return () => subscription.remove();
-  }, [resetCashierData]);
+  }, [companyId, posUserCount, lockCashier]);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      "tenexerp-pos-cashier-locked",
+      (failedToken?: string) => {
+        void lockCashier(failedToken);
+      }
+    );
+
+    return () => subscription.remove();
+  }, [lockCashier]);
 
   const login = useCallback(async (email: string, password: string) => {
     await authService.loginAccount(email, password);
@@ -90,19 +196,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const selectCompany = useCallback(async (id: number) => {
     const token = await authService.selectCompany(id);
+    const status = await authService.getPosStatus();
+
     resetCashierData();
     await useTerminalStore.getState().clearStore(id);
     useTerminalStore.getState().reset();
+
     setCompanyId(id);
+    setPosUserCount(status.posUserCount);
     setUser(decodeToken(token));
   }, [resetCashierData]);
 
   const getCompanies = useCallback(() => authService.getCompanies(), []);
 
   const switchUser = useCallback(async (userId: number, pin: string) => {
+    const version = sessionVersion.current;
+
     const token = await authService.switchCashier(userId, pin);
+
+    if (
+      version !== sessionVersion.current ||
+      AppState.currentState === "background"
+    ) {
+      if ((await posSession.getActive()) === token) {
+        await posSession.clearActive();
+      }
+      throw new Error("POS was locked. Enter the PIN again.");
+    }
+
+    const cashier = decodeToken(token);
+
+    if (!cashier) {
+      await posSession.clearActive();
+      throw new Error("Invalid cashier session.");
+    }
+
     resetCashierData();
-    setUser(decodeToken(token));
+    setUser(cashier);
   }, [resetCashierData]);
 
   const switchCompany = useCallback(async () => {

@@ -14,6 +14,7 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { colors } from "./src/theme/colors";
 import { StorePickerView } from "./src/features/shift/ShiftViews";
 import { AppScreen } from "./src/components/layout/AppScreen";
+import { CashierUnlockScreen } from "./src/screens/CashierUnlockScreen";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -30,7 +31,14 @@ function AppContent() {
     return <View style={styles.splash}><ActivityIndicator color={colors.emerald600} size="large" /></View>;
 
   if (!accountAuthenticated) return <LoginScreen />;
-  if (!companyId || !user) return <CompanySelectionScreen />;
+
+  if (!companyId) {
+    return <CompanySelectionScreen />;
+  }
+
+  if (!user) {
+    return <CashierUnlockScreen />;
+  }
 
   if (!storeId) {
     return (

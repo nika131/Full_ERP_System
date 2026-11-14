@@ -13,7 +13,7 @@ export const Permissions = {
   ApplyItemDiscount: 'Transactions.ApplyItemDiscount', ApplyCartDiscount: 'Transactions.ApplyCartDiscount',
   EditTransaction: 'Transactions.Edit', DeleteTransaction: 'Transactions.Delete',
   OpenCloseShift: 'Shifts.OpenClose', PerformCashMovements: 'Shifts.CashMovements', ManageShifts: 'Shifts.Manage',
-  ViewPos: 'POS.View', ManagePosLayout: 'POS.ManageLayout',
+  ViewPos: 'POS.View', ManagePosLayout: 'POS.ManageLayout', ActivatePos: 'POS.Activate',
 } as const;
 
 // Names shown to admins; the database persists only the stable strings above.
@@ -25,6 +25,6 @@ export const PermissionGroups: Record<string, { permission: string; label: strin
   Dashboard: [{permission:Permissions.ViewDashboard,label:'View overview, statistics and charts'}],
   'Reports & Shifts': [['ViewOwnTransactions','View own transactions'],['ViewAllTransactions','View all transactions'],['ViewShifts','View shift history'],['ViewReceipts','View receipts'],['ExportExcelTransactions','Export reports'],['OpenCloseShift','Open and close shifts'],['PerformCashMovements','Cash movements'],['ManageShifts','Manage shifts']].map(([key,label])=>({permission:Permissions[key as keyof typeof Permissions],label})),
   'Employees & Access': [['ViewUsers','View employees'],['CreateUsers','Create employees'],['EditUsers','Edit employees'],['DeleteUsers','Remove employees'],['ManageRoles','Create, edit and delete roles'],['AssignRoles','Assign non-system roles to employees'],['ManageJoinRequests','Review join requests'],['ManageJoinCodes','Regenerate join codes'],['ViewSalary','View employee salaries'],['ManageSalary','Manage employee salaries']].map(([key,label])=>({permission:Permissions[key as keyof typeof Permissions],label})),
-  'POS & Inventory': [['ViewPos','View POS'],['PerformSales','Perform sales'],['PerformInboundTransactions','Record inbound transactions'],['ApplyItemDiscount','Apply item discounts'],['ApplyCartDiscount','Apply cart discounts'],['ManagePosLayout','Edit POS layout']].map(([key,label])=>({permission:Permissions[key as keyof typeof Permissions],label})),
+  'POS & Inventory': [['ViewPos','View POS'], ['ActivatePos','Activate POS'],['PerformSales','Perform sales'],['PerformInboundTransactions','Record inbound transactions'],['ApplyItemDiscount','Apply item discounts'],['ApplyCartDiscount','Apply cart discounts'],['ManagePosLayout','Edit POS layout']].map(([key,label])=>({permission:Permissions[key as keyof typeof Permissions],label})),
   'Absences & Settings': [['ViewAbsences','View own absences'],['RequestAbsences','Request absences'],['ManageAbsences','Review absences'],['ViewSettings','Read system settings'],['ManageSettings','Change system settings'],['ViewAuditLogs','View audit logs']].map(([key,label])=>({permission:Permissions[key as keyof typeof Permissions],label})),
 };

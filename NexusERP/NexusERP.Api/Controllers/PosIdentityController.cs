@@ -117,5 +117,49 @@ namespace NexusERP.Api.Controllers
 
             return Ok(new { message = $"Signed in to POS as {cashier.FullName}.", token = new JwtSecurityTokenHandler().WriteToken(token) });
         }
+
+        [HttpPost("activate")]
+        [Authorize(Policy = Permissions.ActivatePos)]
+        public IActionResult Activate()
+        {
+            if (User.FindFirst("token_type")?.Value != "company")
+                return Unauthorized();
+
+            return Ok(new { message = "POS terminal activated." });
+        }
+
+        [HttpGet("status")]
+        [Authorize(Policy = Permissions.ActivatePos)]
+        public async Task<IActionResult> GetPosStatus()
+        {
+            if (User.FindFirst("token_type")?.Value != "company")
+                return Unauthorized();
+
+            int companyId = User.GetCurrentCompanyId();
+
+            var users = await _db.Users
+                .AsNoTracking()
+                .Include(u => u.Role)
+                .Where(u =>
+                    u.CompanyId == companyId &&
+                    u.IsActive &&
+                    u.Company.IsActive &&
+                    u.Role.IsActive &&
+                    u.Role.CompanyId == companyId)
+                .ToListAsync();
+
+            var posUserIds = users
+                .Where(u => u.Role.Permissions.Contains(Permissions.ViewPos))
+                .Select(u => u.UserId)
+                .ToArray();
+
+            return Ok(new
+            {
+                posUserCount = posUserIds.Length,
+                soleUserId = posUserIds.Length == 1
+                    ? (int?)posUserIds[0]
+                    : null
+            });
+        }
     }
 }

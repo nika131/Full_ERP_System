@@ -10,6 +10,7 @@ namespace NexusERP.Application.DTOs
         public string Username { get; set; } = string.Empty;
         public int RoleId { get; set; }
         public string RoleName { get; set; } = string.Empty;
+        public bool CanActivatePos { get; set; }
     }
 
     public class SelectCompanyResponseDto

@@ -61,7 +61,7 @@ namespace NexusERP.Infrastructure.Services
                 AccountId = account.AccountId,
                 CompanyId = null,
                 RefreshTokenHash = HashRefreshToken(refreshToken),
-                ClientType = "Web",
+                ClientType = dto.ClientType,
                 CreatedAt = now,
                 ExpiresAt = now.Add(RefreshLifetime)
             };
@@ -74,13 +74,17 @@ namespace NexusERP.Infrastructure.Services
 
         public async Task<AccountSessionResponseDto> RefreshAsync(RefreshAccountSessionDto dto)
         {
-            string refreshHash = HashRefreshToken(dto.RefreshToken);
+            string refreshHash = HashRefreshToken(
+                    dto.RefreshToken ??
+                    throw new UnauthorizedAccessException("No refresh token.")
+                );
 
             var session = await _context.AuthSessions
                 .Include(s => s.Account)
                 .FirstOrDefaultAsync(s =>
                     s.RefreshTokenHash == refreshHash &&
-                    s.CompanyId == null
+                    s.CompanyId == null &&
+                    s.ClientType == dto.ClientType
                 );
 
             var now = DateTime.UtcNow;
@@ -106,21 +110,6 @@ namespace NexusERP.Infrastructure.Services
                 dto.RefreshToken,
                 "Session refreshed successfully."
             );
-        }
-
-        public async Task LogoutAsync(int accountId, Guid sessionId)
-        {
-            var session = await _context.AuthSessions.FirstOrDefaultAsync(s =>
-                s.AccountId == accountId &&
-                s.SessionId == sessionId &&
-                s.RevokedAt == null
-            );
-
-            if (session == null)
-                throw new AppException("Session not found or already closed.");
-
-            session.RevokedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
         }
 
         private AccountSessionResponseDto CreateResponse(Account account, AuthSession session, string refreshToken, string message)
@@ -171,7 +160,7 @@ namespace NexusERP.Infrastructure.Services
             );
         }
 
-        public async Task LogoutByRefreshTokenAsync(string refreshToken)
+        public async Task LogoutByRefreshTokenAsync(string refreshToken, string clientType)
         {
             string hash = HashRefreshToken(refreshToken);
 
@@ -179,6 +168,7 @@ namespace NexusERP.Infrastructure.Services
                 .FirstOrDefaultAsync(s =>
                     s.RefreshTokenHash == hash &&
                     s.CompanyId == null &&
+                    s.ClientType == clientType &&
                     s.RevokedAt == null);
 
             // Logout should be safe to repeat.

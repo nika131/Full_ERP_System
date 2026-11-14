@@ -57,25 +57,14 @@ namespace NexusERP.Domain.Constants
         public const string ManageShifts = "Shifts.Manage";
         public const string ViewPos = "POS.View";
         public const string ManagePosLayout = "POS.ManageLayout";
+        public const string ActivatePos = "POS.Activate";
 
-        // Legacy strings stay temporarily so old code still compiles; NOT available to newly configured roles.
-        public const string UpsertProducts = "Products.Upsert";
-        public const string ManageCategories = "Categories.Manage";
-        public const string ManageSuppliers = "Suppliers.Manage";
-        public const string ManageUsers = "Users.Manage";
-        public const string editTransaction = EditTransaction;
-        public const string deleteTransaction = DeleteTransaction;
 
         public static List<string> GetAllPermissions()
         {
-            var excluded = new HashSet<string>(StringComparer.Ordinal)
-            {
-                nameof(UpsertProducts), nameof(ManageCategories), nameof(ManageSuppliers), nameof(ManageUsers),
-                nameof(editTransaction), nameof(deleteTransaction)
-            };
 
             return typeof(Permissions).GetFields(BindingFlags.Public | BindingFlags.Static)
-                .Where(f => f.IsLiteral && !f.IsInitOnly && f.FieldType == typeof(string) && !excluded.Contains(f.Name))
+                .Where(f => f.IsLiteral && !f.IsInitOnly && f.FieldType == typeof(string))
                 .Select(f => (string)f.GetRawConstantValue()!)
                 .Distinct(StringComparer.Ordinal)
                 .ToList();
